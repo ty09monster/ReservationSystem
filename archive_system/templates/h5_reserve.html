@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>填写预约信息</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light pb-5">
+    <div class="container mt-3">
+        <h5 class="mb-3">新建预约</h5>
+        <form method="POST">
+            <div class="card p-3 shadow-sm mb-3">
+                <div class="mb-3">
+                    <label class="form-label">预约人</label>
+                    <input type="text" class="form-control" value="{{ user.name }} - {{ user.phone }}" disabled>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">参观校区</label>
+                    <select name="area" class="form-select">
+                        {% for c in campuses %}
+                        <option value="{{ c }}">{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">参观日期</label>
+                    <input type="date" name="visit_date" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">时间段</label>
+                    <select name="visit_time" class="form-select">
+                        {% for t in times %}
+                        <option value="{{ t }}">{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">预约类型</label>
+                    <select name="res_type" class="form-select">
+                        <option value="个人">个人参观</option>
+                        <option value="团队">团队参观</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">访客身份</label>
+                    <select name="identity" class="form-select">
+                        <option value="校内师生">校内师生</option>
+                        <option value="校友">校友</option>
+                        <option value="校外人员">校外人员</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">预约缘由</label>
+                    <textarea name="reason" class="form-control" rows="3" placeholder="请简要说明参观目的" required></textarea>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-success w-100 py-2">提交申请</button>
+            <a href="{{ url_for('h5_home') }}" class="btn btn-link w-100 mt-2 text-decoration-none">返回首页</a>
+        </form>
+    </div>
+</body>
+</html>
