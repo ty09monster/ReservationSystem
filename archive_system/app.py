@@ -21,13 +21,24 @@ class SystemConfig(db.Model):
     visit_times = db.Column(db.String(500), default="09:00-11:00,14:00-16:00") # 参观时间段
     daily_limit = db.Column(db.Integer, default=50) # 每日限额
 
+# class User(db.Model):
+#     """用户表"""
+#     id = db.Column(db.Integer, primary_key=True)
+#     id_card = db.Column(db.String(20), unique=True, nullable=False)
+#     name = db.Column(db.String(50), nullable=False)
+#     phone = db.Column(db.String(20), nullable=False)
+    
 class User(db.Model):
     """用户表"""
     id = db.Column(db.Integer, primary_key=True)
-    id_card = db.Column(db.String(20), unique=True, nullable=False)
+    # 新增字段：证件类型，默认为身份证
+    id_type = db.Column(db.String(50), default='身份证', nullable=False)
+    # id_card 字段含义变为“证件号码”
+    id_card = db.Column(db.String(50), unique=True, nullable=False) 
     name = db.Column(db.String(50), nullable=False)
     phone = db.Column(db.String(20), nullable=False)
-    
+
+
 class Admin(db.Model):
     """管理员表"""
     id = db.Column(db.Integer, primary_key=True)
@@ -79,31 +90,69 @@ def init_db():
 def index():
     return redirect(url_for('h5_login'))
 
+# @app.route('/h5/login', methods=['GET', 'POST'])
+# def h5_login():
+#     if 'user_id' in session:
+#         return redirect(url_for('h5_home'))
+    
+#     if request.method == 'POST':
+#         id_card = request.form.get('id_card')
+#         name = request.form.get('name')
+#         phone = request.form.get('phone')
+        
+#         user = User.query.filter_by(id_card=id_card).first()
+#         if not user:
+#             user = User(id_card=id_card, name=name, phone=phone)
+#             db.session.add(user)
+#             db.session.commit()
+#         else:
+#             # 更新信息
+#             user.name = name
+#             user.phone = phone
+#             db.session.commit()
+        
+#         session['user_id'] = user.id
+#         return redirect(url_for('h5_home'))
+        
+#     return render_template('h5_login.html')
+
 @app.route('/h5/login', methods=['GET', 'POST'])
 def h5_login():
     if 'user_id' in session:
         return redirect(url_for('h5_home'))
     
     if request.method == 'POST':
-        id_card = request.form.get('id_card')
+        # 获取表单提交的数据
+        id_type = request.form.get('id_type') # 获取证件类型
+        id_card = request.form.get('id_card') # 获取证件号码
         name = request.form.get('name')
         phone = request.form.get('phone')
         
+        # 简单校验
+        if not id_type or not id_card:
+            flash("请完善证件信息")
+            return redirect(url_for('h5_login'))
+
+        # 查询用户是否存在
         user = User.query.filter_by(id_card=id_card).first()
+        
         if not user:
-            user = User(id_card=id_card, name=name, phone=phone)
+            # 注册新用户：同时保存证件类型和号码
+            user = User(id_type=id_type, id_card=id_card, name=name, phone=phone)
             db.session.add(user)
             db.session.commit()
         else:
-            # 更新信息
+            # 更新信息：如果用户换了证件类型，这里也更新一下
             user.name = name
             user.phone = phone
+            user.id_type = id_type 
             db.session.commit()
         
         session['user_id'] = user.id
         return redirect(url_for('h5_home'))
         
     return render_template('h5_login.html')
+
 
 @app.route('/h5/home')
 def h5_home():

@@ -15,9 +15,16 @@
             <div class="card-body">
                 <h5 class="card-title mb-4">修改个人信息</h5>
                 <form method="POST">
-                    <div class="mb-3">
+                    <!-- <div class="mb-3">
                         <label>身份证号 (不可修改)</label>
                         <input type="text" class="form-control" value="{{ user.id_card }}" disabled>
+                    </div> -->
+                    <div class="mb-3">
+                        <label>证件信息 (不可修改)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">{{ user.id_type }}</span>
+                            <input type="text" class="form-control" value="{{ user.id_card }}" disabled>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label>姓名</label>
