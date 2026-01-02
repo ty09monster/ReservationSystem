@@ -5,43 +5,134 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>档案馆预约 - 登录</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <style>
+        .is-invalid { border-color: #dc3545; background-image: none; }
+        .invalid-feedback { display: none; color: #dc3545; font-size: 0.875em; }
+    </style>
 </head>
 <body class="bg-light">
     <div class="container mt-5">
         <div class="card shadow-sm">
             <div class="card-body p-4">
                 <h4 class="text-center mb-4">访客身份认证</h4>
-                <form method="POST">
+                
+                {% with messages = get_flashed_messages() %}
+                  {% if messages %}
+                    <div class="alert alert-danger">{{ messages[0] }}</div>
+                  {% endif %}
+                {% endwith %}
+
+                <form method="POST" id="loginForm" onsubmit="return validateForm()">
                     <div class="mb-3">
                         <label>姓名</label>
-                        <input type="text" name="name" class="form-control" required placeholder="请输入真实姓名">
+                        <input type="text" name="name" class="form-control" required 
+                               value="{{ prev_name or '' }}" placeholder="请输入真实姓名">
                     </div>
                     
                     <div class="mb-3">
                         <label>证件类型</label>
-                        <select name="id_type" class="form-select" required>
-                            <option value="身份证">身份证</option>
-                            <option value="港澳居民来往内地通行证">港澳居民来往内地通行证</option>
-                            <option value="台湾居民来往大陆通行证">台湾居民来往大陆通行证</option>
-                            <option value="港澳台居民居住证">港澳台居民居住证</option>
-                            <option value="外国人永久居留身份证">外国人永久居留身份证</option>
-                            <option value="护照">护照（仅限外籍人士）</option>
+                        <select name="id_type" id="idType" class="form-select" required onchange="checkIdCard()">
+                            <option value="身份证" {% if prev_id_type == '身份证' %}selected{% endif %}>身份证</option>
+                            <option value="港澳居民来往内地通行证" {% if prev_id_type == '港澳居民来往内地通行证' %}selected{% endif %}>港澳居民来往内地通行证</option>
+                            <option value="台湾居民来往大陆通行证" {% if prev_id_type == '台湾居民来往大陆通行证' %}selected{% endif %}>台湾居民来往大陆通行证</option>
+                            <option value="港澳台居民居住证" {% if prev_id_type == '港澳台居民居住证' %}selected{% endif %}>港澳台居民居住证</option>
+                            <option value="外国人永久居留身份证" {% if prev_id_type == '外国人永久居留身份证' %}selected{% endif %}>外国人永久居留身份证</option>
+                            <option value="护照" {% if prev_id_type == '护照' %}selected{% endif %}>护照（仅限外籍人士）</option>
                         </select>
                     </div>
 
                     <div class="mb-3">
                         <label>证件号码</label>
-                        <input type="text" name="id_card" class="form-control" required placeholder="请输入证件号码">
+                        <input type="text" name="id_card" id="idCard" class="form-control" required 
+                               value="{{ prev_id_card or '' }}" placeholder="请输入证件号码" onblur="checkIdCard()">
+                        <div class="invalid-feedback" id="idError">证件号码格式有误</div>
                     </div>
                     
                     <div class="mb-3">
                         <label>手机号</label>
-                        <input type="tel" name="phone" class="form-control" required placeholder="用于接收通知">
+                        <input type="tel" name="phone" class="form-control" required 
+                               value="{{ prev_phone or '' }}" placeholder="用于接收通知">
                     </div>
                     <button type="submit" class="btn btn-primary w-100">进入系统</button>
                 </form>
             </div>
         </div>
     </div>
+
+    <script>
+        // 前端校验逻辑（复刻 Python 逻辑）
+        function checkIdCard() {
+            const type = document.getElementById('idType').value;
+            const input = document.getElementById('idCard');
+            const errorDiv = document.getElementById('idError');
+            let val = input.value.trim().toUpperCase();
+            input.value = val; // 自动转大写
+
+            let isValid = true;
+            let msg = "";
+
+            if (!val) return; // 空值不校验
+
+            if (type === '身份证' || type === '港澳台居民居住证') {
+                const res = validateCnId(val);
+                isValid = res.valid;
+                msg = res.msg;
+            } else if (type === '港澳居民来往内地通行证') {
+                isValid = /^[HM]\d{8,10}$/.test(val);
+                msg = "格式应为 H/M + 8或10位数字";
+            } else if (type === '台湾居民来往大陆通行证') {
+                isValid = /^\d{8}$/.test(val);
+                msg = "格式应为 8位数字";
+            } else if (type === '外国人永久居留身份证') {
+                if (val.length === 18 && val.startsWith('9')) {
+                    const res = validateCnId(val);
+                    isValid = res.valid;
+                    msg = res.msg;
+                } else {
+                    isValid = /^[A-Z]{3}\d{12}$/.test(val);
+                    msg = "格式应为 15位旧版或18位新版";
+                }
+            }
+
+            // UI 反馈
+            if (isValid) {
+                input.classList.remove('is-invalid');
+                input.classList.add('is-valid');
+                errorDiv.style.display = 'none';
+                return true;
+            } else {
+                input.classList.remove('is-valid');
+                input.classList.add('is-invalid');
+                errorDiv.innerText = msg;
+                errorDiv.style.display = 'block';
+                return false;
+            }
+        }
+
+        // 身份证/居住证 核心算法 (ISO 7064:1983.MOD 11-2)
+        function validateCnId(code) {
+            if (code.length !== 18) return { valid: false, msg: "长度必须为18位" };
+            if (!/^\d{17}[\dX]$/.test(code)) return { valid: false, msg: "包含非法字符" };
+
+            const factor = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+            const parity = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
+            
+            let sum = 0;
+            for (let i = 0; i < 17; i++) {
+                sum += parseInt(code[i]) * factor[i];
+            }
+            
+            const expectedLast = parity[sum % 11];
+            if (code[17] !== expectedLast) {
+                return { valid: false, msg: "校验位错误，请核对号码" };
+            }
+            return { valid: true, msg: "" };
+        }
+
+        // 表单提交拦截
+        function validateForm() {
+            return checkIdCard();
+        }
+    </script>
 </body>
 </html>

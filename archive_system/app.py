@@ -3,11 +3,15 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from validators import validate_certificate
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key_here' # 用于Session加密
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///archive.db' # 数据库文件
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"connect_args": {"check_same_thread": False}}
+
 
 db = SQLAlchemy(app)
 
@@ -124,15 +128,23 @@ def h5_login():
     if request.method == 'POST':
         # 获取表单提交的数据
         id_type = request.form.get('id_type') # 获取证件类型
-        id_card = request.form.get('id_card') # 获取证件号码
+        id_card = request.form.get('id_card').upper().strip() # 获取证件号码
         name = request.form.get('name')
         phone = request.form.get('phone')
         
         # 简单校验
-        if not id_type or not id_card:
-            flash("请完善证件信息")
-            return redirect(url_for('h5_login'))
-
+        # if not id_type or not id_card:
+        #     flash("请完善证件信息")
+        #     return redirect(url_for('h5_login'))
+        is_valid, err_msg = validate_certificate(id_type, id_card)
+        if not is_valid:
+            flash(f"证件错误：{err_msg}")
+            # 保留用户输入，体验更好
+            return render_template('h5_login.html', 
+                                   prev_name=name, 
+                                   prev_phone=phone, 
+                                   prev_id_card=id_card, 
+                                   prev_id_type=id_type)
         # 查询用户是否存在
         user = User.query.filter_by(id_card=id_card).first()
         
