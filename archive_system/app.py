@@ -30,6 +30,8 @@ class SystemConfig(db.Model):
         db.String(500), default="09:00-11:00,14:00-16:00"
     )  # 参观时间段
     daily_limit = db.Column(db.Integer, default=50)  # 每日限额
+    # [新增] 隐私声明内容字段，默认为一段简单的HTML
+    privacy_policy = db.Column(db.Text, default="<p>欢迎使用预约系统，请遵守相关规定...</p>")
 
 
 # class User(db.Model):
@@ -162,13 +164,9 @@ def h5_login():
         is_phone_valid, phone_msg = validate_phone(phone)
         if not is_phone_valid:
             flash(f"手机号错误：{phone_msg}")
-            return render_template(
-                "h5_login.html",
-                prev_name=name,
-                prev_phone=phone,
-                prev_id_card=id_card,
-                prev_id_type=id_type,
-            )
+            # [修改] 渲染时要把最新的 privacy_policy 也传回去，防止页面报错或空缺
+            config = SystemConfig.query.first()
+            return render_template("h5_login.html", prev_name=name, prev_phone=phone, prev_id_card=id_card, prev_id_type=id_type, privacy_policy=config.privacy_policy)
         # 简单校验
         # if not id_type or not id_card:
         #     flash("请完善证件信息")
@@ -176,14 +174,8 @@ def h5_login():
         is_valid, err_msg = validate_certificate(id_type, id_card)
         if not is_valid:
             flash(f"证件错误：{err_msg}")
-            # 保留用户输入，体验更好
-            return render_template(
-                "h5_login.html",
-                prev_name=name,
-                prev_phone=phone,
-                prev_id_card=id_card,
-                prev_id_type=id_type,
-            )
+            config = SystemConfig.query.first()
+            return render_template("h5_login.html", prev_name=name, prev_phone=phone, prev_id_card=id_card, prev_id_type=id_type, privacy_policy=config.privacy_policy)
         # 查询用户是否存在
         user = User.query.filter_by(id_card=id_card).first()
 
@@ -202,7 +194,11 @@ def h5_login():
         session["user_id"] = user.id
         return redirect(url_for("h5_home"))
 
-    return render_template("h5_login.html")
+    # [修改] GET请求：获取配置中的隐私声明，传给前端
+    config = SystemConfig.query.first()
+    # 如果 config 不存在（极端情况），给个默认值
+    policy_text = config.privacy_policy if config else "<p>暂无内容</p>"
+    return render_template("h5_login.html", privacy_policy=policy_text)
 
 
 @app.route("/h5/home")
@@ -363,6 +359,11 @@ def admin_config():
         config.campuses = request.form.get("campuses")
         config.visit_times = request.form.get("visit_times")
         config.daily_limit = request.form.get("daily_limit")
+
+    # [新增] 更新隐私声明逻辑
+    if "update_policy" in request.form:
+        config.privacy_policy = request.form.get("privacy_policy")
+        flash("隐私声明已更新")
 
     # 发布公告
     if "publish_notice" in request.form:
