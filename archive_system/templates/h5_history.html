@@ -49,12 +49,21 @@
                 <p class="card-text small text-muted mb-1" >时间：{{ res.visit_time }}</p>
 
                 <p class="card-text small text-muted mb-1 text-collapse" id="privacyContent">
-                    <!-- 缘由：{{ res.reason }} -->
-                    <span class="preview" style="max-width: 200px;" style="display: inline; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        缘由：{{ res.reason[:50] }} <!-- 框架场景：截取前50个汉字 -->
-                    </span>
-                    <span class="more">{{ res.reason}}</span>
-                    <button class="toggle-btn" onclick="toggleText(this)">展开</button>
+
+                    {% if res.reason and res.reason|length > 50 %}
+                        <!-- 字数>50：显示预览（前50字+省略号）+ 隐藏完整文本 + 展开按钮 -->
+                        <span class="preview" style="display: inline; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            缘由：{{ res.reason[:50] }}
+                        </span>
+                        <span class="more" style="display: none;">缘由：{{ res.reason }}</span>
+                        <button class="toggle-btn" onclick="toggleText(this)">展开</button>
+                    {% else %}
+                        <!-- 字数≤50/空：直接显示完整文本，无按钮 -->
+                        <span style="display: inline;">
+                            缘由：{{ res.reason or '' }}
+                        </span>
+                    {% endif %}
+
                 </p>
 
 

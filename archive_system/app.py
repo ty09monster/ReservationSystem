@@ -378,4 +378,4 @@ def admin_config():
 
 if __name__ == "__main__":
     init_db()  # 初始化数据库
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=8000)
