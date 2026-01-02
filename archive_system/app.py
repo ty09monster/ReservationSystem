@@ -270,21 +270,6 @@ def h5_history():
     return render_template("h5_history.html", reservations=reservations)
 
 
-# @app.route("/h5/profile", methods=["GET", "POST"])
-# def h5_profile():
-#     if "user_id" not in session:
-#         return redirect(url_for("h5_login"))
-#     user = User.query.get(session["user_id"])
-
-#     if request.method == "POST":
-#         user.name = request.form.get("name")
-#         user.phone = request.form.get("phone")
-#         db.session.commit()
-#         flash("个人信息已更新")
-#         return redirect(url_for("h5_home"))
-
-#     return render_template("h5_profile.html", user=user)
-
 @app.route("/h5/profile", methods=["GET", "POST"])
 def h5_profile():
     if "user_id" not in session:
@@ -292,29 +277,11 @@ def h5_profile():
     user = User.query.get(session["user_id"])
 
     if request.method == "POST":
-        # prev_phone = user.phone
         user.name = request.form.get("name")
         user.phone = request.form.get("phone")
-        
-        is_phone_valid, phone_msg = validate_phone(user.phone)
-        
-        if not is_phone_valid:
-            flash(f"手机号错误：{phone_msg}")
-            config = SystemConfig.query.first()
-            return render_template(
-                "h5_profile.html", 
-                user=user,
-                privacy_policy=config.privacy_policy
-            )
-
-        try:
-            db.session.commit()
-            flash("个人信息已更新")
-            return redirect(url_for("h5_home"))
-        except Exception as e:
-            db.session.rollback()  # 出错回滚
-            flash(f"信息更新失败：{str(e)}")
-            return render_template("h5_profile.html", user=user)
+        db.session.commit()
+        flash("个人信息已更新")
+        return redirect(url_for("h5_home"))
 
     return render_template("h5_profile.html", user=user)
 
@@ -411,4 +378,4 @@ def admin_config():
 
 if __name__ == "__main__":
     init_db()  # 初始化数据库
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=8000)
