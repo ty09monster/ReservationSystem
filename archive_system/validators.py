@@ -80,3 +80,23 @@ def validate_certificate(cert_type, cert_no):
         return False, "护照号码格式异常"
     
     return True, "未知证件类型，跳过校验"
+
+def validate_phone(phone):
+    """
+    校验中国大陆手机号
+    规则：
+    1. 必须是11位数字
+    2. 第一位是1
+    3. 第二位是3-9 (目前涵盖了13x, 14x, 15x, 16x, 17x, 18x, 19x)
+    """
+    if not phone:
+        return False, "手机号不能为空"
+    
+    # 正则表达式解释：
+    # ^1      : 以1开头
+    # [3-9]   : 第二位必须是3到9之间的数字
+    # \d{9}$  : 后面紧跟9个数字，直到结束
+    if not re.match(r'^1[3-9]\d{9}$', phone):
+        return False, "请输入有效的11位手机号码"
+        
+    return True, "校验通过"
