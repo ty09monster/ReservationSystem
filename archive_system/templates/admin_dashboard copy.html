@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <title>管理后台</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+</head>
+
+<body>
+    <nav class="navbar navbar-dark bg-dark px-4">
+        <a class="navbar-brand" href="#">档案馆预约管理系统</a>
+        <span class="navbar-text text-white">管理员</span>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-md-2">
+                <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist">
+                    <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-audit">📅 预约审核</button>
+                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-notice">📢 公告管理</button>
+                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-config">⚙️ 系统配置</button>
+                </div>
+            </div>
+
+            <div class="col-md-10">
+                <div class="tab-content">
+
+                    <div class="tab-pane fade show active" id="tab-audit">
+                        <h4>预约申请列表</h4>
+                        <table class="table table-striped table-hover mt-3">
+                            <thead>
+                                <tr>
+                                    <th>提交时间</th>
+                                    <th>姓名</th>
+                                    <th>证件信息</th>
+                                    <th>手机</th>
+                                    <th>身份</th>
+                                    <th>日期/校区</th>
+                                    <th>缘由</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for res in reservations %}
+                                <tr>
+                                    <td>{{ res.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ res.user.name }}</td>
+                                    <td>{{ res.user.id_card }}</td>
+                                    <td>{{ res.user.phone }}</td>
+                                    <td><span class="badge bg-secondary">{{ res.identity }}</span></td>
+                                    <td>{{ res.visit_date }}<br><small>{{ res.area }}</small></td>
+                                    <td style="max-width: 200px;">{{ res.reason }}</td>
+                                    <td>
+                                        {% if res.status == '待审核' %}
+                                        <span class="badge bg-warning text-dark">待审核</span>
+                                        {% elif res.status == '已同意' %}
+                                        <span class="badge bg-success">已同意</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">已拒绝</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if res.status == '待审核' %}
+                                        <form method="POST" action="{{ url_for('admin_audit', res_id=res.id) }}"
+                                            class="d-flex gap-1">
+                                            <button name="action" value="approve"
+                                                class="btn btn-sm btn-success">同意</button>
+                                            <button type="button" class="btn btn-sm btn-danger"
+                                                onclick="promptReject('{{ res.id }}')">拒绝</button>
+
+                                            <input type="hidden" name="action" value="reject" id="action-{{ res.id }}"
+                                                disabled>
+                                            <input type="hidden" name="reject_reason" id="reason-{{ res.id }}">
+                                        </form>
+                                        {% else %}
+                                        <small class="text-muted">已处理</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="tab-pane fade" id="tab-notice">
+                        <div class="card mb-4">
+                            <div class="card-header">发布新公告</div>
+                            <div class="card-body">
+                                <form method="POST" action="{{ url_for('admin_config') }}">
+                                    <input type="hidden" name="publish_notice" value="1">
+                                    <div class="mb-2">
+                                        <input type="text" name="title" class="form-control" placeholder="公告标题"
+                                            required>
+                                    </div>
+                                    <div class="mb-2">
+                                        <textarea name="content" class="form-control" placeholder="公告内容" rows="3"
+                                            required></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">发布</button>
+                                </form>
+                            </div>
+                        </div>
+                        <h5>历史公告</h5>
+                        <ul class="list-group">
+                            {% for notice in announcements %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ notice.title }}
+                                <span class="badge bg-secondary">{{ notice.created_at.strftime('%Y-%m-%d') }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <div class="tab-pane fade" id="tab-config">
+
+                        <div class="card mb-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                系统总开关
+                                <form method="POST" action="{{ url_for('admin_config') }}">
+                                    <input type="hidden" name="toggle_system" value="1">
+                                    {% if config.is_open %}
+                                    <button class="btn btn-danger btn-sm">关闭预约系统</button>
+                                    {% else %}
+                                    <button class="btn btn-success btn-sm">开启预约系统</button>
+                                    {% endif %}
+                                </form>
+                            </div>
+                            <div class="card-body">
+                                当前状态：
+                                {% if config.is_open %}
+                                <span class="text-success fw-bold">开放中</span>
+                                {% else %}
+                                <span class="text-danger fw-bold">已关闭维护</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="card mb-4">
+                            <div class="card-header">基础参数设置</div>
+                            <div class="card-body">
+                                <form method="POST" action="{{ url_for('admin_config') }}">
+                                    <input type="hidden" name="update_config" value="1">
+                                    <div class="mb-3">
+                                        <label>可参观校区 (用逗号分隔)</label>
+                                        <input type="text" name="campuses" class="form-control"
+                                            value="{{ config.campuses }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label>参观时间段 (用逗号分隔)</label>
+                                        <input type="text" name="visit_times" class="form-control"
+                                            value="{{ config.visit_times }}">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">保存配置</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">隐私声明配置</div>
+                            <div class="card-body">
+                                <form method="POST" action="{{ url_for('admin_config') }}">
+                                    <input type="hidden" name="update_policy" value="1">
+
+                                    <div class="mb-3">
+                                        <label class="form-label text-muted small">支持 HTML 格式（例如 &lt;br&gt; 换行，&lt;b&gt;
+                                            加粗）</label>
+                                        <textarea name="privacy_policy" class="form-control"
+                                            rows="8">{{ config.privacy_policy }}</textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">更新隐私声明</button>
+                                </form>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        function promptReject(id) {
+            const reason = prompt("请输入拒绝理由：");
+            if (reason) {
+                document.getElementById('reason-' + id).value = reason;
+                const actionInput = document.getElementById('action-' + id);
+                actionInput.disabled = false; // 启用input以便提交
+                actionInput.form.submit();
+            }
+        }
+    </script>
+</body>
+
+</html>
