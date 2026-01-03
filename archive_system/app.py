@@ -235,20 +235,35 @@ def h5_login():
     return render_template("h5_login.html", privacy_policy=policy_text)
 
 
+# @app.route("/h5/home")
+# def h5_home():
+#     if "user_id" not in session:
+#         return redirect(url_for("h5_login"))
+
+#     user = User.query.get(session["user_id"])
+#     announcements = (
+#         Announcement.query.order_by(Announcement.created_at.desc()).limit(5).all()
+#     )
+#     config = SystemConfig.query.first()
+#     return render_template(
+#         "h5_home.html", user=user, announcements=announcements, config=config
+#     )
+
 @app.route("/h5/home")
 def h5_home():
     if "user_id" not in session:
         return redirect(url_for("h5_login"))
 
     user = User.query.get(session["user_id"])
-    announcements = (
-        Announcement.query.order_by(Announcement.created_at.desc()).limit(5).all()
-    )
+    # 获取所有公告，按时间倒序排列
+    all_announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
     config = SystemConfig.query.first()
     return render_template(
-        "h5_home.html", user=user, announcements=announcements, config=config
+        "h5_home.html", 
+        user=user, 
+        all_announcements=all_announcements,  # 传递所有公告
+        config=config
     )
-
 
 # @app.route("/h5/reserve", methods=["GET", "POST"])
 # def h5_reserve():
