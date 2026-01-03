@@ -3,6 +3,7 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import or_, case
 from validators import validate_certificate, validate_phone
 
 
@@ -270,20 +271,6 @@ def h5_history():
     return render_template("h5_history.html", reservations=reservations)
 
 
-# @app.route("/h5/profile", methods=["GET", "POST"])
-# def h5_profile():
-#     if "user_id" not in session:
-#         return redirect(url_for("h5_login"))
-#     user = User.query.get(session["user_id"])
-
-#     if request.method == "POST":
-#         user.name = request.form.get("name")
-#         user.phone = request.form.get("phone")
-#         db.session.commit()
-#         flash("个人信息已更新")
-#         return redirect(url_for("h5_home"))
-
-#     return render_template("h5_profile.html", user=user)
 
 @app.route("/h5/profile", methods=["GET", "POST"])
 def h5_profile():
@@ -328,24 +315,72 @@ def admin_login():
     return render_template("admin_login.html")
 
 
+# @app.route("/admin/dashboard")
+# def admin_dashboard():
+#     if not session.get("admin_logged_in"):
+#         return redirect(url_for("admin_login"))
+
+#     # 获取数据
+#     reservations = Reservation.query.order_by(Reservation.created_at.desc()).all()
+#     # announcements = Announcement.query.order_by(Reservation.created_at.desc()).all()
+#     announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
+#     config = SystemConfig.query.first()
+
+#     return render_template(
+#         "admin_dashboard.html",
+#         reservations=reservations,
+#         announcements=announcements,
+#         config=config,
+#     )
+
 @app.route("/admin/dashboard")
 def admin_dashboard():
     if not session.get("admin_logged_in"):
         return redirect(url_for("admin_login"))
 
-    # 获取数据
-    reservations = Reservation.query.order_by(Reservation.created_at.desc()).all()
-    # announcements = Announcement.query.order_by(Reservation.created_at.desc()).all()
+    # 1. 获取前端传来的参数
+    keyword = request.args.get('keyword', '').strip()
+    status_filter = request.args.get('status', '').strip()
+
+    # 2. 构建基础查询 (需要 join User 表以便搜索姓名手机)
+    query = Reservation.query.join(User)
+
+    # 3. 处理搜索 (姓名 或 手机号)
+    if keyword:
+        query = query.filter(
+            or_(
+                User.name.contains(keyword),
+                User.phone.contains(keyword)
+            )
+        )
+
+    # 4. 处理状态筛选
+    if status_filter:
+        query = query.filter(Reservation.status == status_filter)
+
+    # 5. 处理排序 (核心逻辑：未审核优先，其次按时间倒序)
+    # 定义排序规则：如果是'待审核'则权重为0，否则为1。按权重升序排。
+    status_order = case(
+        (Reservation.status == '待审核', 0),
+        else_=1
+    )
+    
+    # 应用排序：先看状态权重(0在前)，再看提交时间(新在前)
+    reservations = query.order_by(status_order.asc(), Reservation.created_at.desc()).all()
+
+    # 获取其他数据 (保持不变)
     announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
     config = SystemConfig.query.first()
 
+    # 渲染模板 (把当前的搜索词 keyword 和 status 也传回去，用于回显)
     return render_template(
         "admin_dashboard.html",
         reservations=reservations,
         announcements=announcements,
         config=config,
+        curr_keyword=keyword,
+        curr_status=status_filter
     )
-
 
 # 后台操作接口
 @app.route("/admin/audit/<int:res_id>", methods=["POST"])
