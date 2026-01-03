@@ -391,7 +391,7 @@ def admin_dashboard():
     # 1. 获取前端传来的参数
     keyword = request.args.get('keyword', '').strip()
     status_filter = request.args.get('status', '').strip()
-
+    page = request.args.get('page', 1, type=int) # [新增] 页码
     # 2. 构建基础查询 (需要 join User 表以便搜索姓名手机)
     query = Reservation.query.join(User)
 
@@ -414,9 +414,10 @@ def admin_dashboard():
         (Reservation.status == '待审核', 0),
         else_=1
     )
-    
-    # 应用排序：先看状态权重(0在前)，再看提交时间(新在前)
-    reservations = query.order_by(status_order.asc(), Reservation.created_at.desc()).all()
+    query = query.order_by(status_order.asc(), Reservation.created_at.desc())
+    # 4. [新增] 分页查询 (每页10条)
+    pagination = query.paginate(page=page, per_page=10, error_out=False)
+    reservations = pagination.items # 当前页数据
 
     # 获取其他数据 (保持不变)
     announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
@@ -426,6 +427,7 @@ def admin_dashboard():
     return render_template(
         "admin_dashboard.html",
         reservations=reservations,
+        pagination=pagination, # 传回分页对象
         announcements=announcements,
         config=config,
         curr_keyword=keyword,
@@ -441,6 +443,11 @@ def admin_audit(res_id):
     reject_reason = request.form.get("reject_reason", "")
 
     res = Reservation.query.get(res_id)
+    # [新增] 安全检查：防止重复操作或并发冲突
+    if res.status != '待审核':
+        flash(f"操作被忽略：该预约已被处理 (当前状态: {res.status})")
+        return redirect(url_for("admin_dashboard"))
+
     if action == "approve":
         res.status = "已同意"
         # 模拟微信通知

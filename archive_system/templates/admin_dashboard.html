@@ -6,22 +6,18 @@
     <title>管理后台</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <style>
-        /* [新增] 申请理由的滚动区域样式 */
         .reason-box {
             background-color: #f8f9fa;
             border: 1px solid #dee2e6;
             border-radius: 4px;
             padding: 10px;
             height: 100px;
-            /* 固定高度 */
             overflow-y: auto;
-            /* 内容多了显示滚动条 */
             font-size: 0.9rem;
             color: #495057;
             margin-bottom: 15px;
         }
 
-        /* 弹窗内的标签样式 */
         .detail-label {
             font-weight: bold;
             color: #6c757d;
@@ -33,7 +29,6 @@
             margin-bottom: 12px;
             font-size: 1rem;
             word-break: break-all;
-            /* 防止长字符串撑破布局 */
         }
     </style>
 </head>
@@ -55,6 +50,15 @@
             </div>
 
             <div class="col-md-10">
+                {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    {{ messages[0] }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endif %}
+                {% endwith %}
+
                 <div class="tab-content">
 
                     <div class="tab-pane fade show active" id="tab-audit">
@@ -75,12 +79,10 @@
                                             </option>
                                         </select>
                                     </div>
-
                                     <div class="col-auto">
                                         <input type="text" name="keyword" class="form-control" placeholder="搜索姓名或手机号"
                                             value="{{ curr_keyword }}">
                                     </div>
-
                                     <div class="col-auto">
                                         <button type="submit" class="btn btn-primary">🔍 查询</button>
                                         <a href="{{ url_for('admin_dashboard') }}"
@@ -111,13 +113,10 @@
                                 {% for res in reservations %}
                                 <tr>
                                     <td>{{ res.created_at.strftime('%m-%d %H:%M') }}</td>
-                                    <td>
-                                        {{ res.user.name }}
-                                    </td>
+                                    <td>{{ res.user.name }}</td>
                                     <td><span class="badge bg-secondary">{{ res.identity }}</span></td>
                                     <td>
-                                        {{ res.visit_date }}
-                                        <br>
+                                        {{ res.visit_date }}<br>
                                         <small class="text-muted">{{ res.visit_time }}</small>
                                     </td>
                                     <td>{{ res.area }}</td>
@@ -149,6 +148,24 @@
                                 {% endif %}
                             </tbody>
                         </table>
+
+                        {% if pagination.pages > 1 %}
+                        <nav aria-label="Page navigation" class="mt-4">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                                    <a class="page-link"
+                                        href="{{ url_for('admin_dashboard', page=pagination.prev_num, keyword=curr_keyword, status=curr_status) }}">上一页</a>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link">第 {{ pagination.page }} / {{ pagination.pages }} 页</span>
+                                </li>
+                                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                                    <a class="page-link"
+                                        href="{{ url_for('admin_dashboard', page=pagination.next_num, keyword=curr_keyword, status=curr_status) }}">下一页</a>
+                                </li>
+                            </ul>
+                        </nav>
+                        {% endif %}
                     </div>
 
                     <div class="tab-pane fade" id="tab-notice">
@@ -157,14 +174,10 @@
                             <div class="card-body">
                                 <form method="POST" action="{{ url_for('admin_config') }}">
                                     <input type="hidden" name="publish_notice" value="1">
-                                    <div class="mb-2">
-                                        <input type="text" name="title" class="form-control" placeholder="公告标题"
-                                            required>
-                                    </div>
-                                    <div class="mb-2">
-                                        <textarea name="content" class="form-control" placeholder="公告内容" rows="3"
-                                            required></textarea>
-                                    </div>
+                                    <div class="mb-2"><input type="text" name="title" class="form-control"
+                                            placeholder="公告标题" required></div>
+                                    <div class="mb-2"><textarea name="content" class="form-control" placeholder="公告内容"
+                                            rows="3" required></textarea></div>
                                     <button type="submit" class="btn btn-primary">发布</button>
                                 </form>
                             </div>
@@ -173,8 +186,8 @@
                         <ul class="list-group">
                             {% for notice in announcements %}
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                {{ notice.title }}
-                                <span class="badge bg-secondary">{{ notice.created_at.strftime('%Y-%m-%d') }}</span>
+                                {{ notice.title }} <span class="badge bg-secondary">{{
+                                    notice.created_at.strftime('%Y-%m-%d') }}</span>
                             </li>
                             {% endfor %}
                         </ul>
@@ -186,60 +199,40 @@
                                 系统总开关
                                 <form method="POST" action="{{ url_for('admin_config') }}">
                                     <input type="hidden" name="toggle_system" value="1">
-                                    {% if config.is_open %}
-                                    <button class="btn btn-danger btn-sm">关闭预约系统</button>
-                                    {% else %}
-                                    <button class="btn btn-success btn-sm">开启预约系统</button>
-                                    {% endif %}
+                                    {% if config.is_open %}<button class="btn btn-danger btn-sm">关闭预约系统</button>{% else
+                                    %}<button class="btn btn-success btn-sm">开启预约系统</button>{% endif %}
                                 </form>
                             </div>
-                            <div class="card-body">
-                                当前状态：
-                                {% if config.is_open %}
-                                <span class="text-success fw-bold">开放中</span>
-                                {% else %}
-                                <span class="text-danger fw-bold">已关闭维护</span>
-                                {% endif %}
-                            </div>
+                            <div class="card-body">当前状态：{% if config.is_open %}<span
+                                    class="text-success fw-bold">开放中</span>{% else %}<span
+                                    class="text-danger fw-bold">已关闭维护</span>{% endif %}</div>
                         </div>
-
                         <div class="card mb-4">
                             <div class="card-header">基础参数设置</div>
                             <div class="card-body">
                                 <form method="POST" action="{{ url_for('admin_config') }}">
                                     <input type="hidden" name="update_config" value="1">
-                                    <div class="mb-3">
-                                        <label>可参观校区 (用逗号分隔)</label>
-                                        <input type="text" name="campuses" class="form-control"
-                                            value="{{ config.campuses }}">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label>参观时间段 (用逗号分隔)</label>
-                                        <input type="text" name="visit_times" class="form-control"
-                                            value="{{ config.visit_times }}">
-                                    </div>
+                                    <div class="mb-3"><label>可参观校区 (用逗号分隔)</label><input type="text" name="campuses"
+                                            class="form-control" value="{{ config.campuses }}"></div>
+                                    <div class="mb-3"><label>参观时间段 (用逗号分隔)</label><input type="text" name="visit_times"
+                                            class="form-control" value="{{ config.visit_times }}"></div>
                                     <button type="submit" class="btn btn-primary">保存配置</button>
                                 </form>
                             </div>
                         </div>
-
                         <div class="card">
                             <div class="card-header">隐私声明配置</div>
                             <div class="card-body">
                                 <form method="POST" action="{{ url_for('admin_config') }}">
                                     <input type="hidden" name="update_policy" value="1">
-                                    <div class="mb-3">
-                                        <label class="form-label text-muted small">支持 HTML 格式（例如 &lt;br&gt; 换行，&lt;b&gt;
-                                            加粗）</label>
-                                        <textarea name="privacy_policy" class="form-control"
-                                            rows="8">{{ config.privacy_policy }}</textarea>
-                                    </div>
+                                    <div class="mb-3"><label class="form-label text-muted small">支持 HTML
+                                            格式</label><textarea name="privacy_policy" class="form-control"
+                                            rows="8">{{ config.privacy_policy }}</textarea></div>
                                     <button type="submit" class="btn btn-primary">更新隐私声明</button>
                                 </form>
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -252,7 +245,6 @@
                     <h5 class="modal-title">预约详情</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-6">
@@ -279,11 +271,9 @@
                             <div class="detail-label">身份</div>
                             <div class="detail-value" id="m-identity"></div>
                         </div>
-
                         <div class="col-12">
                             <hr class="my-2">
                         </div>
-
                         <div class="col-6">
                             <div class="detail-label">参观时间</div>
                             <div class="detail-value text-primary" id="m-visitdate"></div>
@@ -293,19 +283,15 @@
                             <div class="detail-value" id="m-area"></div>
                         </div>
                     </div>
-
                     <div class="mb-3">
                         <div class="detail-label">申请理由</div>
                         <div class="reason-box" id="m-reason"></div>
                     </div>
-
-                    <div id="m-old-reject" class="alert alert-danger py-2" style="display:none;">
-                        <strong>拒绝原因：</strong> <span id="m-old-reject-text"></span>
+                    <div id="m-old-reject" class="alert alert-danger py-2" style="display:none;"><strong>拒绝原因：</strong>
+                        <span id="m-old-reject-text"></span>
                     </div>
-
                     <form method="POST" id="auditForm">
                         <input type="hidden" name="action" id="actionInput">
-
                         <div class="collapse mb-3" id="rejectInputArea">
                             <label class="form-label text-danger fw-bold">请填写拒绝理由：</label>
                             <textarea name="reject_reason" id="rejectReasonText" class="form-control border-danger"
@@ -313,21 +299,17 @@
                         </div>
                     </form>
                 </div>
-
                 <div class="modal-footer bg-light">
                     <div id="btn-group-pending"
                         style="display: flex; gap: 10px; width: 100%; justify-content: flex-end;">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-
                         <button type="button" class="btn btn-danger" id="btn-reject-trigger"
                             onclick="showRejectInput()">拒绝</button>
                         <button type="button" class="btn btn-danger" id="btn-reject-confirm"
                             onclick="submitAudit('reject')" style="display:none;">确认拒绝</button>
-
                         <button type="button" class="btn btn-success" id="btn-approve"
                             onclick="submitAudit('approve')">同意</button>
                     </div>
-
                     <div id="btn-group-done" style="display: none;">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
                     </div>
@@ -338,14 +320,10 @@
 
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script>
-        // 初始化 Modal
         var auditModal = new bootstrap.Modal(document.getElementById('auditModal'));
 
-        // 1. 打开弹窗并填充数据
         function openAuditModal(btn) {
             const data = btn.dataset;
-
-            // 填充数据
             document.getElementById('m-time').innerText = data.time;
             document.getElementById('m-name').innerText = data.name;
             document.getElementById('m-phone').innerText = data.phone;
@@ -356,21 +334,25 @@
             document.getElementById('m-area').innerText = data.area;
             document.getElementById('m-reason').innerText = data.reason;
 
-            // 设置表单提交地址
             const form = document.getElementById('auditForm');
             form.action = "/admin/audit/" + data.id;
 
-            // UI 状态重置
+            // 重置 UI
             const pendingGroup = document.getElementById('btn-group-pending');
             const doneGroup = document.getElementById('btn-group-done');
             const rejectArea = document.getElementById('rejectInputArea');
             const oldRejectArea = document.getElementById('m-old-reject');
+            const btnApprove = document.getElementById('btn-approve');
+            const btnRejectConfirm = document.getElementById('btn-reject-confirm');
 
-            rejectArea.classList.remove('show'); // 收起拒绝输入框
+            rejectArea.classList.remove('show');
             document.getElementById('btn-reject-trigger').style.display = 'inline-block';
-            document.getElementById('btn-reject-confirm').style.display = 'none';
-            document.getElementById('btn-approve').disabled = false;
-            document.getElementById('rejectReasonText').value = ''; // 清空输入框
+            btnRejectConfirm.style.display = 'none';
+            btnRejectConfirm.disabled = false;
+            btnRejectConfirm.innerHTML = '确认拒绝';
+            btnApprove.disabled = false;
+            btnApprove.innerHTML = '同意';
+            document.getElementById('rejectReasonText').value = '';
 
             if (data.status === '待审核') {
                 pendingGroup.style.display = 'flex';
@@ -379,8 +361,6 @@
             } else {
                 pendingGroup.style.display = 'none';
                 doneGroup.style.display = 'block';
-
-                // 如果是已拒绝，显示历史原因
                 if (data.status === '已拒绝') {
                     oldRejectArea.style.display = 'block';
                     document.getElementById('m-old-reject-text').innerText = data.rejectreason;
@@ -388,35 +368,40 @@
                     oldRejectArea.style.display = 'none';
                 }
             }
-
             auditModal.show();
         }
 
-        // 2. 点击“拒绝”按钮，展开输入框
         function showRejectInput() {
             document.getElementById('rejectInputArea').classList.add('show');
-            document.getElementById('btn-approve').disabled = true; // 既然要拒绝，就禁用同意
-
-            // 切换按钮显示
+            document.getElementById('btn-approve').disabled = true;
             document.getElementById('btn-reject-trigger').style.display = 'none';
             document.getElementById('btn-reject-confirm').style.display = 'inline-block';
         }
 
-        // 3. 提交审核
+        // [新增] 提交时的防抖和Loading状态
         function submitAudit(actionType) {
             const actionInput = document.getElementById('actionInput');
             actionInput.value = actionType;
+            const form = document.getElementById('auditForm');
 
-            // 拒绝时的非空校验
             if (actionType === 'reject') {
                 const reason = document.getElementById('rejectReasonText').value.trim();
-                if (!reason) {
-                    alert("请填写拒绝理由！");
-                    return;
-                }
+                if (!reason) { alert("请填写拒绝理由！"); return; }
             }
 
-            document.getElementById('auditForm').submit();
+            // 修改按钮状态，防止重复点击
+            const btnApprove = document.getElementById('btn-approve');
+            const btnRejectConfirm = document.getElementById('btn-reject-confirm');
+
+            if (actionType === 'approve') {
+                btnApprove.disabled = true;
+                btnApprove.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 处理中...';
+            } else {
+                btnRejectConfirm.disabled = true;
+                btnRejectConfirm.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 处理中...';
+            }
+
+            form.submit();
         }
     </script>
 </body>
