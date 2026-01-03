@@ -270,6 +270,21 @@ def h5_history():
     return render_template("h5_history.html", reservations=reservations)
 
 
+# @app.route("/h5/profile", methods=["GET", "POST"])
+# def h5_profile():
+#     if "user_id" not in session:
+#         return redirect(url_for("h5_login"))
+#     user = User.query.get(session["user_id"])
+
+#     if request.method == "POST":
+#         user.name = request.form.get("name")
+#         user.phone = request.form.get("phone")
+#         db.session.commit()
+#         flash("个人信息已更新")
+#         return redirect(url_for("h5_home"))
+
+#     return render_template("h5_profile.html", user=user)
+
 @app.route("/h5/profile", methods=["GET", "POST"])
 def h5_profile():
     if "user_id" not in session:
@@ -277,8 +292,19 @@ def h5_profile():
     user = User.query.get(session["user_id"])
 
     if request.method == "POST":
-        user.name = request.form.get("name")
-        user.phone = request.form.get("phone")
+        # 获取表单数据
+        name = request.form.get("name")
+        phone = request.form.get("phone")
+        
+        # 验证手机号
+        is_phone_valid, phone_msg = validate_phone(phone)
+        if not is_phone_valid:
+            flash(f"手机号错误：{phone_msg}")
+            return render_template("h5_profile.html", user=user)
+        
+        # 更新用户信息
+        user.name = name
+        user.phone = phone
         db.session.commit()
         flash("个人信息已更新")
         return redirect(url_for("h5_home"))
