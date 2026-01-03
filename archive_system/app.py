@@ -217,6 +217,47 @@ def h5_home():
     )
 
 
+# @app.route("/h5/reserve", methods=["GET", "POST"])
+# def h5_reserve():
+#     if "user_id" not in session:
+#         return redirect(url_for("h5_login"))
+
+#     config = SystemConfig.query.first()
+#     if not config.is_open:
+#         flash("系统维护中，暂时关闭预约")
+#         return redirect(url_for("h5_home"))
+
+#     if request.method == "POST":
+#         # 收集表单信息
+#         area = request.form.get("area")
+#         visit_date = request.form.get("visit_date")
+#         visit_time = request.form.get("visit_time")
+#         reason = request.form.get("reason")
+#         res_type = request.form.get("res_type")
+#         identity = request.form.get("identity")
+
+#         res = Reservation(
+#             user_id=session["user_id"],
+#             area=area,
+#             visit_date=visit_date,
+#             visit_time=visit_time,
+#             reason=reason,
+#             res_type=res_type,
+#             identity=identity,
+#         )
+#         db.session.add(res)
+#         db.session.commit()
+
+#         # 模拟微信通知
+#         print(f"【模拟微信通知】用户 {session['user_id']} 预约提交成功，等待审核。")
+#         flash("预约提交成功，请等待审核通知")
+#         return redirect(url_for("h5_history"))
+
+#     campuses = config.campuses.split(",")
+#     times = config.visit_times.split(",")
+#     user = User.query.get(session["user_id"])
+#     return render_template("h5_reserve.html", user=user, campuses=campuses, times=times)
+
 @app.route("/h5/reserve", methods=["GET", "POST"])
 def h5_reserve():
     if "user_id" not in session:
@@ -235,6 +276,16 @@ def h5_reserve():
         reason = request.form.get("reason")
         res_type = request.form.get("res_type")
         identity = request.form.get("identity")
+
+        # 校验访问日期
+        from validators import validate_visit_date
+        is_date_valid, date_msg = validate_visit_date(visit_date)
+        if not is_date_valid:
+            flash(date_msg)
+            campuses = config.campuses.split(",")
+            times = config.visit_times.split(",")
+            user = User.query.get(session["user_id"])
+            return render_template("h5_reserve.html", user=user, campuses=campuses, times=times)
 
         res = Reservation(
             user_id=session["user_id"],
@@ -257,7 +308,6 @@ def h5_reserve():
     times = config.visit_times.split(",")
     user = User.query.get(session["user_id"])
     return render_template("h5_reserve.html", user=user, campuses=campuses, times=times)
-
 
 @app.route("/h5/history")
 def h5_history():

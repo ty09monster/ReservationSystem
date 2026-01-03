@@ -10,6 +10,19 @@
 <body class="bg-light pb-5">
     <div class="container mt-3">
         <h5 class="mb-3">新建预约</h5>
+        
+        <!-- 显示错误信息 -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ 'danger' if '错误' in message else 'success' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
         <form method="POST">
             <div class="card p-3 shadow-sm mb-3">
                 <div class="mb-3">
@@ -26,7 +39,9 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">参观日期</label>
-                    <input type="date" name="visit_date" class="form-control" required>
+                    <input type="date" name="visit_date" class="form-control" 
+                           min="{{ moment().format('YYYY-MM-DD') if moment else '' }}" 
+                           required>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">时间段</label>
@@ -60,5 +75,34 @@
             <a href="{{ url_for('h5_home') }}" class="btn btn-link w-100 mt-2 text-decoration-none">返回首页</a>
         </form>
     </div>
+    
+    <script>
+        // 添加前端JavaScript日期校验
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateInput = document.querySelector('input[name="visit_date"]');
+            const today = new Date();
+            const todayStr = today.getFullYear() + '-' + 
+                            String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                            String(today.getDate()).padStart(2, '0');
+            
+            // 设置最小日期为今天
+            dateInput.min = todayStr;
+            
+            // 添加日期校验事件
+            dateInput.addEventListener('change', function() {
+                const selectedDate = new Date(this.value);
+                const currentDate = new Date();
+                
+                // 设置日期为当天零时以进行准确比较
+                currentDate.setHours(0, 0, 0, 0);
+                selectedDate.setHours(0, 0, 0, 0);
+                
+                if (selectedDate < currentDate) {
+                    alert('访问日期不能早于今天');
+                    this.value = '';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
