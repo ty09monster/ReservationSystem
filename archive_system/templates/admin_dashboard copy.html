@@ -59,37 +59,6 @@
 
                     <div class="tab-pane fade show active" id="tab-audit">
                         <h4>预约申请列表</h4>
-
-                        <div class="card bg-light mb-3 mt-3">
-                            <div class="card-body py-3">
-                                <form method="GET" action="{{ url_for('admin_dashboard') }}"
-                                    class="row g-2 align-items-center">
-                                    <div class="col-auto">
-                                        <select name="status" class="form-select">
-                                            <option value="">全部状态</option>
-                                            <option value="待审核" {% if curr_status=='待审核' %}selected{% endif %}>待审核
-                                            </option>
-                                            <option value="已同意" {% if curr_status=='已同意' %}selected{% endif %}>已同意
-                                            </option>
-                                            <option value="已拒绝" {% if curr_status=='已拒绝' %}selected{% endif %}>已拒绝
-                                            </option>
-                                        </select>
-                                    </div>
-
-                                    <div class="col-auto">
-                                        <input type="text" name="keyword" class="form-control" placeholder="搜索姓名或手机号"
-                                            value="{{ curr_keyword }}">
-                                    </div>
-
-                                    <div class="col-auto">
-                                        <button type="submit" class="btn btn-primary">🔍 查询</button>
-                                        <a href="{{ url_for('admin_dashboard') }}"
-                                            class="btn btn-outline-secondary">重置</a>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-
                         <table class="table table-hover mt-3 align-middle">
                             <thead class="table-light">
                                 <tr>
@@ -103,17 +72,10 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% if reservations|length == 0 %}
-                                <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">没有找到匹配的记录</td>
-                                </tr>
-                                {% else %}
                                 {% for res in reservations %}
                                 <tr>
                                     <td>{{ res.created_at.strftime('%m-%d %H:%M') }}</td>
-                                    <td>
-                                        {{ res.user.name }}
-                                    </td>
+                                    <td>{{ res.user.name }}</td>
                                     <td><span class="badge bg-secondary">{{ res.identity }}</span></td>
                                     <td>
                                         {{ res.visit_date }}
@@ -146,7 +108,6 @@
                                     </td>
                                 </tr>
                                 {% endfor %}
-                                {% endif %}
                             </tbody>
                         </table>
                     </div>

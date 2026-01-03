@@ -7,6 +7,7 @@
     <title>档案馆预约 - 登录</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <style>
+        /* --- 原有样式 --- */
         .is-invalid {
             border-color: #dc3545;
             background-image: none;
@@ -16,6 +17,74 @@
             display: none;
             color: #dc3545;
             font-size: 0.875em;
+        }
+
+        /* --- [新增] 协议行样式 --- */
+        .policy-row {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+        .policy-row input[type="checkbox"] {
+            margin-top: 4px;
+            margin-right: 8px;
+            width: 16px;
+            height: 16px;
+        }
+        .policy-link {
+            color: #0d6efd; /* Bootstrap 蓝色 */
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        /* --- [新增] 弹窗遮罩层 (适配微信) --- */
+        .modal-mask {
+            display: none; /* 默认隐藏 */
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1050; /* 比 Bootstrap navbar 高 */
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- [新增] 弹窗主体 --- */
+        .modal-box {
+            background: #fff;
+            width: 85%;
+            max-height: 80%;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .modal-header-custom {
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .modal-body-custom {
+            padding: 15px;
+            overflow-y: auto; /* 内容过长可滚动 */
+            flex: 1;
+            font-size: 14px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .modal-footer-custom {
+            padding: 15px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
         }
     </style>
 </head>
@@ -34,13 +103,13 @@
 
                 <form method="POST" id="loginForm" onsubmit="return validateForm()">
                     <div class="mb-3">
-                        <label>姓名</label>
+                        <label class="form-label">姓名</label>
                         <input type="text" name="name" class="form-control" required value="{{ prev_name or '' }}"
                             placeholder="请输入真实姓名">
                     </div>
 
                     <div class="mb-3">
-                        <label>证件类型</label>
+                        <label class="form-label">证件类型</label>
                         <select name="id_type" id="idType" class="form-select" required onchange="checkIdCard()">
                             <option value="身份证" {% if prev_id_type=='身份证' %}selected{% endif %}>身份证</option>
                             <option value="港澳居民来往内地通行证" {% if prev_id_type=='港澳居民来往内地通行证' %}selected{% endif %}>
@@ -56,26 +125,76 @@
                     </div>
 
                     <div class="mb-3">
-                        <label>证件号码</label>
+                        <label class="form-label">证件号码</label>
                         <input type="text" name="id_card" id="idCard" class="form-control" required
                             value="{{ prev_id_card or '' }}" placeholder="请输入证件号码" onblur="checkIdCard()">
                         <div class="invalid-feedback" id="idError">证件号码格式有误</div>
                     </div>
 
                     <div class="mb-3">
-                        <label>手机号</label>
+                        <label class="form-label">手机号</label>
                         <input type="tel" name="phone" id="phone" class="form-control" required
                             value="{{ prev_phone or '' }}" placeholder="用于接收通知" maxlength="11" onblur="checkPhone()">
                         <div class="invalid-feedback" id="phoneError">手机号格式错误</div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">进入系统</button>
+
+                    <div class="policy-row">
+                        <input type="checkbox" id="agreeCheck" onchange="toggleSubmit()">
+                        <label for="agreeCheck">
+                            我已阅读并同意 <span class="policy-link" onclick="openPrivacyModal()">《预约系统隐私声明与免责条款》</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" id="submitBtn" class="btn btn-primary w-100" disabled>进入系统</button>
                 </form>
             </div>
         </div>
     </div>
 
+    <div class="modal-mask" id="privacyModal">
+        <div class="modal-box">
+            <div class="modal-header-custom">隐私声明与免责条款</div>
+            <div class="modal-body-custom">
+                {{ privacy_policy | safe }}
+            </div>
+            <div class="modal-footer-custom">
+                <button type="button" class="btn btn-success px-4" onclick="closePrivacyModal()">我已阅读</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // 前端校验逻辑（复刻 Python 逻辑）
+        // --- [新增] 1. 按钮启用/禁用逻辑 ---
+        function toggleSubmit() {
+            const checkbox = document.getElementById('agreeCheck');
+            const btn = document.getElementById('submitBtn');
+            // 如果勾选，按钮解除禁用；否则禁用
+            btn.disabled = !checkbox.checked;
+        }
+
+        // --- [新增] 2. 弹窗显示逻辑 ---
+        function openPrivacyModal() {
+            document.getElementById('privacyModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // 禁止背景滚动
+        }
+
+        // --- [新增] 3. 弹窗关闭逻辑 ---
+        function closePrivacyModal() {
+            document.getElementById('privacyModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // 恢复背景滚动
+        }
+
+        // 点击遮罩层也可以关闭
+        document.getElementById('privacyModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePrivacyModal();
+            }
+        });
+
+        // ==========================================
+        // 以下是你原有的前端校验逻辑 (保持不变)
+        // ==========================================
+
         function checkIdCard() {
             const type = document.getElementById('idType').value;
             const input = document.getElementById('idCard');

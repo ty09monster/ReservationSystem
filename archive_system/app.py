@@ -3,6 +3,7 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import or_, case
 from validators import validate_certificate, validate_phone
 
 
@@ -30,6 +31,8 @@ class SystemConfig(db.Model):
         db.String(500), default="09:00-11:00,14:00-16:00"
     )  # 参观时间段
     daily_limit = db.Column(db.Integer, default=50)  # 每日限额
+    # [新增] 隐私声明内容字段，默认为一段简单的HTML
+    privacy_policy = db.Column(db.Text, default="<p>欢迎使用预约系统，请遵守相关规定...</p>")
 
 
 # class User(db.Model):
@@ -162,13 +165,9 @@ def h5_login():
         is_phone_valid, phone_msg = validate_phone(phone)
         if not is_phone_valid:
             flash(f"手机号错误：{phone_msg}")
-            return render_template(
-                "h5_login.html",
-                prev_name=name,
-                prev_phone=phone,
-                prev_id_card=id_card,
-                prev_id_type=id_type,
-            )
+            # [修改] 渲染时要把最新的 privacy_policy 也传回去，防止页面报错或空缺
+            config = SystemConfig.query.first()
+            return render_template("h5_login.html", prev_name=name, prev_phone=phone, prev_id_card=id_card, prev_id_type=id_type, privacy_policy=config.privacy_policy)
         # 简单校验
         # if not id_type or not id_card:
         #     flash("请完善证件信息")
@@ -176,14 +175,8 @@ def h5_login():
         is_valid, err_msg = validate_certificate(id_type, id_card)
         if not is_valid:
             flash(f"证件错误：{err_msg}")
-            # 保留用户输入，体验更好
-            return render_template(
-                "h5_login.html",
-                prev_name=name,
-                prev_phone=phone,
-                prev_id_card=id_card,
-                prev_id_type=id_type,
-            )
+            config = SystemConfig.query.first()
+            return render_template("h5_login.html", prev_name=name, prev_phone=phone, prev_id_card=id_card, prev_id_type=id_type, privacy_policy=config.privacy_policy)
         # 查询用户是否存在
         user = User.query.filter_by(id_card=id_card).first()
 
@@ -202,7 +195,11 @@ def h5_login():
         session["user_id"] = user.id
         return redirect(url_for("h5_home"))
 
-    return render_template("h5_login.html")
+    # [修改] GET请求：获取配置中的隐私声明，传给前端
+    config = SystemConfig.query.first()
+    # 如果 config 不存在（极端情况），给个默认值
+    policy_text = config.privacy_policy if config else "<p>暂无内容</p>"
+    return render_template("h5_login.html", privacy_policy=policy_text)
 
 
 @app.route("/h5/home")
@@ -274,6 +271,7 @@ def h5_history():
     return render_template("h5_history.html", reservations=reservations)
 
 
+
 @app.route("/h5/profile", methods=["GET", "POST"])
 def h5_profile():
     if "user_id" not in session:
@@ -281,8 +279,19 @@ def h5_profile():
     user = User.query.get(session["user_id"])
 
     if request.method == "POST":
-        user.name = request.form.get("name")
-        user.phone = request.form.get("phone")
+        # 获取表单数据
+        name = request.form.get("name")
+        phone = request.form.get("phone")
+        
+        # 验证手机号
+        is_phone_valid, phone_msg = validate_phone(phone)
+        if not is_phone_valid:
+            flash(f"手机号错误：{phone_msg}")
+            return render_template("h5_profile.html", user=user)
+        
+        # 更新用户信息
+        user.name = name
+        user.phone = phone
         db.session.commit()
         flash("个人信息已更新")
         return redirect(url_for("h5_home"))
@@ -306,24 +315,72 @@ def admin_login():
     return render_template("admin_login.html")
 
 
+# @app.route("/admin/dashboard")
+# def admin_dashboard():
+#     if not session.get("admin_logged_in"):
+#         return redirect(url_for("admin_login"))
+
+#     # 获取数据
+#     reservations = Reservation.query.order_by(Reservation.created_at.desc()).all()
+#     # announcements = Announcement.query.order_by(Reservation.created_at.desc()).all()
+#     announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
+#     config = SystemConfig.query.first()
+
+#     return render_template(
+#         "admin_dashboard.html",
+#         reservations=reservations,
+#         announcements=announcements,
+#         config=config,
+#     )
+
 @app.route("/admin/dashboard")
 def admin_dashboard():
     if not session.get("admin_logged_in"):
         return redirect(url_for("admin_login"))
 
-    # 获取数据
-    reservations = Reservation.query.order_by(Reservation.created_at.desc()).all()
-    # announcements = Announcement.query.order_by(Reservation.created_at.desc()).all()
+    # 1. 获取前端传来的参数
+    keyword = request.args.get('keyword', '').strip()
+    status_filter = request.args.get('status', '').strip()
+
+    # 2. 构建基础查询 (需要 join User 表以便搜索姓名手机)
+    query = Reservation.query.join(User)
+
+    # 3. 处理搜索 (姓名 或 手机号)
+    if keyword:
+        query = query.filter(
+            or_(
+                User.name.contains(keyword),
+                User.phone.contains(keyword)
+            )
+        )
+
+    # 4. 处理状态筛选
+    if status_filter:
+        query = query.filter(Reservation.status == status_filter)
+
+    # 5. 处理排序 (核心逻辑：未审核优先，其次按时间倒序)
+    # 定义排序规则：如果是'待审核'则权重为0，否则为1。按权重升序排。
+    status_order = case(
+        (Reservation.status == '待审核', 0),
+        else_=1
+    )
+    
+    # 应用排序：先看状态权重(0在前)，再看提交时间(新在前)
+    reservations = query.order_by(status_order.asc(), Reservation.created_at.desc()).all()
+
+    # 获取其他数据 (保持不变)
     announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
     config = SystemConfig.query.first()
 
+    # 渲染模板 (把当前的搜索词 keyword 和 status 也传回去，用于回显)
     return render_template(
         "admin_dashboard.html",
         reservations=reservations,
         announcements=announcements,
         config=config,
+        curr_keyword=keyword,
+        curr_status=status_filter
     )
-
 
 # 后台操作接口
 @app.route("/admin/audit/<int:res_id>", methods=["POST"])
@@ -364,6 +421,11 @@ def admin_config():
         config.visit_times = request.form.get("visit_times")
         config.daily_limit = request.form.get("daily_limit")
 
+    # [新增] 更新隐私声明逻辑
+    if "update_policy" in request.form:
+        config.privacy_policy = request.form.get("privacy_policy")
+        flash("隐私声明已更新")
+
     # 发布公告
     if "publish_notice" in request.form:
         title = request.form.get("title")
@@ -377,4 +439,4 @@ def admin_config():
 
 if __name__ == "__main__":
     init_db()  # 初始化数据库
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=8000)
