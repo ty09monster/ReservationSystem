@@ -36,16 +36,35 @@
 <body>
     <nav class="navbar navbar-dark bg-dark px-4">
         <a class="navbar-brand" href="#">档案馆预约管理系统</a>
-        <span class="navbar-text text-white">管理员</span>
+        <span class="navbar-text text-white">
+            {% if session['is_super'] %}
+            🚀 超级管理员
+            {% else %}
+            👤 普通管理员
+            {% endif %}
+        </span>
     </nav>
 
     <div class="container-fluid mt-4">
         <div class="row">
             <div class="col-md-2">
                 <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist">
-                    <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-audit">📅 预约审核</button>
-                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-notice">📢 公告管理</button>
-                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-config">⚙️ 系统配置</button>
+                    <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-audit">
+                        📅 预约审核
+                    </button>
+                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-notice">
+                        📢 公告管理
+                    </button>
+                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-config">
+                        ⚙️ 系统配置
+                    </button>
+                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-account">
+                        👮 账号管理
+                    </button>
+
+                    <a href="{{ url_for('admin_logout') }}" class="nav-link text-danger mt-4">
+                        🚪 退出登录
+                    </a>
                 </div>
             </div>
 
@@ -54,7 +73,8 @@
                 {% if messages %}
                 <div class="alert alert-info alert-dismissible fade show" role="alert">
                     {{ messages[0] }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
+                    </button>
                 </div>
                 {% endif %}
                 {% endwith %}
@@ -71,11 +91,14 @@
                                     <div class="col-auto">
                                         <select name="status" class="form-select">
                                             <option value="">全部状态</option>
-                                            <option value="待审核" {% if curr_status=='待审核' %}selected{% endif %}>待审核
+                                            <option value="待审核" {% if curr_status=='待审核' %}selected{% endif %}>
+                                                待审核
                                             </option>
-                                            <option value="已同意" {% if curr_status=='已同意' %}selected{% endif %}>已同意
+                                            <option value="已同意" {% if curr_status=='已同意' %}selected{% endif %}>
+                                                已同意
                                             </option>
-                                            <option value="已拒绝" {% if curr_status=='已拒绝' %}selected{% endif %}>已拒绝
+                                            <option value="已拒绝" {% if curr_status=='已拒绝' %}selected{% endif %}>
+                                                已拒绝
                                             </option>
                                         </select>
                                     </div>
@@ -84,9 +107,12 @@
                                             value="{{ curr_keyword }}">
                                     </div>
                                     <div class="col-auto">
-                                        <button type="submit" class="btn btn-primary">🔍 查询</button>
-                                        <a href="{{ url_for('admin_dashboard') }}"
-                                            class="btn btn-outline-secondary">重置</a>
+                                        <button type="submit" class="btn btn-primary">
+                                            🔍 查询
+                                        </button>
+                                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+                                            重置
+                                        </a>
                                     </div>
                                 </form>
                             </div>
@@ -107,26 +133,40 @@
                             <tbody>
                                 {% if reservations|length == 0 %}
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">没有找到匹配的记录</td>
+                                    <td colspan="7" class="text-center text-muted py-4">
+                                        没有找到匹配的记录
+                                    </td>
                                 </tr>
                                 {% else %}
                                 {% for res in reservations %}
                                 <tr>
                                     <td>{{ res.created_at.strftime('%m-%d %H:%M') }}</td>
                                     <td>{{ res.user.name }}</td>
-                                    <td><span class="badge bg-secondary">{{ res.identity }}</span></td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ res.identity }}
+                                        </span>
+                                    </td>
                                     <td>
                                         {{ res.visit_date }}<br>
-                                        <small class="text-muted">{{ res.visit_time }}</small>
+                                        <small class="text-muted">
+                                            {{ res.visit_time }}
+                                        </small>
                                     </td>
                                     <td>{{ res.area }}</td>
                                     <td>
                                         {% if res.status == '待审核' %}
-                                        <span class="badge bg-warning text-dark">待审核</span>
+                                        <span class="badge bg-warning text-dark">
+                                            待审核
+                                        </span>
                                         {% elif res.status == '已同意' %}
-                                        <span class="badge bg-success">已同意</span>
+                                        <span class="badge bg-success">
+                                            已同意
+                                        </span>
                                         {% else %}
-                                        <span class="badge bg-danger">已拒绝</span>
+                                        <span class="badge bg-danger">
+                                            已拒绝
+                                        </span>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -154,14 +194,20 @@
                             <ul class="pagination justify-content-center">
                                 <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
                                     <a class="page-link"
-                                        href="{{ url_for('admin_dashboard', page=pagination.prev_num, keyword=curr_keyword, status=curr_status) }}">上一页</a>
+                                        href="{{ url_for('admin_dashboard', page=pagination.prev_num, keyword=curr_keyword, status=curr_status) }}">
+                                        上一页
+                                    </a>
                                 </li>
                                 <li class="page-item disabled">
-                                    <span class="page-link">第 {{ pagination.page }} / {{ pagination.pages }} 页</span>
+                                    <span class="page-link">
+                                        第 {{ pagination.page }} / {{ pagination.pages }} 页
+                                    </span>
                                 </li>
                                 <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
                                     <a class="page-link"
-                                        href="{{ url_for('admin_dashboard', page=pagination.next_num, keyword=curr_keyword, status=curr_status) }}">下一页</a>
+                                        href="{{ url_for('admin_dashboard', page=pagination.next_num, keyword=curr_keyword, status=curr_status) }}">
+                                        下一页
+                                    </a>
                                 </li>
                             </ul>
                         </nav>
@@ -174,10 +220,14 @@
                             <div class="card-body">
                                 <form method="POST" action="{{ url_for('admin_config') }}">
                                     <input type="hidden" name="publish_notice" value="1">
-                                    <div class="mb-2"><input type="text" name="title" class="form-control"
-                                            placeholder="公告标题" required></div>
-                                    <div class="mb-2"><textarea name="content" class="form-control" placeholder="公告内容"
-                                            rows="3" required></textarea></div>
+                                    <div class="mb-2">
+                                        <input type="text" name="title" class="form-control" placeholder="公告标题"
+                                            required>
+                                    </div>
+                                    <div class="mb-2">
+                                        <textarea name="content" class="form-control" placeholder="公告内容" rows="3"
+                                            required></textarea>
+                                    </div>
                                     <button type="submit" class="btn btn-primary">发布</button>
                                 </form>
                             </div>
@@ -186,8 +236,10 @@
                         <ul class="list-group">
                             {% for notice in announcements %}
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                {{ notice.title }} <span class="badge bg-secondary">{{
-                                    notice.created_at.strftime('%Y-%m-%d') }}</span>
+                                {{ notice.title }}
+                                <span class="badge bg-secondary">
+                                    {{ notice.created_at.strftime('%Y-%m-%d') }}
+                                </span>
                             </li>
                             {% endfor %}
                         </ul>
@@ -199,40 +251,151 @@
                                 系统总开关
                                 <form method="POST" action="{{ url_for('admin_config') }}">
                                     <input type="hidden" name="toggle_system" value="1">
-                                    {% if config.is_open %}<button class="btn btn-danger btn-sm">关闭预约系统</button>{% else
-                                    %}<button class="btn btn-success btn-sm">开启预约系统</button>{% endif %}
+                                    {% if config.is_open %}
+                                    <button class="btn btn-danger btn-sm">关闭预约系统</button>
+                                    {% else %}
+                                    <button class="btn btn-success btn-sm">开启预约系统</button>
+                                    {% endif %}
                                 </form>
                             </div>
-                            <div class="card-body">当前状态：{% if config.is_open %}<span
-                                    class="text-success fw-bold">开放中</span>{% else %}<span
-                                    class="text-danger fw-bold">已关闭维护</span>{% endif %}</div>
+                            <div class="card-body">
+                                当前状态：
+                                {% if config.is_open %}
+                                <span class="text-success fw-bold">开放中</span>
+                                {% else %}
+                                <span class="text-danger fw-bold">已关闭维护</span>
+                                {% endif %}
+                            </div>
                         </div>
+
                         <div class="card mb-4">
                             <div class="card-header">基础参数设置</div>
                             <div class="card-body">
                                 <form method="POST" action="{{ url_for('admin_config') }}">
                                     <input type="hidden" name="update_config" value="1">
-                                    <div class="mb-3"><label>可参观校区 (用逗号分隔)</label><input type="text" name="campuses"
-                                            class="form-control" value="{{ config.campuses }}"></div>
-                                    <div class="mb-3"><label>参观时间段 (用逗号分隔)</label><input type="text" name="visit_times"
-                                            class="form-control" value="{{ config.visit_times }}"></div>
+                                    <div class="mb-3">
+                                        <label>可参观校区 (用逗号分隔)</label>
+                                        <input type="text" name="campuses" class="form-control"
+                                            value="{{ config.campuses }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label>参观时间段 (用逗号分隔)</label>
+                                        <input type="text" name="visit_times" class="form-control"
+                                            value="{{ config.visit_times }}">
+                                    </div>
                                     <button type="submit" class="btn btn-primary">保存配置</button>
                                 </form>
                             </div>
                         </div>
+
                         <div class="card">
                             <div class="card-header">隐私声明配置</div>
                             <div class="card-body">
                                 <form method="POST" action="{{ url_for('admin_config') }}">
                                     <input type="hidden" name="update_policy" value="1">
-                                    <div class="mb-3"><label class="form-label text-muted small">支持 HTML
-                                            格式</label><textarea name="privacy_policy" class="form-control"
-                                            rows="8">{{ config.privacy_policy }}</textarea></div>
-                                    <button type="submit" class="btn btn-primary">更新隐私声明</button>
+                                    <div class="mb-3">
+                                        <label class="form-label text-muted small">
+                                            支持 HTML 格式（例如 &lt;br&gt; 换行）
+                                        </label>
+                                        <textarea name="privacy_policy" class="form-control"
+                                            rows="8">{{ config.privacy_policy }}</textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        更新隐私声明
+                                    </button>
                                 </form>
                             </div>
                         </div>
                     </div>
+
+                    <div class="tab-pane fade" id="tab-account">
+
+                        <div class="card mb-4">
+                            <div class="card-header bg-warning text-dark">修改我的密码</div>
+                            <div class="card-body">
+                                <form method="POST" action="{{ url_for('admin_account') }}"
+                                    class="row g-2 align-items-center">
+                                    <input type="hidden" name="action" value="change_own_password">
+                                    <div class="col-auto">
+                                        <input type="password" name="new_password" class="form-control"
+                                            placeholder="输入新密码" required>
+                                    </div>
+                                    <div class="col-auto">
+                                        <button type="submit" class="btn btn-dark">确认修改</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        {% if session['is_super'] %}
+                        <div class="card">
+                            <div
+                                class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                                管理员列表
+                                <button class="btn btn-light btn-sm" data-bs-toggle="modal"
+                                    data-bs-target="#addAdminModal">
+                                    + 新增管理员
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-striped align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>用户名</th>
+                                            <th>角色</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for admin in admin_list %}
+                                        <tr>
+                                            <td>{{ admin.id }}</td>
+                                            <td>{{ admin.username }}</td>
+                                            <td>
+                                                {% if admin.is_super %}
+                                                <span class="badge bg-danger">超级管理员</span>
+                                                {% else %}
+                                                <span class="badge bg-info text-dark">普通管理员</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if not admin.is_super %}
+                                                <div class="d-flex gap-2">
+                                                    <form method="POST" action="{{ url_for('admin_account') }}"
+                                                        style="display:inline-flex; gap:5px;">
+                                                        <input type="hidden" name="action" value="reset_password">
+                                                        <input type="hidden" name="admin_id" value="{{ admin.id }}">
+                                                        <input type="text" name="new_password"
+                                                            class="form-control form-control-sm" placeholder="新密码"
+                                                            style="width:100px;" required>
+                                                        <button class="btn btn-sm btn-outline-warning">
+                                                            重置
+                                                        </button>
+                                                    </form>
+
+                                                    <form method="POST" action="{{ url_for('admin_account') }}"
+                                                        onsubmit="return confirm('确定删除该管理员？');">
+                                                        <input type="hidden" name="action" value="delete_admin">
+                                                        <input type="hidden" name="admin_id" value="{{ admin.id }}">
+                                                        <button class="btn btn-sm btn-outline-danger">
+                                                            删除
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                                {% else %}
+                                                <small class="text-muted">不可操作</small>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -283,33 +446,46 @@
                             <div class="detail-value" id="m-area"></div>
                         </div>
                     </div>
+
                     <div class="mb-3">
                         <div class="detail-label">申请理由</div>
                         <div class="reason-box" id="m-reason"></div>
                     </div>
-                    <div id="m-old-reject" class="alert alert-danger py-2" style="display:none;"><strong>拒绝原因：</strong>
+
+                    <div id="m-old-reject" class="alert alert-danger py-2" style="display:none;">
+                        <strong>拒绝原因：</strong>
                         <span id="m-old-reject-text"></span>
                     </div>
+
                     <form method="POST" id="auditForm">
                         <input type="hidden" name="action" id="actionInput">
                         <div class="collapse mb-3" id="rejectInputArea">
-                            <label class="form-label text-danger fw-bold">请填写拒绝理由：</label>
+                            <label class="form-label text-danger fw-bold">
+                                请填写拒绝理由：
+                            </label>
                             <textarea name="reject_reason" id="rejectReasonText" class="form-control border-danger"
                                 rows="2" placeholder="例如：该时间段预约已满"></textarea>
                         </div>
                     </form>
                 </div>
+
                 <div class="modal-footer bg-light">
                     <div id="btn-group-pending"
                         style="display: flex; gap: 10px; width: 100%; justify-content: flex-end;">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+
                         <button type="button" class="btn btn-danger" id="btn-reject-trigger"
                             onclick="showRejectInput()">拒绝</button>
+
                         <button type="button" class="btn btn-danger" id="btn-reject-confirm"
-                            onclick="submitAudit('reject')" style="display:none;">确认拒绝</button>
+                            onclick="submitAudit('reject')" style="display:none;">
+                            确认拒绝
+                        </button>
+
                         <button type="button" class="btn btn-success" id="btn-approve"
                             onclick="submitAudit('approve')">同意</button>
                     </div>
+
                     <div id="btn-group-done" style="display: none;">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
                     </div>
@@ -318,10 +494,39 @@
         </div>
     </div>
 
+    <div class="modal fade" id="addAdminModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增普通管理员</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{{ url_for('admin_account') }}">
+                    <div class="modal-body">
+                        <input type="hidden" name="action" value="create_admin">
+                        <div class="mb-3">
+                            <label>用户名</label>
+                            <input type="text" name="username" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>初始密码</label>
+                            <input type="text" name="password" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">创建</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script>
         var auditModal = new bootstrap.Modal(document.getElementById('auditModal'));
 
+        // 1. 打开审核弹窗
         function openAuditModal(btn) {
             const data = btn.dataset;
             document.getElementById('m-time').innerText = data.time;
@@ -337,7 +542,7 @@
             const form = document.getElementById('auditForm');
             form.action = "/admin/audit/" + data.id;
 
-            // 重置 UI
+            // UI 状态重置
             const pendingGroup = document.getElementById('btn-group-pending');
             const doneGroup = document.getElementById('btn-group-done');
             const rejectArea = document.getElementById('rejectInputArea');
@@ -371,6 +576,7 @@
             auditModal.show();
         }
 
+        // 2. 展开拒绝输入框
         function showRejectInput() {
             document.getElementById('rejectInputArea').classList.add('show');
             document.getElementById('btn-approve').disabled = true;
@@ -378,7 +584,7 @@
             document.getElementById('btn-reject-confirm').style.display = 'inline-block';
         }
 
-        // [新增] 提交时的防抖和Loading状态
+        // 3. 提交审核 (防重复提交)
         function submitAudit(actionType) {
             const actionInput = document.getElementById('actionInput');
             actionInput.value = actionType;
@@ -389,18 +595,19 @@
                 if (!reason) { alert("请填写拒绝理由！"); return; }
             }
 
-            // 修改按钮状态，防止重复点击
             const btnApprove = document.getElementById('btn-approve');
             const btnRejectConfirm = document.getElementById('btn-reject-confirm');
 
+            // Loading 状态
             if (actionType === 'approve') {
                 btnApprove.disabled = true;
-                btnApprove.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 处理中...';
+                btnApprove.innerHTML =
+                    '<span class="spinner-border spinner-border-sm"></span> 处理中...';
             } else {
                 btnRejectConfirm.disabled = true;
-                btnRejectConfirm.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 处理中...';
+                btnRejectConfirm.innerHTML =
+                    '<span class="spinner-border spinner-border-sm"></span> 处理中...';
             }
-
             form.submit();
         }
     </script>

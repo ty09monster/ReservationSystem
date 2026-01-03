@@ -61,6 +61,8 @@ class Admin(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
+    # [新增] 是否为超级管理员
+    is_super = db.Column(db.Boolean, default=False)
 
 
 class Announcement(db.Model):
@@ -97,7 +99,8 @@ def init_db():
         # 创建默认管理员 (账号: admin, 密码: admin)
         if not Admin.query.filter_by(username="admin").first():
             admin = Admin(
-                username="admin", password_hash=generate_password_hash("admin")
+                username="admin", password_hash=generate_password_hash("admin"),
+                is_super=True  # 标记为超级管理员
             )
             db.session.add(admin)
         # 创建默认系统配置
@@ -360,28 +363,13 @@ def admin_login():
         admin = Admin.query.filter_by(username=username).first()
         if admin and check_password_hash(admin.password_hash, password):
             session["admin_logged_in"] = True
+            # [新增] 记录管理员身份信息
+            session["admin_id"] = admin.id
+            session["is_super"] = admin.is_super
             return redirect(url_for("admin_dashboard"))
         flash("用户名或密码错误")
     return render_template("admin_login.html")
 
-
-# @app.route("/admin/dashboard")
-# def admin_dashboard():
-#     if not session.get("admin_logged_in"):
-#         return redirect(url_for("admin_login"))
-
-#     # 获取数据
-#     reservations = Reservation.query.order_by(Reservation.created_at.desc()).all()
-#     # announcements = Announcement.query.order_by(Reservation.created_at.desc()).all()
-#     announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
-#     config = SystemConfig.query.first()
-
-#     return render_template(
-#         "admin_dashboard.html",
-#         reservations=reservations,
-#         announcements=announcements,
-#         config=config,
-#     )
 
 @app.route("/admin/dashboard")
 def admin_dashboard():
@@ -415,13 +403,18 @@ def admin_dashboard():
         else_=1
     )
     query = query.order_by(status_order.asc(), Reservation.created_at.desc())
-    # 4. [新增] 分页查询 (每页10条)
+    # 4. 分页查询 (每页10条)
     pagination = query.paginate(page=page, per_page=10, error_out=False)
     reservations = pagination.items # 当前页数据
 
     # 获取其他数据 (保持不变)
     announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
     config = SystemConfig.query.first()
+
+    #如果是超级管理员，查询所有管理员列表(用于账号管理)
+    admin_list = []
+    if session.get("is_super"):
+        admin_list = Admin.query.all()
 
     # 渲染模板 (把当前的搜索词 keyword 和 status 也传回去，用于回显)
     return render_template(
@@ -431,7 +424,8 @@ def admin_dashboard():
         announcements=announcements,
         config=config,
         curr_keyword=keyword,
-        curr_status=status_filter
+        curr_status=status_filter,
+        admin_list=admin_list # 传回管理员列表
     )
 
 # 后台操作接口
@@ -493,6 +487,71 @@ def admin_config():
     db.session.commit()
     return redirect(url_for("admin_dashboard"))
 
+# [新增] 账号管理路由：处理增删改查
+@app.route("/admin/account", methods=["POST"])
+def admin_account():
+    if not session.get("admin_logged_in"):
+        return redirect(url_for("admin_login"))
+
+    action = request.form.get("action")
+    
+    # 1. 修改自己的密码 (所有管理员均可)
+    if action == "change_own_password":
+        new_pass = request.form.get("new_password")
+        if new_pass:
+            current_admin = Admin.query.get(session["admin_id"])
+            current_admin.password_hash = generate_password_hash(new_pass)
+            db.session.commit()
+            flash("您的密码已修改，请重新登录")
+            session.clear()
+            return redirect(url_for("admin_login"))
+
+    # --- 以下操作仅限超级管理员 ---
+    if not session.get("is_super"):
+        flash("无权操作")
+        return redirect(url_for("admin_dashboard"))
+
+    # 2. 添加普通管理员
+    if action == "create_admin":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        if Admin.query.filter_by(username=username).first():
+            flash("该用户名已存在")
+        else:
+            new_admin = Admin(username=username, password_hash=generate_password_hash(password), is_super=False)
+            db.session.add(new_admin)
+            db.session.commit()
+            flash(f"普通管理员 {username} 创建成功")
+
+    # 3. 删除普通管理员
+    elif action == "delete_admin":
+        admin_id = request.form.get("admin_id")
+        target = Admin.query.get(admin_id)
+        if target and not target.is_super: # 不能删除超级管理员
+            db.session.delete(target)
+            db.session.commit()
+            flash("管理员已删除")
+        else:
+            flash("删除失败：无法删除超级管理员或用户不存在")
+
+    # 4. 重置他人密码
+    elif action == "reset_password":
+        admin_id = request.form.get("admin_id")
+        new_pass = request.form.get("new_password")
+        target = Admin.query.get(admin_id)
+        if target:
+            target.password_hash = generate_password_hash(new_pass)
+            db.session.commit()
+            flash(f"管理员 {target.username} 的密码已重置")
+
+    return redirect(url_for("admin_dashboard"))
+
+@app.route("/admin/logout")
+def admin_logout():
+    # 清除 session 中的所有数据
+    session.clear()
+    flash("您已安全退出")
+    return redirect(url_for("admin_login"))
 
 if __name__ == "__main__":
     init_db()  # 初始化数据库
