@@ -117,6 +117,36 @@ def init_db():
         db.session.commit()
 
 
+# --- 安全拦截器 ---
+@app.before_request
+def check_admin_status():
+    # 1. 只拦截 /admin 开头的路径
+    # 2. 排除登录页(admin_login)、注销页(admin_logout)和静态文件，防止死循环
+    if request.path.startswith('/admin') and \
+       request.endpoint not in ['admin_login', 'admin_logout', 'static']:
+        
+        # 如果当前处于登录状态，进行深度检查
+        if session.get("admin_logged_in"):
+            admin_id = session.get("admin_id")
+            security_token = session.get("security_token")
+            
+            # A. 查库：获取最新用户信息
+            current_admin = Admin.query.get(admin_id)
+            
+            # 异常情况 1: 用户已被删除 (查不到记录)
+            if not current_admin:
+                session.clear()
+                flash("您的账号已被删除，会话中断")
+                return redirect(url_for('admin_login'))
+            
+            # 异常情况 2: 密码已被修改 (Session里的令牌 != 数据库最新哈希尾号)
+            # 注意：current_admin.password_hash 不能为空
+            if current_admin.password_hash and \
+               current_admin.password_hash[-6:] != security_token:
+                session.clear()
+                flash("密码已变更，请重新登录")
+                return redirect(url_for('admin_login'))
+
 # --- 路由：用户端 (H5) ---
 
 
@@ -355,21 +385,41 @@ def h5_profile():
 # --- 路由：后台管理端 (Web) ---
 
 
+# @app.route("/admin/login", methods=["GET", "POST"])
+# def admin_login():
+#     if request.method == "POST":
+#         username = request.form.get("username")
+#         password = request.form.get("password")
+#         admin = Admin.query.filter_by(username=username).first()
+#         if admin and check_password_hash(admin.password_hash, password):
+#             session["admin_logged_in"] = True
+#             # [新增] 记录管理员身份信息
+#             session["admin_id"] = admin.id
+#             session["is_super"] = admin.is_super
+#             return redirect(url_for("admin_dashboard"))
+#         flash("用户名或密码错误")
+#     return render_template("admin_login.html")
+
 @app.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
         admin = Admin.query.filter_by(username=username).first()
+        
         if admin and check_password_hash(admin.password_hash, password):
             session["admin_logged_in"] = True
-            # [新增] 记录管理员身份信息
             session["admin_id"] = admin.id
             session["is_super"] = admin.is_super
+            
+            # [新增] 存入密码哈希的最后6位作为“安全令牌”
+            # 如果管理员改了密码，数据库里的 hash 会变，这里的令牌就会失效
+            session["security_token"] = admin.password_hash[-6:] 
+            
             return redirect(url_for("admin_dashboard"))
+            
         flash("用户名或密码错误")
     return render_template("admin_login.html")
-
 
 @app.route("/admin/dashboard")
 def admin_dashboard():
@@ -499,7 +549,15 @@ def admin_account():
     if action == "change_own_password":
         new_pass = request.form.get("new_password")
         if new_pass:
-            current_admin = Admin.query.get(session["admin_id"])
+            admin_id = session.get("admin_id")
+            current_admin = Admin.query.get(admin_id)
+            
+            # [新增] 安全检查：防止该用户已被物理删除
+            if not current_admin:
+                session.clear()
+                flash("账号异常，请重新登录")
+                return redirect(url_for("admin_login"))
+
             current_admin.password_hash = generate_password_hash(new_pass)
             db.session.commit()
             flash("您的密码已修改，请重新登录")
