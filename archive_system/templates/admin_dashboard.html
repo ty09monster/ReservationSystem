@@ -62,7 +62,7 @@
                         👮 账号管理
                     </button>
 
-                    <a href="{{ url_for('admin_logout') }}" class="nav-link text-danger mt-4">
+                    <a href="{{ url_for('admin.logout') }}" class="nav-link text-danger mt-4">
                         🚪 退出登录
                     </a>
                 </div>
@@ -86,7 +86,7 @@
 
                         <div class="card bg-light mb-3 mt-3">
                             <div class="card-body py-3">
-                                <form method="GET" action="{{ url_for('admin_dashboard') }}"
+                                <form method="GET" action="{{ url_for('admin.dashboard') }}"
                                     class="row g-2 align-items-center">
                                     <div class="col-auto">
                                         <select name="status" class="form-select">
@@ -110,7 +110,7 @@
                                         <button type="submit" class="btn btn-primary">
                                             🔍 查询
                                         </button>
-                                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+                                        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
                                             重置
                                         </a>
                                     </div>
@@ -194,7 +194,7 @@
                             <ul class="pagination justify-content-center">
                                 <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
                                     <a class="page-link"
-                                        href="{{ url_for('admin_dashboard', page=pagination.prev_num, keyword=curr_keyword, status=curr_status) }}">
+                                        href="{{ url_for('admin.dashboard', page=pagination.prev_num, keyword=curr_keyword, status=curr_status) }}">
                                         上一页
                                     </a>
                                 </li>
@@ -205,7 +205,7 @@
                                 </li>
                                 <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
                                     <a class="page-link"
-                                        href="{{ url_for('admin_dashboard', page=pagination.next_num, keyword=curr_keyword, status=curr_status) }}">
+                                        href="{{ url_for('admin.dashboard', page=pagination.next_num, keyword=curr_keyword, status=curr_status) }}">
                                         下一页
                                     </a>
                                 </li>
@@ -218,7 +218,7 @@
                         <div class="card mb-4">
                             <div class="card-header">发布新公告</div>
                             <div class="card-body">
-                                <form method="POST" action="{{ url_for('admin_config') }}">
+                                <form method="POST" action="{{ url_for('admin.config') }}">
                                     <input type="hidden" name="publish_notice" value="1">
                                     <div class="mb-2">
                                         <input type="text" name="title" class="form-control" placeholder="公告标题"
@@ -249,7 +249,7 @@
                         <div class="card mb-4">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 系统总开关
-                                <form method="POST" action="{{ url_for('admin_config') }}">
+                                <form method="POST" action="{{ url_for('admin.config') }}">
                                     <input type="hidden" name="toggle_system" value="1">
                                     {% if config.is_open %}
                                     <button class="btn btn-danger btn-sm">关闭预约系统</button>
@@ -271,7 +271,7 @@
                         <div class="card mb-4">
                             <div class="card-header">基础参数设置</div>
                             <div class="card-body">
-                                <form method="POST" action="{{ url_for('admin_config') }}">
+                                <form method="POST" action="{{ url_for('admin.config') }}">
                                     <input type="hidden" name="update_config" value="1">
                                     <div class="mb-3">
                                         <label>可参观校区 (用逗号分隔)</label>
@@ -291,7 +291,7 @@
                         <div class="card">
                             <div class="card-header">隐私声明配置</div>
                             <div class="card-body">
-                                <form method="POST" action="{{ url_for('admin_config') }}">
+                                <form method="POST" action="{{ url_for('admin.config') }}">
                                     <input type="hidden" name="update_policy" value="1">
                                     <div class="mb-3">
                                         <label class="form-label text-muted small">
@@ -313,7 +313,7 @@
                         <div class="card mb-4">
                             <div class="card-header bg-warning text-dark">修改我的密码</div>
                             <div class="card-body">
-                                <form method="POST" action="{{ url_for('admin_account') }}"
+                                <form method="POST" action="{{ url_for('admin.account') }}"
                                     class="row g-2 align-items-center">
                                     <input type="hidden" name="action" value="change_own_password">
                                     <div class="col-auto">
@@ -362,7 +362,7 @@
                                             <td>
                                                 {% if not admin.is_super %}
                                                 <div class="d-flex gap-2">
-                                                    <form method="POST" action="{{ url_for('admin_account') }}"
+                                                    <form method="POST" action="{{ url_for('admin.account') }}"
                                                         style="display:inline-flex; gap:5px;">
                                                         <input type="hidden" name="action" value="reset_password">
                                                         <input type="hidden" name="admin_id" value="{{ admin.id }}">
@@ -374,7 +374,7 @@
                                                         </button>
                                                     </form>
 
-                                                    <form method="POST" action="{{ url_for('admin_account') }}"
+                                                    <form method="POST" action="{{ url_for('admin.account') }}"
                                                         onsubmit="return confirm('确定删除该管理员？');">
                                                         <input type="hidden" name="action" value="delete_admin">
                                                         <input type="hidden" name="admin_id" value="{{ admin.id }}">
@@ -501,7 +501,7 @@
                     <h5 class="modal-title">新增普通管理员</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form method="POST" action="{{ url_for('admin_account') }}">
+                <form method="POST" action="{{ url_for('admin.account') }}">
                     <div class="modal-body">
                         <input type="hidden" name="action" value="create_admin">
                         <div class="mb-3">

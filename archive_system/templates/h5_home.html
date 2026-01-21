@@ -10,7 +10,7 @@
 <body class="bg-light">
     <div class="bg-primary text-white p-3 d-flex justify-content-between align-items-center">
         <span>欢迎, {{ user.name }}</span>
-        <a href="{{ url_for('h5_profile') }}" class="text-white text-decoration-none border rounded px-2 py-1" style="font-size:0.8rem;">修改信息</a>
+        <a href="{{ url_for('h5.profile') }}" class="text-white text-decoration-none border rounded px-2 py-1" style="font-size:0.8rem;">修改信息</a>
     </div>
 
     <div class="container mt-3">
@@ -62,10 +62,10 @@
         </div>
 
         <div class="d-grid gap-3">
-            <a href="{{ url_for('h5_reserve') }}" class="btn btn-primary btn-lg p-3 shadow-sm {{ 'disabled' if not config.is_open else '' }}">
+            <a href="{{ url_for('h5.reserve') }}" class="btn btn-primary btn-lg p-3 shadow-sm {{ 'disabled' if not config.is_open else '' }}">
                 {{ '立即预约' if config.is_open else '系统维护中' }}
             </a>
-            <a href="{{ url_for('h5_history') }}" class="btn btn-outline-secondary btn-lg p-3 shadow-sm">
+            <a href="{{ url_for('h5.history') }}" class="btn btn-outline-secondary btn-lg p-3 shadow-sm">
                 查看预约记录
             </a>
         </div>

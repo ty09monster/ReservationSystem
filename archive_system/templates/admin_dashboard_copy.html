@@ -66,7 +66,7 @@
 
                         <div class="card bg-light mb-3 mt-3">
                             <div class="card-body py-3">
-                                <form method="GET" action="{{ url_for('admin_dashboard') }}"
+                                <form method="GET" action="{{ url_for('admin.dashboard') }}"
                                     class="row g-2 align-items-center">
                                     <div class="col-auto">
                                         <select name="status" class="form-select">
@@ -85,7 +85,7 @@
                                     </div>
                                     <div class="col-auto">
                                         <button type="submit" class="btn btn-primary">🔍 查询</button>
-                                        <a href="{{ url_for('admin_dashboard') }}"
+                                        <a href="{{ url_for('admin.dashboard') }}"
                                             class="btn btn-outline-secondary">重置</a>
                                     </div>
                                 </form>
@@ -154,14 +154,14 @@
                             <ul class="pagination justify-content-center">
                                 <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
                                     <a class="page-link"
-                                        href="{{ url_for('admin_dashboard', page=pagination.prev_num, keyword=curr_keyword, status=curr_status) }}">上一页</a>
+                                        href="{{ url_for('admin.dashboard', page=pagination.prev_num, keyword=curr_keyword, status=curr_status) }}">上一页</a>
                                 </li>
                                 <li class="page-item disabled">
                                     <span class="page-link">第 {{ pagination.page }} / {{ pagination.pages }} 页</span>
                                 </li>
                                 <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
                                     <a class="page-link"
-                                        href="{{ url_for('admin_dashboard', page=pagination.next_num, keyword=curr_keyword, status=curr_status) }}">下一页</a>
+                                        href="{{ url_for('admin.dashboard', page=pagination.next_num, keyword=curr_keyword, status=curr_status) }}">下一页</a>
                                 </li>
                             </ul>
                         </nav>
@@ -172,7 +172,7 @@
                         <div class="card mb-4">
                             <div class="card-header">发布新公告</div>
                             <div class="card-body">
-                                <form method="POST" action="{{ url_for('admin_config') }}">
+                                <form method="POST" action="{{ url_for('admin.config') }}">
                                     <input type="hidden" name="publish_notice" value="1">
                                     <div class="mb-2"><input type="text" name="title" class="form-control"
                                             placeholder="公告标题" required></div>
@@ -197,7 +197,7 @@
                         <div class="card mb-4">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 系统总开关
-                                <form method="POST" action="{{ url_for('admin_config') }}">
+                                <form method="POST" action="{{ url_for('admin.config') }}">
                                     <input type="hidden" name="toggle_system" value="1">
                                     {% if config.is_open %}<button class="btn btn-danger btn-sm">关闭预约系统</button>{% else
                                     %}<button class="btn btn-success btn-sm">开启预约系统</button>{% endif %}
@@ -210,7 +210,7 @@
                         <div class="card mb-4">
                             <div class="card-header">基础参数设置</div>
                             <div class="card-body">
-                                <form method="POST" action="{{ url_for('admin_config') }}">
+                                <form method="POST" action="{{ url_for('admin.config') }}">
                                     <input type="hidden" name="update_config" value="1">
                                     <div class="mb-3"><label>可参观校区 (用逗号分隔)</label><input type="text" name="campuses"
                                             class="form-control" value="{{ config.campuses }}"></div>
@@ -223,7 +223,7 @@
                         <div class="card">
                             <div class="card-header">隐私声明配置</div>
                             <div class="card-body">
-                                <form method="POST" action="{{ url_for('admin_config') }}">
+                                <form method="POST" action="{{ url_for('admin.config') }}">
                                     <input type="hidden" name="update_policy" value="1">
                                     <div class="mb-3"><label class="form-label text-muted small">支持 HTML
                                             格式</label><textarea name="privacy_policy" class="form-control"
