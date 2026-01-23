@@ -100,3 +100,26 @@ def validate_phone(phone):
         return False, "请输入有效的11位手机号码"
         
     return True, "校验通过"
+
+def validate_visit_date(visit_date_str):
+    """
+    校验访问日期必须不早于当前日期
+    参数: visit_date_str - 访问日期字符串，格式应为 'YYYY-MM-DD'
+    返回: (is_valid, message) - 校验结果和提示信息
+    """
+    if not visit_date_str:
+        return False, "访问日期不能为空"
+    
+    try:
+        # 将字符串转换为日期对象
+        visit_date = datetime.strptime(visit_date_str, '%Y-%m-%d')
+        current_date = datetime.now().date()
+        
+        # 比较日期
+        if visit_date.date() < current_date:
+            return False, f"访问日期不能早于今天 ({current_date.strftime('%Y-%m-%d')})"
+        
+        return True, "日期校验通过"
+    
+    except ValueError:
+        return False, "日期格式不正确，请使用 YYYY-MM-DD 格式"

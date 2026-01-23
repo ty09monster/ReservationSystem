@@ -10,7 +10,7 @@
 <body class="bg-light">
     <div class="bg-primary text-white p-3 d-flex justify-content-between align-items-center">
         <span>欢迎, {{ user.name }}</span>
-        <a href="{{ url_for('h5_profile') }}" class="text-white text-decoration-none border rounded px-2 py-1" style="font-size:0.8rem;">修改信息</a>
+        <a href="{{ url_for('h5.profile') }}" class="text-white text-decoration-none border rounded px-2 py-1" style="font-size:0.8rem;">修改信息</a>
     </div>
 
     <div class="container mt-3">
@@ -21,37 +21,51 @@
         {% endwith %}
 
         <div class="card mb-4 shadow-sm">
-            <div class="card-header bg-white fw-bold">📢 最新公告</div>
-            <div class="list-group list-group-flush">
-                {% for notice in announcements %}
-                <button type="button" class="list-group-item list-group-item-action" data-bs-toggle="modal" data-bs-target="#noticeModal{{ notice.id }}">
-                    <div class="d-flex w-100 justify-content-between">
-                        <h6 class="mb-1 text-truncate" style="max-width: 70%;">{{ notice.title }}</h6>
-                        <small class="text-muted">{{ notice.created_at.strftime('%m-%d') }}</small>
-                    </div>
-                    <small class="text-muted text-truncate d-block">{{ notice.content }}</small>
+            <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+                <span>📢 最新公告</span>
+                <button id="toggleAnnouncements" class="btn btn-sm btn-outline-primary" onclick="toggleAnnouncements()">
+                    展开全部 <span id="toggleIcon">▼</span>
                 </button>
-                
-                <div class="modal fade" id="noticeModal{{ notice.id }}" tabindex="-1">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">{{ notice.title }}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="list-group list-group-flush" id="announcementsList">
+                {% for notice in all_announcements %}
+                <div class="announcement-item {{ loop.index > 3 and 'hidden' }}" data-index="{{ loop.index }}">
+                    <button type="button" class="list-group-item list-group-item-action" data-bs-toggle="modal" data-bs-target="#noticeModal{{ notice.id }}">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1 text-truncate" style="max-width: 70%;">{{ notice.title }}</h6>
+                            <small class="text-muted">{{ notice.created_at.strftime('%m-%d') }}</small>
+                        </div>
+                        <small class="text-muted text-truncate d-block">{{ notice.content }}</small>
+                    </button>
+                    
+                    <div class="modal fade" id="noticeModal{{ notice.id }}" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">{{ notice.title }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">{{ notice.content }}</div>
                             </div>
-                            <div class="modal-body">{{ notice.content }}</div>
                         </div>
                     </div>
                 </div>
                 {% endfor %}
             </div>
+            <!-- 展开/收起按钮 -->
+            <div id="showMoreContainer" class="d-none">
+                <button class="btn btn-light w-100" onclick="toggleAnnouncements()">
+                    <span id="showMoreText">展开全部公告</span>
+                    <span id="showLessText" class="d-none">收起公告</span>
+                </button>
+            </div>
         </div>
 
         <div class="d-grid gap-3">
-            <a href="{{ url_for('h5_reserve') }}" class="btn btn-primary btn-lg p-3 shadow-sm {{ 'disabled' if not config.is_open else '' }}">
+            <a href="{{ url_for('h5.reserve') }}" class="btn btn-primary btn-lg p-3 shadow-sm {{ 'disabled' if not config.is_open else '' }}">
                 {{ '立即预约' if config.is_open else '系统维护中' }}
             </a>
-            <a href="{{ url_for('h5_history') }}" class="btn btn-outline-secondary btn-lg p-3 shadow-sm">
+            <a href="{{ url_for('h5.history') }}" class="btn btn-outline-secondary btn-lg p-3 shadow-sm">
                 查看预约记录
             </a>
         </div>
@@ -59,5 +73,63 @@
     
     <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> -->
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    
+    <script>
+        // 默认显示的公告数量
+        const MAX_VISIBLE_ANNOUNCEMENTS = 3;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始隐藏超过最大数量的公告
+            const announcementItems = document.querySelectorAll('.announcement-item');
+            const showMoreContainer = document.getElementById('showMoreContainer');
+            
+            if (announcementItems.length > MAX_VISIBLE_ANNOUNCEMENTS) {
+                // 显示展开按钮
+                showMoreContainer.classList.remove('d-none');
+                
+                // 隐藏超过数量的公告
+                for (let i = MAX_VISIBLE_ANNOUNCEMENTS; i < announcementItems.length; i++) {
+                    announcementItems[i].classList.add('d-none');
+                }
+            } else {
+                // 如果公告数量不超过限制，隐藏展开按钮
+                showMoreContainer.classList.add('d-none');
+            }
+        });
+        
+        function toggleAnnouncements() {
+            const announcementItems = document.querySelectorAll('.announcement-item');
+            const showMoreContainer = document.getElementById('showMoreContainer');
+            const showMoreText = document.getElementById('showMoreText');
+            const showLessText = document.getElementById('showLessText');
+            const toggleIcon = document.getElementById('toggleIcon');
+            
+            let anyHidden = false;
+            for (let i = MAX_VISIBLE_ANNOUNCEMENTS; i < announcementItems.length; i++) {
+                if (announcementItems[i].classList.contains('d-none')) {
+                    anyHidden = true;
+                    break;
+                }
+            }
+            
+            if (anyHidden) {
+                // 展开：显示所有公告
+                for (let i = MAX_VISIBLE_ANNOUNCEMENTS; i < announcementItems.length; i++) {
+                    announcementItems[i].classList.remove('d-none');
+                }
+                showMoreText.classList.add('d-none');
+                showLessText.classList.remove('d-none');
+                toggleIcon.textContent = '▲';
+            } else {
+                // 收起：隐藏超过数量的公告
+                for (let i = MAX_VISIBLE_ANNOUNCEMENTS; i < announcementItems.length; i++) {
+                    announcementItems[i].classList.add('d-none');
+                }
+                showMoreText.classList.remove('d-none');
+                showLessText.classList.add('d-none');
+                toggleIcon.textContent = '▼';
+            }
+        }
+    </script>
 </body>
 </html>
