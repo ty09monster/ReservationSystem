@@ -2,6 +2,13 @@ import os
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY") or "your_secret_key_here"
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or "sqlite:///archive.db"
+    # MySQL连接配置（使用新用户名和密码）
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or "mysql://henau:henau123456@localhost/archive_system"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    # SQLALCHEMY_ENGINE_OPTIONS = {"connect_args": {"check_same_thread": False}} # SQLite专用，MySQL需注释
+    # 添加连接池配置
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 10,
+        'pool_recycle': 3600,#连接回收时间
+        'pool_pre_ping': True,#连接前检查
+        'max_overflow': 20
+    }
