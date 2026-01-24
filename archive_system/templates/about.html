@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="河南农业大学校史馆介绍，了解校史馆的历史、使命与愿景">
+    <meta name="keywords" content="河南农业大学,校史馆,历史沿革,开放信息,联系方式">
+    <!-- 微信H5特定的meta标签 -->
+    <meta name="format-detection" content="telephone=no, email=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="河南农业大学校史馆">
+    <!-- 微信分享配置 -->
+    <meta property="og:title" content="关于我们 - 河南农业大学校史馆">
+    <meta property="og:description" content="河南农业大学校史馆介绍，了解校史馆的历史、使命与愿景">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url }}">
+    <title>关于我们 - 河南农业大学校史馆</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
+</head>
+
+<body>
+    <!-- 加载动画 -->
+    <div class="loading" id="loading"></div>
+
+    <!-- 顶部导航栏 -->
+    <nav class="top-nav">
+        <div class="back-btn" onclick="window.history.back()">
+            <i class="icon icon-back"></i>
+        </div>
+        <h1>关于我们</h1>
+        <div class="nav-right"></div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <!-- 英雄区域 -->
+        <section class="hero-section">
+            <div class="container">
+                <h2>关于河南农业大学校史馆</h2>
+                <p>了解校史馆的历史、使命与愿景</p>
+            </div>
+        </section>
+
+        <!-- 校史馆简介 -->
+        <section class="info-section">
+            <h3>校史馆简介</h3>
+            <div class="card">
+                <p>河南农业大学校史馆是学校建校120多年来办学历史的缩影，记录着学校办学过程中的重要事件、人物和成果。馆内展示了学校从1902年河南大学堂时期至今的发展历程，包括学校更名、校区变迁、学科建设、人才培养等各个方面的重要历史资料。
+                </p>
+                <p>校史馆不仅是学校历史的见证者，也是学校文化传承的重要载体，是对师生进行爱校教育的重要基地，同时也是对外展示学校形象的重要窗口。</p>
+                <p>河南农业大学档案馆（农业资源标本馆）是收集、保管和提供利用学校档案的专门机构，是学校档案管理工作的职能部门，同时也是教学科研、学生实习和对外交流的基地，是展示学校历史文化的重要窗口。</p>
+                <p>通过参观校史馆，您可以深入了解学校历史背景、办学历程、杰出专家、学科特色等情况，以及办学121年来，河南农大为河南经济社会作出的重要贡献和保障国家粮食安全上的突出成就。</p>
+            </div>
+        </section>
+
+        <!-- 历史沿革 -->
+        <section class="info-section">
+            <h3>历史沿革</h3>
+            <div class="card">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <h4>1902年</h4>
+                        <p>河南大学堂创建，是河南最悠久的高等学府</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>1912年</h4>
+                        <p>经教育部批准，改办为河南公立农业专门学校，河南高等农业教育由此开端</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>1984年</h4>
+                        <p>12月20日，学校更名河南农业大学</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>2011年</h4>
+                        <p>校史渊源考证成果之一，将建校源头追溯到1902年创建的河南大学堂</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>2024年</h4>
+                        <p>河南农业大学校史馆招募志愿讲解员，进一步完善校史馆服务功能</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 开放信息 -->
+        <section class="info-section">
+            <h3>开放信息</h3>
+            <div class="card">
+                <h4>开放时间</h4>
+                <ul>
+                    <li>周一至周五：08:00-12:00，14:30-17:30</li>
+                    <li>周六：闭馆</li>
+                    <li>周日：闭馆</li>
+                    <li>温馨提示：开馆时间为法定工作日，法定节假日闭馆</li>
+                </ul>
+                <h4 class="mt-4">参观须知</h4>
+                <ul>
+                    <li>参观需提前1-3天预约</li>
+                    <li>入馆时请出示有效证件</li>
+                    <li>馆内禁止拍照、触摸展品</li>
+                    <li>团体参观需提前一周预约</li>
+                    <li>请保持馆内安静，不要大声喧哗</li>
+                    <li>请遵守馆内秩序，服从工作人员管理</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 联系方式 -->
+        <section class="contact-section">
+            <h3>联系方式</h3>
+            <div class="card">
+                <p><strong>联系电话：</strong>0371-63558927</p>
+                <p><strong>电子邮箱：</strong>archives@henau.edu.cn</p>
+                <p><strong>地址：</strong>河南省郑州市郑东新区龙子湖高校园区</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- 底部导航 -->
+    <nav class="bottom-nav">
+        <a href="{{ url_for('h5.index') }}" class="bottom-nav-item">
+            <i class="icon icon-home"></i>
+            <span>首页</span>
+        </a>
+        <a href="{{ url_for('h5.announcements') }}" class="bottom-nav-item">
+            <i class="icon icon-news"></i>
+            <span>公告</span>
+        </a>
+        <a href="{{ url_for('h5.about') }}" class="bottom-nav-item active">
+            <i class="icon icon-about"></i>
+            <span>关于</span>
+        </a>
+        <a href="{{ url_for('h5.login') }}" class="bottom-nav-item">
+            <i class="icon icon-user"></i>
+            <span>登录</span>
+        </a>
+    </nav>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <p>&copy; <span id="currentYear"></span> 河南农业大学校史馆预约系统 版权所有</p>
+    </footer>
+
+    <script>
+        // 页面加载完成后隐藏加载动画
+        window.onload = function () {
+            setTimeout(function () {
+                document.getElementById('loading').style.display = 'none';
+            }, 1000);
+
+            // 设置当前年份
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+        };
+    </script>
+</body>
+
+</html>

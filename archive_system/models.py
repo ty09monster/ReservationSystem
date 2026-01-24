@@ -19,7 +19,7 @@ class User(db.Model):
     id_card = db.Column(db.String(50), unique=True, nullable=False, index=True, comment='证件号码')
     name = db.Column(db.String(50), nullable=False, comment='姓名')
     phone = db.Column(db.String(20), nullable=False, comment='手机号')
-    created_at = db.Column(db.DateTime, default=datetime.now, comment='创建时间')
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, comment='创建时间')
 
 class Admin(db.Model):
     """管理员表"""
@@ -35,7 +35,9 @@ class Announcement(db.Model):
     __tablename__ = 'announcement'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String(100), nullable=False, comment='公告标题')
-    content = db.Column(db.Text, nullable=False, comment='公告内容')
+    content = db.Column(db.Text, nullable=False, comment='公告内容，最大5000字符')
+    is_pinned = db.Column(db.Boolean, default=False, index=True, comment='是否顶置')
+    is_hidden = db.Column(db.Boolean, default=False, index=True, comment='是否隐藏')
     created_at = db.Column(db.DateTime, default=datetime.now, index=True, comment='创建时间')
 
 class Reservation(db.Model):
@@ -52,6 +54,6 @@ class Reservation(db.Model):
     status = db.Column(db.String(20), default="待审核", index=True, comment='状态：待审核, 已同意, 已拒绝')
     reject_reason = db.Column(db.String(200), comment='拒绝原因')
     created_at = db.Column(db.DateTime, default=datetime.now, index=True, comment='创建时间')
-    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, comment='更新时间')
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, nullable=False, comment='更新时间')
 
     user = db.relationship("User", backref=db.backref("reservations", lazy=True))

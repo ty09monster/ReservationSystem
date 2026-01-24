@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="河南农业大学校史馆公告列表，查看最新通知和活动信息">
+    <meta name="keywords" content="河南农业大学,校史馆,公告,通知">
+    <!-- 微信H5特定的meta标签 -->
+    <meta name="format-detection" content="telephone=no, email=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="河南农业大学校史馆">
+    <!-- 微信分享配置 -->
+    <meta property="og:title" content="公告列表 - 河南农业大学校史馆">
+    <meta property="og:description" content="河南农业大学校史馆公告列表，查看最新通知和活动信息">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url }}">
+    <title>公告列表 - 河南农业大学校史馆</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
+</head>
+
+<body>
+    <!-- 加载动画 -->
+    <div class="loading" id="loading"></div>
+
+    <!-- 顶部导航栏 -->
+    <nav class="top-nav">
+        <div class="back-btn" onclick="window.history.back()">
+            <i class="icon icon-back"></i>
+        </div>
+        <h1>公告列表</h1>
+        <div class="nav-right"></div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <!-- 英雄区域 -->
+        <section class="hero-section">
+            <div class="container">
+                <h2>公告列表</h2>
+                <p>查看河南农业大学校史馆最新公告和重要通知</p>
+            </div>
+        </section>
+
+        <!-- 公告列表 -->
+        <section class="announcement-section">
+            <h3>最新公告</h3>
+            <div class="announcement-list">
+                {% if announcements %}
+                {% for announcement in announcements %}
+                <div class="announcement-item">
+                    <h4>{{ announcement.title }}</h4>
+                    <span class="date">{{ announcement.created_at.strftime('%Y-%m-%d') }}</span>
+                    <p>{{ announcement.content|safe }}</p>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="card">
+                    <h4>暂无公告</h4>
+                    <p>请稍后再查看，或返回首页了解更多信息</p>
+                    <a href="{{ url_for('h5.index') }}" class="btn btn-primary">返回首页</a>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+
+    <!-- 底部导航 -->
+    <nav class="bottom-nav">
+        <a href="{{ url_for('h5.index') }}" class="bottom-nav-item">
+            <i class="icon icon-home"></i>
+            <span>首页</span>
+        </a>
+        <a href="{{ url_for('h5.announcements') }}" class="bottom-nav-item active">
+            <i class="icon icon-news"></i>
+            <span>公告</span>
+        </a>
+        <a href="{{ url_for('h5.about') }}" class="bottom-nav-item">
+            <i class="icon icon-about"></i>
+            <span>关于</span>
+        </a>
+        <a href="{{ url_for('h5.login') }}" class="bottom-nav-item">
+            <i class="icon icon-user"></i>
+            <span>登录</span>
+        </a>
+    </nav>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <p>&copy; <span id="currentYear"></span> 河南农业大学校史馆预约系统 版权所有</p>
+    </footer>
+
+    <script>
+        // 页面加载完成后隐藏加载动画
+        window.onload = function () {
+            setTimeout(function () {
+                document.getElementById('loading').style.display = 'none';
+            }, 1000);
+
+            // 设置当前年份
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+        };
+    </script>
+</body>
+
+</html>

@@ -225,24 +225,125 @@
                                             required>
                                     </div>
                                     <div class="mb-2">
-                                        <textarea name="content" class="form-control" placeholder="公告内容" rows="3"
-                                            required></textarea>
+                                        <label class="form-label text-muted small">
+                                            支持 HTML 格式，内容长度限制 5000 字符
+                                        </label>
+                                        <textarea name="content" class="form-control" placeholder="公告内容" rows="4"
+                                            required maxlength="5000"></textarea>
+                                        <div class="text-muted small mt-1">
+                                            <span id="content-length">0</span>/5000
+                                        </div>
                                     </div>
+                                    <script>
+                                        document.querySelector('textarea[name="content"]').addEventListener('input', function() {
+                                            document.getElementById('content-length').textContent = this.value.length;
+                                        });
+                                    </script>
                                     <button type="submit" class="btn btn-primary">发布</button>
                                 </form>
                             </div>
                         </div>
                         <h5>历史公告</h5>
-                        <ul class="list-group">
+                        <div class="list-group">
                             {% for notice in announcements %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                {{ notice.title }}
-                                <span class="badge bg-secondary">
-                                    {{ notice.created_at.strftime('%Y-%m-%d') }}
-                                </span>
-                            </li>
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="mb-0">
+                                        {{ notice.title }}
+                                        {% if notice.is_pinned %}
+                                        <span class="badge bg-warning ms-2">顶置</span>
+                                        {% endif %}
+                                        {% if notice.is_hidden %}
+                                        <span class="badge bg-danger ms-2">已隐藏</span>
+                                        {% endif %}
+                                    </h6>
+                                    <span class="text-muted small">
+                                        {{ notice.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </span>
+                                </div>
+                                <div class="mb-3 text-muted small">
+                                    {{ notice.content[:100] }}{% if notice.content|length > 100 %}...{% endif %}
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <!-- 顶置/取消顶置按钮 -->
+                                    <form method="POST" action="{{ url_for('admin.toggle_announcement_pin', ann_id=notice.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm {% if notice.is_pinned %}btn-secondary{% else %}btn-warning{% endif %}">
+                                            {% if notice.is_pinned %}取消顶置{% else %}顶置{% endif %}
+                                        </button>
+                                    </form>
+                                    <!-- 隐藏/显示按钮 -->
+                                    <form method="POST" action="{{ url_for('admin.toggle_announcement_hide', ann_id=notice.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm {% if notice.is_hidden %}btn-success{% else %}btn-danger{% endif %}">
+                                            {% if notice.is_hidden %}显示{% else %}隐藏{% endif %}
+                                        </button>
+                                    </form>
+                                    <!-- 编辑按钮 -->
+                                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editAnnouncementModal" 
+                                            data-id="{{ notice.id }}" data-title="{{ notice.title }}" data-content="{{ notice.content }}">
+                                        编辑
+                                    </button>
+                                    <!-- 删除按钮 -->
+                                    <form method="POST" action="{{ url_for('admin.delete_announcement', ann_id=notice.id) }}" class="d-inline" onsubmit="return confirm('确定要删除这条公告吗？');">
+                                        <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                                    </form>
+                                </div>
+                            </div>
                             {% endfor %}
-                        </ul>
+                        </div>
+
+                        <!-- 编辑公告模态框 -->
+                        <div class="modal fade" id="editAnnouncementModal" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">编辑公告</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form method="POST" id="editAnnouncementForm">
+                                            <input type="hidden" name="id" id="edit-id">
+                                            <div class="mb-2">
+                                                <input type="text" name="title" id="edit-title" class="form-control" placeholder="公告标题" required>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label text-muted small">
+                                                    支持 HTML 格式，内容长度限制 5000 字符
+                                                </label>
+                                                <textarea name="content" id="edit-content" class="form-control" placeholder="公告内容" rows="4" required maxlength="5000"></textarea>
+                                                <div class="text-muted small mt-1">
+                                                    <span id="edit-content-length">0</span>/5000
+                                                </div>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary">保存修改</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <script>
+                            // 编辑公告模态框处理
+                            const editModal = document.getElementById('editAnnouncementModal');
+                            editModal.addEventListener('show.bs.modal', function (event) {
+                                const button = event.relatedTarget;
+                                const id = button.getAttribute('data-id');
+                                const title = button.getAttribute('data-title');
+                                const content = button.getAttribute('data-content');
+                                
+                                const form = document.getElementById('editAnnouncementForm');
+                                form.action = `{{ url_for('admin.edit_announcement', ann_id=0) }}`.replace('/0/', `/${id}/`);
+                                
+                                document.getElementById('edit-id').value = id;
+                                document.getElementById('edit-title').value = title;
+                                document.getElementById('edit-content').value = content;
+                                document.getElementById('edit-content-length').textContent = content.length;
+                            });
+                            
+                            // 编辑内容长度计数
+                            document.getElementById('edit-content').addEventListener('input', function() {
+                                document.getElementById('edit-content-length').textContent = this.value.length;
+                            });
+                        </script>
                     </div>
 
                     <div class="tab-pane fade" id="tab-config">

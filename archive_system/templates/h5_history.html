@@ -2,17 +2,18 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>预约记录</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
     <style>
-        .container { width: 80%; margin: 50px auto; }
         /* 折叠文本容器 */
         .text-collapse { position: relative; line-height: 1.8; }
         /* 剩余文本默认隐藏 */
         .text-collapse .more { display: none; }
         /* 展开/收起按钮样式 */
         .toggle-btn { 
-            color: #0066cc; 
+            color: #4CAF50; 
             background: none; 
             border: none; 
             cursor: pointer; 
@@ -21,67 +22,109 @@
         }
         .toggle-btn:hover { text-decoration: underline; }
     </style>
-
-    <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"> -->
-    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
 </head>
-<body class="bg-light">
-    <div class="container mt-3">
-        <h5 class="mb-3">我的预约</h5>
-        
-        {% if not reservations %}
-        <p class="text-center text-muted mt-5">暂无预约记录</p>
-        {% endif %}
+<body>
+    <!-- 加载动画 -->
+    <div class="loading" id="loading"></div>
 
-        {% for res in reservations %}
-        <div class="card mb-3 shadow-sm border-0">
-            <div class="card-body">
-                <div class="d-flex justify-content-between mb-2">
-                    <h6 class="card-title fw-bold">{{ res.visit_date }} ({{ res.area }})</h6>
-                    {% if res.status == '待审核' %}
-                    <span class="badge bg-warning text-dark">待审核</span>
-                    {% elif res.status == '已同意' %}
-                    <span class="badge bg-success">已同意</span>
-                    {% else %}
-                    <span class="badge bg-danger">已拒绝</span>
-                    {% endif %}
-                </div>
-                <p class="card-text small text-muted mb-1" >时间：{{ res.visit_time }}</p>
-
-                <p class="card-text small text-muted mb-1 text-collapse" id="privacyContent">
-
-                    {% if res.reason and res.reason|length > 50 %}
-                        <!-- 字数>50：显示预览（前50字+省略号）+ 隐藏完整文本 + 展开按钮 -->
-                        <span class="preview" style="display: inline; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            缘由：{{ res.reason[:50] }}
-                        </span>
-                        <span class="more" style="display: none;">缘由：{{ res.reason }}</span>
-                        <button class="toggle-btn" onclick="toggleText(this)">展开</button>
-                    {% else %}
-                        <!-- 字数≤50/空：直接显示完整文本，无按钮 -->
-                        <span style="display: inline;">
-                            缘由：{{ res.reason or '' }}
-                        </span>
-                    {% endif %}
-
-                </p>
-
-
-                {% if res.status == '已拒绝' %}
-                <div class="alert alert-danger py-1 px-2 mt-2 small">
-                    拒绝理由：{{ res.reject_reason }}
-                </div>
-                {% endif %}
-            </div>
+    <!-- 顶部导航栏 -->
+    <nav class="top-nav">
+        <div class="back-btn" onclick="window.history.back()">
+            <i class="icon icon-back"></i>
         </div>
-        {% endfor %}
-        
-        <div class="fixed-bottom p-3 bg-white border-top">
-            <a href="{{ url_for('h5.home') }}" class="btn btn-outline-primary w-100">返回首页</a>
+        <h1>预约记录</h1>
+        <div class="nav-right"></div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <div class="container mt-4">
+            <h3>我的预约</h3>
+            
+            {% if not reservations %}
+            <div class="card">
+                <p class="text-center text-muted">暂无预约记录</p>
+            </div>
+            {% endif %}
+
+            {% for res in reservations %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <h4 class="card-title">{{ res.visit_date }} ({{ res.area }})</h4>
+                        {% if res.status == '待审核' %}
+                        <span class="badge bg-warning text-dark">待审核</span>
+                        {% elif res.status == '已同意' %}
+                        <span class="badge bg-success">已同意</span>
+                        {% else %}
+                        <span class="badge bg-danger">已拒绝</span>
+                        {% endif %}
+                    </div>
+                    <p class="card-text small text-muted mb-1">时间：{{ res.visit_time }}</p>
+
+                    <p class="card-text small text-muted mb-1 text-collapse" id="privacyContent">
+                        {% if res.reason and res.reason|length > 50 %}
+                            <!-- 字数>50：显示预览（前50字+省略号）+ 隐藏完整文本 + 展开按钮 -->
+                            <span class="preview" style="display: inline; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                缘由：{{ res.reason[:50] }}
+                            </span>
+                            <span class="more" style="display: none;">缘由：{{ res.reason }}</span>
+                            <button class="toggle-btn" onclick="toggleText(this)">展开</button>
+                        {% else %}
+                            <!-- 字数≤50/空：直接显示完整文本，无按钮 -->
+                            <span style="display: inline;">
+                                缘由：{{ res.reason or '' }}
+                            </span>
+                        {% endif %}
+                    </p>
+
+                    {% if res.status == '已拒绝' %}
+                    <div class="alert alert-danger py-1 px-2 mt-2 small">
+                        拒绝理由：{{ res.reject_reason }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </div>
 
+    <!-- 底部导航 -->
+    <nav class="bottom-nav">
+        <a href="{{ url_for('h5.index') }}" class="bottom-nav-item">
+            <i class="icon icon-home"></i>
+            <span>首页</span>
+        </a>
+        <a href="{{ url_for('h5.reserve') }}" class="bottom-nav-item">
+            <i class="icon icon-calendar"></i>
+            <span>预约</span>
+        </a>
+        <a href="{{ url_for('h5.history') }}" class="bottom-nav-item active">
+            <i class="icon icon-history"></i>
+            <span>历史</span>
+        </a>
+        <a href="{{ url_for('h5.profile') }}" class="bottom-nav-item">
+            <i class="icon icon-user"></i>
+            <span>我的</span>
+        </a>
+    </nav>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <p>&copy; <span id="currentYear"></span> 河南农业大学校史馆预约系统 版权所有</p>
+    </footer>
+
     <script>
+        // 页面加载完成后隐藏加载动画
+        window.onload = function() {
+            setTimeout(function() {
+                document.getElementById('loading').style.display = 'none';
+            }, 1000);
+            
+            // 设置当前年份
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+        };
+
         function toggleText(btn) {
             const parent = btn.parentElement;
             const preview = parent.querySelector('.preview');

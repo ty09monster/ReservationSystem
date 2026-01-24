@@ -1,17 +1,54 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from datetime import datetime
 from ..extensions import db
 from ..models import User, SystemConfig, Announcement, Reservation
 from ..validators import validate_certificate, validate_phone, validate_visit_date
+from ..decorators import login_required
 
 h5_bp = Blueprint('h5', __name__)
 
 @h5_bp.route("/")
 def index():
-    return redirect(url_for("h5.login"))
+    """
+    系统首页（A页面）
+    无需登录即可访问
+    """
+    config = SystemConfig.query.first()
+    # 获取最新的公告，优先展示顶置的公告，最多展示2条
+    announcements = Announcement.query.filter_by(is_hidden=False).order_by(
+        Announcement.is_pinned.desc(),
+        Announcement.created_at.desc()
+    ).limit(2).all()
+    return render_template("index.html", config=config, announcements=announcements)
+
+@h5_bp.route("/announcements")
+def announcements():
+    """
+    公告列表（A页面）
+    无需登录即可访问
+    """
+    announcements = Announcement.query.filter_by(is_hidden=False).order_by(
+        Announcement.is_pinned.desc(),
+        Announcement.created_at.desc()
+    ).all()
+    return render_template("announcements.html", announcements=announcements)
+
+@h5_bp.route("/about")
+def about():
+    """
+    关于我们（A页面）
+    无需登录即可访问
+    """
+    config = SystemConfig.query.first()
+    return render_template("about.html", config=config)
 
 @h5_bp.route("/h5/login", methods=["GET", "POST"])
 def login():
     if "user_id" in session:
+        # 获取原访问地址，如果没有则跳转到首页
+        next_url = request.args.get('next')
+        if next_url:
+            return redirect(next_url)
         return redirect(url_for("h5.home"))
 
     if request.method == "POST":
@@ -44,6 +81,10 @@ def login():
             db.session.commit()
 
         session["user_id"] = user.id
+        # 登录成功后跳转到原访问地址，优先使用POST参数
+        next_url = request.form.get('next') or request.args.get('next')
+        if next_url:
+            return redirect(next_url)
         return redirect(url_for("h5.home"))
 
     config = SystemConfig.query.first()
@@ -51,23 +92,33 @@ def login():
     return render_template("h5_login.html", privacy_policy=policy_text)
 
 @h5_bp.route("/h5/home")
+@login_required
 def home():
-    if "user_id" not in session:
-        return redirect(url_for("h5.login"))
 
     user = User.query.get(session["user_id"])
-    all_announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
     config = SystemConfig.query.first()
+    
+    # 检查用户是否存在
+    if not user:
+        flash("用户信息不存在，请重新登录")
+        session.clear()
+        return redirect(url_for("h5.login"))
+    
     return render_template(
         "h5_home.html", 
         user=user, 
-        all_announcements=all_announcements,
         config=config
     )
 
 @h5_bp.route("/h5/reserve", methods=["GET", "POST"])
+@login_required
 def reserve():
-    if "user_id" not in session:
+
+    # 检查用户是否存在
+    user = User.query.get(session["user_id"])
+    if not user:
+        flash("用户信息不存在，请重新登录")
+        session.clear()
         return redirect(url_for("h5.login"))
 
     config = SystemConfig.query.first()
@@ -88,13 +139,12 @@ def reserve():
             flash(date_msg)
             campuses = config.campuses.split(",")
             times = config.visit_times.split(",")
-            user = User.query.get(session["user_id"])
             return render_template("h5_reserve.html", user=user, campuses=campuses, times=times)
 
         res = Reservation(
             user_id=session["user_id"],
             area=area,
-            visit_date=visit_date,
+            visit_date=datetime.strptime(visit_date, "%Y-%m-%d").date(),
             visit_time=visit_time,
             reason=reason,
             res_type=res_type,
@@ -109,13 +159,18 @@ def reserve():
 
     campuses = config.campuses.split(",")
     times = config.visit_times.split(",")
-    user = User.query.get(session["user_id"])
     return render_template("h5_reserve.html", user=user, campuses=campuses, times=times)
 
 @h5_bp.route("/h5/history")
+@login_required
 def history():
-    if "user_id" not in session:
+    # 检查用户是否存在
+    user = User.query.get(session["user_id"])
+    if not user:
+        flash("用户信息不存在，请重新登录")
+        session.clear()
         return redirect(url_for("h5.login"))
+    
     reservations = (
         Reservation.query.filter_by(user_id=session["user_id"])
         .order_by(Reservation.created_at.desc())
@@ -124,10 +179,14 @@ def history():
     return render_template("h5_history.html", reservations=reservations)
 
 @h5_bp.route("/h5/profile", methods=["GET", "POST"])
+@login_required
 def profile():
-    if "user_id" not in session:
-        return redirect(url_for("h5.login"))
+    # 检查用户是否存在
     user = User.query.get(session["user_id"])
+    if not user:
+        flash("用户信息不存在，请重新登录")
+        session.clear()
+        return redirect(url_for("h5.login"))
 
     if request.method == "POST":
         name = request.form.get("name")

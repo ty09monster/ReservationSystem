@@ -137,10 +137,83 @@ def config():
     if "publish_notice" in request.form:
         title = request.form.get("title")
         content = request.form.get("content")
+        # 检查内容长度，限制在5000字符以内
+        if len(content) > 5000:
+            flash("公告内容不能超过5000字符")
+            return redirect(url_for("admin.dashboard"))
         new_notice = Announcement(title=title, content=content)
         db.session.add(new_notice)
 
     db.session.commit()
+    return redirect(url_for("admin.dashboard"))
+
+@admin_bp.route("/announcement/<int:ann_id>/toggle-pin", methods=["POST"])
+def toggle_announcement_pin(ann_id):
+    if not session.get("admin_logged_in"):
+        return redirect(url_for("admin.login"))
+    
+    announcement = Announcement.query.get(ann_id)
+    if announcement:
+        announcement.is_pinned = not announcement.is_pinned
+        db.session.commit()
+        flash(f"公告{'已顶置' if announcement.is_pinned else '已取消顶置'}")
+    else:
+        flash("公告不存在")
+    
+    return redirect(url_for("admin.dashboard"))
+
+@admin_bp.route("/announcement/<int:ann_id>/toggle-hide", methods=["POST"])
+def toggle_announcement_hide(ann_id):
+    if not session.get("admin_logged_in"):
+        return redirect(url_for("admin.login"))
+    
+    announcement = Announcement.query.get(ann_id)
+    if announcement:
+        announcement.is_hidden = not announcement.is_hidden
+        db.session.commit()
+        flash(f"公告{'已隐藏' if announcement.is_hidden else '已显示'}")
+    else:
+        flash("公告不存在")
+    
+    return redirect(url_for("admin.dashboard"))
+
+@admin_bp.route("/announcement/<int:ann_id>/delete", methods=["POST"])
+def delete_announcement(ann_id):
+    if not session.get("admin_logged_in"):
+        return redirect(url_for("admin.login"))
+    
+    announcement = Announcement.query.get(ann_id)
+    if announcement:
+        db.session.delete(announcement)
+        db.session.commit()
+        flash("公告已删除")
+    else:
+        flash("公告不存在")
+    
+    return redirect(url_for("admin.dashboard"))
+
+@admin_bp.route("/announcement/<int:ann_id>/edit", methods=["POST"])
+def edit_announcement(ann_id):
+    if not session.get("admin_logged_in"):
+        return redirect(url_for("admin.login"))
+    
+    announcement = Announcement.query.get(ann_id)
+    if announcement:
+        title = request.form.get("title")
+        content = request.form.get("content")
+        
+        # 检查内容长度，限制在5000字符以内
+        if len(content) > 5000:
+            flash("公告内容不能超过5000字符")
+            return redirect(url_for("admin.dashboard"))
+        
+        announcement.title = title
+        announcement.content = content
+        db.session.commit()
+        flash("公告已更新")
+    else:
+        flash("公告不存在")
+    
     return redirect(url_for("admin.dashboard"))
 
 @admin_bp.route("/account", methods=["POST"])

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="河南农业大学校史馆预约系统，预约参观校史馆和档案馆">
+    <meta name="keywords" content="河南农业大学,校史馆,档案馆,预约系统">
+    <!-- 微信H5特定的meta标签 -->
+    <meta name="format-detection" content="telephone=no, email=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="河南农业大学校史馆">
+    <!-- 微信分享配置 -->
+    <meta property="og:title" content="河南农业大学校史馆预约系统">
+    <meta property="og:description" content="河南农业大学校史馆预约系统，预约参观校史馆和档案馆">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url }}">
+    <title>河南农业大学校史馆预约系统</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
+</head>
+
+<body>
+    <!-- 加载动画 -->
+    <div class="loading" id="loading"></div>
+
+    <!-- 顶部导航栏 -->
+    <nav class="top-nav">
+        <div class="back-btn" onclick="window.history.back()">
+            <i class="icon icon-back"></i>
+        </div>
+        <h1>河南农业大学校史馆</h1>
+        <div class="nav-right"></div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <!-- 英雄区域 -->
+        <section class="hero-section">
+            <div class="container">
+                <h2>欢迎访问校史馆预约系统</h2>
+                <p>探索河南农业大学的历史与文化，预约参观校史馆和档案馆</p>
+                <a href="{{ url_for('h5.login') }}" class="btn btn-primary">立即预约</a>
+                <a href="{{ url_for('h5.announcements') }}" class="btn btn-secondary">查看公告</a>
+            </div>
+        </section>
+
+        <!-- 图片轮播 -->
+        <section class="carousel-section">
+            <div id="carouselExampleIndicators" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-indicators">
+                    <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="0"
+                        class="active" aria-current="true" aria-label="Slide 1"></button>
+                    <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="1"
+                        aria-label="Slide 2"></button>
+                    <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="2"
+                        aria-label="Slide 3"></button>
+                </div>
+                <div class="carousel-inner">
+                    <div class="carousel-item active">
+                        <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Henan%20Agricultural%20University%20campus%20building%20with%20modern%20architecture&image_size=landscape_16_9"
+                            class="d-block w-100" alt="河南农业大学校园">
+                        <div class="carousel-caption d-none d-md-block">
+                            <h5>河南农业大学校园风光</h5>
+                            <p>美丽的校园环境</p>
+                        </div>
+                    </div>
+                    <div class="carousel-item">
+                        <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=university%20history%20museum%20interior%20with%20exhibits&image_size=landscape_16_9"
+                            class="d-block w-100" alt="校史馆内部">
+                        <div class="carousel-caption d-none d-md-block">
+                            <h5>校史馆内部展览</h5>
+                            <p>丰富的历史展品</p>
+                        </div>
+                    </div>
+                    <div class="carousel-item">
+                        <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=university%20archives%20room%20with%20historical%20documents&image_size=landscape_16_9"
+                            class="d-block w-100" alt="档案馆">
+                        <div class="carousel-caption d-none d-md-block">
+                            <h5>档案馆珍藏</h5>
+                            <p>珍贵的历史文献</p>
+                        </div>
+                    </div>
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleIndicators"
+                    data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleIndicators"
+                    data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- 公告展示 -->
+        {% if announcements %}
+        <section class="announcement-preview">
+            <div class="section-header">
+                <h3>最新公告</h3>
+                <a href="{{ url_for('h5.announcements') }}" class="more-link">查看更多</a>
+            </div>
+            <div class="announcement-list">
+                {% for announcement in announcements %}
+                <div class="announcement-item">
+                    {% if announcement.is_pinned %}
+                    <span class="pinned-tag">顶置</span>
+                    {% endif %}
+                    <h4 class="announcement-title">{{ announcement.title }}</h4>
+                    <p class="announcement-date">{{ announcement.created_at.strftime('%Y-%m-%d') }}</p>
+                    <div class="announcement-content">{{ announcement.content[:100] }}{% if announcement.content|length
+                        > 100 %}...{% endif %}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- 功能模块 -->
+        <section class="feature-section">
+            <div class="feature-grid">
+                <a href="{{ url_for('h5.login') }}" class="feature-item">
+                    <div class="feature-icon">
+                        <i class="icon icon-calendar"></i>
+                    </div>
+                    <h3 class="feature-title">在线预约</h3>
+                    <p class="feature-desc">方便快捷的在线预约系统</p>
+                </a>
+                <a href="{{ url_for('h5.about') }}" class="feature-item">
+                    <div class="feature-icon">
+                        <i class="icon icon-clock"></i>
+                    </div>
+                    <h3 class="feature-title">参观时间</h3>
+                    <p class="feature-desc">合理安排参观时间</p>
+                </a>
+                <a href="{{ url_for('h5.login') }}" class="feature-item">
+                    <div class="feature-icon">
+                        <i class="icon icon-history"></i>
+                    </div>
+                    <h3 class="feature-title">历史记录</h3>
+                    <p class="feature-desc">查看预约历史记录</p>
+                </a>
+                <a href="{{ url_for('h5.about') }}" class="feature-item">
+                    <div class="feature-icon">
+                        <i class="icon icon-info"></i>
+                    </div>
+                    <h3 class="feature-title">校史介绍</h3>
+                    <p class="feature-desc">了解学校发展历程</p>
+                </a>
+            </div>
+        </section>
+
+        <!-- 校史馆介绍 -->
+        <section class="info-section">
+            <h3>校史馆介绍</h3>
+            <div class="card">
+                <h4>河南农业大学校史馆</h4>
+                <p>河南农业大学校史馆是展示学校历史发展、办学成就和校园文化的重要窗口。馆内收藏了大量珍贵的历史文物、照片和文献资料，生动再现了学校自1902年创建以来的发展历程。</p>
+                <p>校史馆通过丰富的展览内容和现代化的展示手段，向师生员工、校友和社会各界人士展示学校的光辉历史和办学成就，是学校进行爱国主义教育、校史教育和文化传承的重要基地。</p>
+            </div>
+        </section>
+
+        <!-- 档案馆介绍 -->
+        <section class="info-section">
+            <h3>档案馆介绍</h3>
+            <div class="card">
+                <h4>河南农业大学档案馆</h4>
+                <p>河南农业大学档案馆是学校的档案管理机构，负责收集、整理、保管和利用学校各类档案资料。档案馆收藏了学校自创建以来的各类档案，包括文书档案、教学档案、科研档案、人事档案等。</p>
+                <p>档案馆通过数字化建设和现代化管理手段，为学校的教学、科研和管理工作提供优质的档案服务，同时也为社会各界了解学校历史提供了重要的参考资料。</p>
+            </div>
+        </section>
+
+
+
+        <!-- 联系方式 -->
+        <section class="contact-section">
+            <h3>联系方式</h3>
+            <div class="card">
+                <p><strong>地址：</strong>河南省郑州市金水区农业路63号河南农业大学</p>
+                <p><strong>电话：</strong>0371-63558888</p>
+                <p><strong>邮箱：</strong>info@henau.edu.cn</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- 底部导航 -->
+    <nav class="bottom-nav">
+        <a href="{{ url_for('h5.index') }}" class="bottom-nav-item active">
+            <i class="icon icon-home"></i>
+            <span>首页</span>
+        </a>
+        <a href="{{ url_for('h5.announcements') }}" class="bottom-nav-item">
+            <i class="icon icon-news"></i>
+            <span>公告</span>
+        </a>
+        <a href="{{ url_for('h5.about') }}" class="bottom-nav-item">
+            <i class="icon icon-about"></i>
+            <span>关于</span>
+        </a>
+        <a href="{{ url_for('h5.login') }}" class="bottom-nav-item">
+            <i class="icon icon-user"></i>
+            <span>登录</span>
+        </a>
+    </nav>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <p>&copy; <span id="currentYear"></span> 河南农业大学校史馆预约系统 版权所有</p>
+    </footer>
+</body>
+
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script>
+    // 页面加载完成后隐藏加载动画
+    window.onload = function () {
+        setTimeout(function () {
+            document.getElementById('loading').style.display = 'none';
+        }, 1000);
+
+        // 设置当前年份
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+    };
+</script>
+
+</html>

@@ -1,135 +1,147 @@
 <!DOCTYPE html>
 <html lang="zh">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>预约中心</title>
-    <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"> -->
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>个人中心 - 校史馆预约系统</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
 </head>
-<body class="bg-light">
-    <div class="bg-primary text-white p-3 d-flex justify-content-between align-items-center">
-        <span>欢迎, {{ user.name }}</span>
-        <a href="{{ url_for('h5.profile') }}" class="text-white text-decoration-none border rounded px-2 py-1" style="font-size:0.8rem;">修改信息</a>
-    </div>
 
-    <div class="container mt-3">
+<body>
+    <!-- 加载动画 -->
+    <div class="loading" id="loading"></div>
+
+    <!-- 顶部导航栏 -->
+    <nav class="top-nav">
+        <div class="back-btn" onclick="window.history.back()">
+            <i class="icon icon-back"></i>
+        </div>
+        <h1>个人中心</h1>
+        <div class="nav-right"></div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
         {% with messages = get_flashed_messages() %}
-          {% if messages %}
-            <div class="alert alert-info">{{ messages[0] }}</div>
-          {% endif %}
+        {% if messages %}
+        <div class="alert alert-info">{{ messages[0] }}</div>
+        {% endif %}
         {% endwith %}
 
-        <div class="card mb-4 shadow-sm">
-            <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
-                <span>📢 最新公告</span>
-                <button id="toggleAnnouncements" class="btn btn-sm btn-outline-primary" onclick="toggleAnnouncements()">
-                    展开全部 <span id="toggleIcon">▼</span>
-                </button>
-            </div>
-            <div class="list-group list-group-flush" id="announcementsList">
-                {% for notice in all_announcements %}
-                <div class="announcement-item {{ loop.index > 3 and 'hidden' }}" data-index="{{ loop.index }}">
-                    <button type="button" class="list-group-item list-group-item-action" data-bs-toggle="modal" data-bs-target="#noticeModal{{ notice.id }}">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1 text-truncate" style="max-width: 70%;">{{ notice.title }}</h6>
-                            <small class="text-muted">{{ notice.created_at.strftime('%m-%d') }}</small>
-                        </div>
-                        <small class="text-muted text-truncate d-block">{{ notice.content }}</small>
-                    </button>
-                    
-                    <div class="modal fade" id="noticeModal{{ notice.id }}" tabindex="-1">
-                        <div class="modal-dialog modal-dialog-centered">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">{{ notice.title }}</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">{{ notice.content }}</div>
-                            </div>
-                        </div>
+        <!-- 用户信息卡片 -->
+        <div class="user-info-card mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center">
+                    <div class="user-avatar me-4">
+                        {{ user.name[0] }}
+                    </div>
+                    <div>
+                        <h4 class="mb-1">{{ user.name }}</h4>
+                        <p class="mb-0 text-white-80">{{ user.id_type }}: {{ user.id_card[:3] }}****{{ user.id_card[-4:]
+                            }}</p>
+                        <p class="mb-0 text-white-80">手机号: {{ user.phone[:3] }}****{{ user.phone[-4:] }}</p>
                     </div>
                 </div>
-                {% endfor %}
-            </div>
-            <!-- 展开/收起按钮 -->
-            <div id="showMoreContainer" class="d-none">
-                <button class="btn btn-light w-100" onclick="toggleAnnouncements()">
-                    <span id="showMoreText">展开全部公告</span>
-                    <span id="showLessText" class="d-none">收起公告</span>
-                </button>
             </div>
         </div>
 
-        <div class="d-grid gap-3">
-            <a href="{{ url_for('h5.reserve') }}" class="btn btn-primary btn-lg p-3 shadow-sm {{ 'disabled' if not config.is_open else '' }}">
-                {{ '立即预约' if config.is_open else '系统维护中' }}
-            </a>
-            <a href="{{ url_for('h5.history') }}" class="btn btn-outline-secondary btn-lg p-3 shadow-sm">
-                查看预约记录
-            </a>
+        <!-- 统计信息 -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="stats-card card text-center p-4">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted">总预约次数</h5>
+                        <p class="display-4 font-weight-bold text-primary">{{ user.reservations|length }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card card text-center p-4">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted">待审核</h5>
+                        <p class="display-4 font-weight-bold text-warning">{{ user.reservations|selectattr('status',
+                            'equalto', '待审核')|list|length }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card card text-center p-4">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted">已通过</h5>
+                        <p class="display-4 font-weight-bold text-success">{{ user.reservations|selectattr('status',
+                            'equalto', '已同意')|list|length }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- 功能按钮 -->
+        <div class="row g-4">
+            <div class="col-md-6">
+                <a href="{{ url_for('h5.reserve') }}"
+                    class="btn btn-primary btn-lg p-4 shadow-sm w-100 {{ 'disabled' if not config.is_open else '' }}">
+                    <div class="text-center">
+                        <h5 class="mb-1">{{ '立即预约' if config.is_open else '系统维护中' }}</h5>
+                        <small class="text-white-80">预约参观校史馆</small>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="{{ url_for('h5.history') }}" class="btn btn-outline-secondary btn-lg p-4 shadow-sm w-100">
+                    <div class="text-center">
+                        <h5 class="mb-1">查看预约记录</h5>
+                        <small class="text-muted">查看历史预约和状态</small>
+                    </div>
+                </a>
+            </div>
         </div>
     </div>
-    
-    <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> -->
+
+    <!-- 底部导航 -->
+    <nav class="bottom-nav">
+        <a href="{{ url_for('h5.index') }}" class="bottom-nav-item">
+            <i class="icon icon-home"></i>
+            <span>首页</span>
+        </a>
+        <a href="{{ url_for('h5.reserve') }}" class="bottom-nav-item">
+            <i class="icon icon-calendar"></i>
+            <span>预约</span>
+        </a>
+        <a href="{{ url_for('h5.history') }}" class="bottom-nav-item">
+            <i class="icon icon-history"></i>
+            <span>历史</span>
+        </a>
+        <a href="{{ url_for('h5.profile') }}" class="bottom-nav-item active">
+            <i class="icon icon-user"></i>
+            <span>我的</span>
+        </a>
+    </nav>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <p>&copy; <span id="currentYear"></span> 河南农业大学校史馆预约系统 版权所有</p>
+    </footer>
+
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-    
+
     <script>
-        // 默认显示的公告数量
-        const MAX_VISIBLE_ANNOUNCEMENTS = 3;
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            // 初始隐藏超过最大数量的公告
-            const announcementItems = document.querySelectorAll('.announcement-item');
-            const showMoreContainer = document.getElementById('showMoreContainer');
-            
-            if (announcementItems.length > MAX_VISIBLE_ANNOUNCEMENTS) {
-                // 显示展开按钮
-                showMoreContainer.classList.remove('d-none');
-                
-                // 隐藏超过数量的公告
-                for (let i = MAX_VISIBLE_ANNOUNCEMENTS; i < announcementItems.length; i++) {
-                    announcementItems[i].classList.add('d-none');
-                }
-            } else {
-                // 如果公告数量不超过限制，隐藏展开按钮
-                showMoreContainer.classList.add('d-none');
-            }
-        });
-        
-        function toggleAnnouncements() {
-            const announcementItems = document.querySelectorAll('.announcement-item');
-            const showMoreContainer = document.getElementById('showMoreContainer');
-            const showMoreText = document.getElementById('showMoreText');
-            const showLessText = document.getElementById('showLessText');
-            const toggleIcon = document.getElementById('toggleIcon');
-            
-            let anyHidden = false;
-            for (let i = MAX_VISIBLE_ANNOUNCEMENTS; i < announcementItems.length; i++) {
-                if (announcementItems[i].classList.contains('d-none')) {
-                    anyHidden = true;
-                    break;
-                }
-            }
-            
-            if (anyHidden) {
-                // 展开：显示所有公告
-                for (let i = MAX_VISIBLE_ANNOUNCEMENTS; i < announcementItems.length; i++) {
-                    announcementItems[i].classList.remove('d-none');
-                }
-                showMoreText.classList.add('d-none');
-                showLessText.classList.remove('d-none');
-                toggleIcon.textContent = '▲';
-            } else {
-                // 收起：隐藏超过数量的公告
-                for (let i = MAX_VISIBLE_ANNOUNCEMENTS; i < announcementItems.length; i++) {
-                    announcementItems[i].classList.add('d-none');
-                }
-                showMoreText.classList.remove('d-none');
-                showLessText.classList.add('d-none');
-                toggleIcon.textContent = '▼';
-            }
-        }
+        // 页面加载完成后隐藏加载动画
+        window.onload = function () {
+            setTimeout(function () {
+                document.getElementById('loading').style.display = 'none';
+            }, 1000);
+
+            // 设置当前年份
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+        };
+
+
     </script>
 </body>
+
 </html>

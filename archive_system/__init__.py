@@ -19,6 +19,7 @@ def create_app(config_class=Config):
 
     # 初始化数据库（仅用于开发环境，生产环境应使用 Flask-Migrate）
     with app.app_context():
+        # 只创建表，不删除已有数据
         db.create_all()
         init_data()
 
@@ -39,7 +40,7 @@ def init_data():
     if not SystemConfig.query.first():
         db.session.add(SystemConfig())
     
-    # 创建默认公告
+    # 创建默认公告（仅当没有公告时）
     if not Announcement.query.first():
         db.session.add(
             Announcement(
@@ -47,4 +48,5 @@ def init_data():
                 content="请各位访客遵守相关规定，提前预约。",
             )
         )
+    # 提交所有更改
     db.session.commit()
