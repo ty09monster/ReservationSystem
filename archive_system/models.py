@@ -48,11 +48,11 @@ class Reservation(db.Model):
     area = db.Column(db.String(50), comment='参观区域')
     visit_date = db.Column(db.Date, index=True, comment='参观日期')  # 修改为Date类型
     visit_time = db.Column(db.String(50), comment='参观时间')
-    reason = db.Column(db.String(200), comment='预约原因')
+    reason = db.Column(db.Text, comment='预约原因')
     res_type = db.Column(db.String(10), comment='预约类型：个人/团队')
     identity = db.Column(db.String(50), comment='身份')
     status = db.Column(db.String(20), default="待审核", index=True, comment='状态：待审核, 已同意, 已拒绝')
-    reject_reason = db.Column(db.String(200), comment='拒绝原因')
+    reject_reason = db.Column(db.Text, comment='拒绝原因')
     created_at = db.Column(db.DateTime, default=datetime.now, index=True, comment='创建时间')
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, nullable=False, comment='更新时间')
 
