@@ -510,18 +510,20 @@
                         <!-- 预约缘由 -->
                         <div class="form-group">
                             <label class="form-label">预约缘由</label>
-                            <textarea name="reason" class="form-control" rows="3" placeholder="请简要说明参观目的" required></textarea>
+                            <textarea name="reason" class="form-control" rows="3" placeholder="请简要说明参观目的"
+                                required></textarea>
                         </div>
 
                         <!-- 附件上传 -->
                         <div class="attachment-section">
                             <h3 class="section-title">附件上传（可选）</h3>
-                            <div class="upload-container" onclick="document.getElementById('fileInput').click()">
+                            <div class="upload-container" onclick="selectImages()">
                                 <div class="upload-icon">📎</div>
                                 <div class="upload-text">点击上传图片</div>
                                 <div class="upload-hint">最多8张，单张不超过15MB</div>
                             </div>
-                            <input type="file" id="fileInput" name="attachments" multiple accept="image/*" style="display: none;">
+                            <input type="file" id="fileInput" name="attachments" multiple accept="image/*"
+                                style="display: none;">
                             <div class="file-list" id="fileList">
                                 <!-- 上传的文件将显示在这里 -->
                             </div>
@@ -581,69 +583,212 @@
 
         // 生成日期卡片
         function generateDateCards() {
-            const dateCardsContainer = document.getElementById('dateCards');
-            const today = new Date();
-            const oneDay = 24 * 60 * 60 * 1000;
+            try {
+                const dateCardsContainer = document.getElementById('dateCards');
+                if (!dateCardsContainer) {
+                    console.error('dateCardsContainer not found');
+                    return;
+                }
 
-            // 生成未来14天的日期卡片
-            for (let i = 0; i < 14; i++) {
-                const currentDate = new Date(today.getTime() + i * oneDay);
-                const day = currentDate.getDate();
-                const month = currentDate.getMonth() + 1;
-                const weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][currentDate.getDay()];
-                const dateStr = currentDate.toISOString().split('T')[0];
+                const today = new Date();
+                const oneDay = 24 * 60 * 60 * 1000;
 
-                const dateCard = document.createElement('div');
-                dateCard.className = 'date-card';
-                dateCard.dataset.date = dateStr;
-                dateCard.innerHTML = `
-                    <div class="day">${day}</div>
-                    <div class="weekday">${weekday}</div>
-                    <div class="month">${month}月</div>
-                `;
+                // 生成未来14天的日期卡片
+                for (let i = 0; i < 14; i++) {
+                    const currentDate = new Date(today.getTime() + i * oneDay);
+                    const day = currentDate.getDate();
+                    const month = currentDate.getMonth() + 1;
+                    const weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][currentDate.getDay()];
+                    const dateStr = currentDate.toISOString().split('T')[0];
 
-                dateCardsContainer.appendChild(dateCard);
+                    const dateCard = document.createElement('div');
+                    dateCard.className = 'date-card';
+                    dateCard.dataset.date = dateStr;
+                    dateCard.innerHTML = `
+                        <div class="day">${day}</div>
+                        <div class="weekday">${weekday}</div>
+                        <div class="month">${month}月</div>
+                    `;
+
+                    dateCardsContainer.appendChild(dateCard);
+                }
+            } catch (error) {
+                console.error('Error generating date cards:', error);
             }
         }
 
         // 绑定事件
         function bindEvents() {
-            // 日期卡片点击事件
-            document.querySelectorAll('.date-card').forEach(card => {
-                card.addEventListener('click', function () {
-                    // 移除其他卡片的活跃状态
-                    document.querySelectorAll('.date-card').forEach(c => c.classList.remove('active'));
-                    // 添加当前卡片的活跃状态
-                    this.classList.add('active');
-                    // 更新隐藏字段
-                    document.getElementById('hiddenVisitDate').value = this.dataset.date;
-                    // 启用时间段选择
-                    enableTimeSlots();
-                    // 检查是否可以提交
-                    checkFormValidity();
-                });
-            });
+            try {
+                // 日期卡片点击事件
+                const dateCards = document.querySelectorAll('.date-card');
+                if (dateCards.length > 0) {
+                    dateCards.forEach(card => {
+                        card.addEventListener('click', function () {
+                            try {
+                                // 移除其他卡片的活跃状态
+                                document.querySelectorAll('.date-card').forEach(c => c.classList.remove('active'));
+                                // 添加当前卡片的活跃状态
+                                this.classList.add('active');
+                                // 更新隐藏字段
+                                const hiddenVisitDate = document.getElementById('hiddenVisitDate');
+                                if (hiddenVisitDate) {
+                                    hiddenVisitDate.value = this.dataset.date;
+                                }
+                                // 启用时间段选择
+                                enableTimeSlots();
+                                // 检查是否可以提交
+                                checkFormValidity();
+                            } catch (error) {
+                                console.error('Error handling date card click:', error);
+                            }
+                        });
+                    });
+                }
 
-            // 时间段点击事件
-            document.querySelectorAll('.time-slot').forEach(slot => {
-                slot.addEventListener('click', function () {
-                    // 移除其他时间段的活跃状态
-                    document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('active'));
-                    // 添加当前时间段的活跃状态
-                    this.classList.add('active');
-                    // 更新隐藏字段
-                    document.getElementById('hiddenVisitTime').value = this.dataset.time;
-                    // 检查是否可以提交
-                    checkFormValidity();
-                });
-            });
+                // 时间段点击事件
+                const timeSlots = document.querySelectorAll('.time-slot');
+                if (timeSlots.length > 0) {
+                    timeSlots.forEach(slot => {
+                        slot.addEventListener('click', function () {
+                            try {
+                                // 移除其他时间段的活跃状态
+                                document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('active'));
+                                // 添加当前时间段的活跃状态
+                                this.classList.add('active');
+                                // 更新隐藏字段
+                                const hiddenVisitTime = document.getElementById('hiddenVisitTime');
+                                if (hiddenVisitTime) {
+                                    hiddenVisitTime.value = this.dataset.time;
+                                }
+                                // 检查是否可以提交
+                                checkFormValidity();
+                            } catch (error) {
+                                console.error('Error handling time slot click:', error);
+                            }
+                        });
+                    });
+                }
 
-            // 文件上传事件
-            document.getElementById('fileInput').addEventListener('change', function (e) {
-                const files = e.target.files;
+                // 表单提交事件
+                const reservationForm = document.getElementById('reservationForm');
+                if (reservationForm) {
+                    reservationForm.addEventListener('submit', function (e) {
+                        try {
+                            const submitBtn = document.getElementById('submitBtn');
+                            if (submitBtn) {
+                                submitBtn.disabled = true;
+                                submitBtn.textContent = '提交中...';
+                            }
+                        } catch (error) {
+                            console.error('Error handling form submit:', error);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error binding events:', error);
+            }
+        }
+
+        // 启用时间段选择
+        function enableTimeSlots() {
+            try {
+                const timeSlots = document.querySelectorAll('.time-slot');
+                if (timeSlots.length > 0) {
+                    timeSlots.forEach(slot => {
+                        slot.style.pointerEvents = 'auto';
+                        slot.style.opacity = '1';
+                    });
+                }
+            } catch (error) {
+                console.error('Error enabling time slots:', error);
+            }
+        }
+
+        // 检查表单有效性
+        function checkFormValidity() {
+            try {
+                const hiddenVisitDate = document.getElementById('hiddenVisitDate');
+                const hiddenVisitTime = document.getElementById('hiddenVisitTime');
+                const submitBtn = document.getElementById('submitBtn');
+
+                if (hiddenVisitDate && hiddenVisitTime && submitBtn) {
+                    const visitDate = hiddenVisitDate.value;
+                    const visitTime = hiddenVisitTime.value;
+
+                    if (visitDate && visitTime) {
+                        submitBtn.disabled = false;
+                    } else {
+                        submitBtn.disabled = true;
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking form validity:', error);
+            }
+        }
+
+        // 选择图片函数，优化微信浏览器体验
+        function selectImages() {
+            try {
+                const fileInput = document.getElementById('fileInput');
+                if (!fileInput) {
+                    console.error('fileInput not found');
+                    return;
+                }
+
+                // 检查是否在微信浏览器中
+                const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+
+                if (isWeChat) {
+                    // 在微信浏览器中，创建一个临时的input元素，使用capture属性
+                    const tempInput = document.createElement('input');
+                    tempInput.type = 'file';
+                    tempInput.name = 'attachments';
+                    tempInput.multiple = true;
+                    tempInput.accept = 'image/*';
+
+                    // 监听文件选择事件
+                    tempInput.onchange = function (e) {
+                        try {
+                            // 将选择的文件传递给原始的input元素
+                            if (fileInput) {
+                                fileInput.files = e.target.files;
+                                // 触发文件选择处理
+                                handleFileSelect(e);
+                            }
+                        } catch (error) {
+                            console.error('Error handling file selection in WeChat:', error);
+                        }
+                    };
+
+                    // 触发点击
+                    tempInput.click();
+                } else {
+                    // 在其他浏览器中，直接点击原始input
+                    fileInput.click();
+                }
+            } catch (error) {
+                console.error('Error selecting images:', error);
+            }
+        }
+
+        // 处理文件选择
+        function handleFileSelect(event) {
+            try {
+                if (!event || !event.target || !event.target.files) {
+                    console.error('Invalid event or no files selected');
+                    return;
+                }
+
+                const files = event.target.files;
                 const fileList = document.getElementById('fileList');
                 const maxFiles = 8;
                 const maxFileSize = 15 * 1024 * 1024; // 15MB
+
+                if (!fileList) {
+                    console.error('fileList not found');
+                    return;
+                }
 
                 // 检查文件数量
                 if (files.length > maxFiles) {
@@ -674,9 +819,13 @@
                     if (file.type.startsWith('image/')) {
                         const reader = new FileReader();
                         reader.onload = function (e) {
-                            const img = document.createElement('img');
-                            img.src = e.target.result;
-                            filePreview.appendChild(img);
+                            try {
+                                const img = document.createElement('img');
+                                img.src = e.target.result;
+                                filePreview.appendChild(img);
+                            } catch (error) {
+                                console.error('Error creating image preview:', error);
+                            }
                         };
                         reader.readAsDataURL(file);
                     } else {
@@ -696,7 +845,11 @@
                     fileRemove.className = 'file-remove';
                     fileRemove.innerHTML = '×';
                     fileRemove.addEventListener('click', function () {
-                        fileItem.remove();
+                        try {
+                            fileItem.remove();
+                        } catch (error) {
+                            console.error('Error removing file item:', error);
+                        }
                     });
 
                     // 组装文件项
@@ -705,35 +858,19 @@
                     fileItem.appendChild(fileRemove);
                     fileList.appendChild(fileItem);
                 }
-            });
-
-            // 表单提交事件
-            document.getElementById('reservationForm').addEventListener('submit', function (e) {
-                const submitBtn = document.getElementById('submitBtn');
-                submitBtn.disabled = true;
-                submitBtn.textContent = '提交中...';
-            });
-        }
-
-        // 启用时间段选择
-        function enableTimeSlots() {
-            document.querySelectorAll('.time-slot').forEach(slot => {
-                slot.style.pointerEvents = 'auto';
-                slot.style.opacity = '1';
-            });
-        }
-
-        // 检查表单有效性
-        function checkFormValidity() {
-            const visitDate = document.getElementById('hiddenVisitDate').value;
-            const visitTime = document.getElementById('hiddenVisitTime').value;
-            const submitBtn = document.getElementById('submitBtn');
-
-            if (visitDate && visitTime) {
-                submitBtn.disabled = false;
-            } else {
-                submitBtn.disabled = true;
+            } catch (error) {
+                console.error('Error handling file select:', error);
             }
+        }
+
+        // 绑定文件输入事件
+        try {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) {
+                fileInput.addEventListener('change', handleFileSelect);
+            }
+        } catch (error) {
+            console.error('Error binding file input event:', error);
         }
     </script>
 </body>
