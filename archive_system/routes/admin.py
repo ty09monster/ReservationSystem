@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_, case
 from ..extensions import db
-from ..models import Admin, Reservation, User, Announcement, SystemConfig
+from ..models import Admin, Reservation, User, Announcement, SystemConfig, Venue
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -76,6 +76,7 @@ def dashboard():
 
     announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
     config = SystemConfig.query.first()
+    venues = Venue.query.all()
 
     admin_list = []
     if session.get("is_super"):
@@ -87,6 +88,7 @@ def dashboard():
         pagination=pagination,
         announcements=announcements,
         config=config,
+        venues=venues,
         curr_keyword=keyword,
         curr_status=status_filter,
         admin_list=admin_list
@@ -125,10 +127,7 @@ def config():
     if "toggle_system" in request.form:
         config.is_open = not config.is_open
 
-    if "update_config" in request.form:
-        config.campuses = request.form.get("campuses")
-        config.visit_times = request.form.get("visit_times")
-        config.daily_limit = request.form.get("daily_limit")
+
 
     if "update_policy" in request.form:
         config.privacy_policy = request.form.get("privacy_policy")
@@ -143,6 +142,40 @@ def config():
             return redirect(url_for("admin.dashboard"))
         new_notice = Announcement(title=title, content=content)
         db.session.add(new_notice)
+
+    # 场馆管理
+    if "update_venue" in request.form:
+        venue_id = request.form.get("venue_id", type=int)
+        name = request.form.get("venue_name")
+        description = request.form.get("venue_description")
+        address = request.form.get("venue_address")
+        open_hours = request.form.get("venue_open_hours")
+        daily_limit = request.form.get("venue_daily_limit", 50, type=int)
+        individual_limit = request.form.get("venue_individual_limit", 20, type=int)
+        group_limit = request.form.get("venue_group_limit", 30, type=int)
+        group_min_size = request.form.get("venue_group_min_size", 2, type=int)
+        group_max_size = request.form.get("venue_group_max_size", 50, type=int)
+        advance_days = request.form.get("venue_advance_days", 7, type=int)
+        cutoff_time = request.form.get("venue_cutoff_time", "16:00")
+        is_active = "venue_is_active" in request.form
+        
+        venue = Venue.query.get(venue_id)
+        if venue:
+            venue.name = name
+            venue.description = description
+            venue.address = address
+            venue.open_hours = open_hours
+            venue.daily_limit = daily_limit
+            venue.individual_limit = individual_limit
+            venue.group_limit = group_limit
+            venue.group_min_size = group_min_size
+            venue.group_max_size = group_max_size
+            venue.advance_days = advance_days
+            venue.cutoff_time = cutoff_time
+            venue.is_active = is_active
+            flash("场馆设置更新成功")
+        else:
+            flash("场馆不存在")
 
     db.session.commit()
     return redirect(url_for("admin.dashboard"))

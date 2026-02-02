@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="zh">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>填写预约信息</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
 </head>
+
 <body>
     <!-- 加载动画 -->
     <div class="loading" id="loading"></div>
@@ -25,16 +28,17 @@
         <div class="container mt-4">
             <!-- 显示错误信息 -->
             {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-{{ 'danger' if '错误' in message else 'success' }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ 'danger' if '错误' in message else 'success' }} alert-dismissible fade show"
+                role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
             {% endwith %}
-            
+
             <form method="POST">
                 <div class="card mb-3">
                     <div class="card-body">
@@ -42,35 +46,105 @@
                             <label class="form-label">预约人</label>
                             <input type="text" class="form-control" value="{{ user.name }} - {{ user.phone }}" disabled>
                         </div>
+
+                        {% if venue_category %}
+                        <!-- 隐藏场馆分类选择框，直接传递值 -->
+                        <input type="hidden" name="venue_category" value="{{ venue_category }}">
                         <div class="mb-3">
-                            <label class="form-label">参观校区</label>
-                            <select name="area" class="form-select">
-                                {% for c in campuses %}
-                                <option value="{{ c }}">{{ c }}</option>
+                            <label class="form-label">参观场馆</label>
+                            <select name="venue_id" class="form-select" id="venue_id" required>
+                                <option value="">请选择场馆</option>
+                                {% for venue in venues %}
+                                {% if venue.category == venue_category %}
+                                <option value="{{ venue.id }}">{{ venue.name }}</option>
+                                {% endif %}
                                 {% endfor %}
                             </select>
                         </div>
+                        {% else %}
+                        <div class="mb-3">
+                            <label class="form-label">场馆分类</label>
+                            <select name="venue_category" class="form-select" id="venue_category" required>
+                                <option value="">请选择场馆分类</option>
+                                <option value="校史馆">校史馆</option>
+                                <option value="标本馆">标本馆</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">参观场馆</label>
+                            <select name="venue_id" class="form-select" id="venue_id" required>
+                                <option value="">请先选择场馆分类</option>
+                                {% for venue in venues %}
+                                <option value="{{ venue.id }}" data-category="{{ venue.category }}">{{ venue.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+
                         <div class="mb-3">
                             <label class="form-label">参观日期</label>
-                            <input type="date" name="visit_date" class="form-control" 
-                                   min="{{ moment().format('YYYY-MM-DD') if moment else '' }}" 
-                                   required>
+                            <input type="date" name="visit_date" class="form-control" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">时间段</label>
                             <select name="visit_time" class="form-select">
-                                {% for t in times %}
-                                <option value="{{ t }}">{{ t }}</option>
-                                {% endfor %}
+                                <option value="09:00-10:30">09:00-10:30</option>
+                                <option value="10:30-12:00">10:30-12:00</option>
+                                <option value="14:00-15:30">14:00-15:30</option>
+                                <option value="15:30-17:00">15:30-17:00</option>
                             </select>
                         </div>
+
+                        {% if res_type %}
+                        <!-- 隐藏预约类型选择框，直接传递值 -->
+                        <input type="hidden" name="res_type" value="{{ res_type }}">
+                        {% if res_type == '团队' %}
+                        <!-- 团体预约信息 -->
+                        <div class="mb-3">
+                            <div class="mb-3">
+                                <label class="form-label">团体名称</label>
+                                <input type="text" name="group_name" class="form-control" placeholder="请输入团体名称"
+                                    required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">团体联系人</label>
+                                <input type="text" name="group_contact" class="form-control" placeholder="请输入团体联系人"
+                                    required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">团体人数</label>
+                                <input type="number" name="group_size" class="form-control" min="2" max="50" value="2"
+                                    placeholder="请输入团体人数" required>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% else %}
                         <div class="mb-3">
                             <label class="form-label">预约类型</label>
-                            <select name="res_type" class="form-select">
+                            <select name="res_type" class="form-select" id="res_type">
                                 <option value="个人">个人参观</option>
                                 <option value="团队">团队参观</option>
                             </select>
                         </div>
+                        <!-- 团体预约信息 -->
+                        <div id="group_info" class="mb-3" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">团体名称</label>
+                                <input type="text" name="group_name" class="form-control" placeholder="请输入团体名称">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">团体联系人</label>
+                                <input type="text" name="group_contact" class="form-control" placeholder="请输入团体联系人">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">团体人数</label>
+                                <input type="number" name="group_size" class="form-control" min="2" max="50" value="2"
+                                    placeholder="请输入团体人数">
+                            </div>
+                        </div>
+                        {% endif %}
+
                         <div class="mb-3">
                             <label class="form-label">访客身份</label>
                             <select name="identity" class="form-select">
@@ -81,7 +155,8 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">预约缘由</label>
-                            <textarea name="reason" class="form-control" rows="3" placeholder="请简要说明参观目的" required></textarea>
+                            <textarea name="reason" class="form-control" rows="3" placeholder="请简要说明参观目的"
+                                required></textarea>
                         </div>
                     </div>
                 </div>
@@ -115,46 +190,105 @@
     <footer class="footer">
         <p>&copy; <span id="currentYear"></span> 河南农业大学校史馆预约系统 版权所有</p>
     </footer>
-    
+
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-    
+
     <script>
         // 页面加载完成后隐藏加载动画
-        window.onload = function() {
-            setTimeout(function() {
+        window.onload = function () {
+            setTimeout(function () {
                 document.getElementById('loading').style.display = 'none';
             }, 1000);
-            
+
             // 设置当前年份
             document.getElementById('currentYear').textContent = new Date().getFullYear();
         };
 
         // 添加前端JavaScript日期校验
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const dateInput = document.querySelector('input[name="visit_date"]');
             const today = new Date();
-            const todayStr = today.getFullYear() + '-' + 
-                            String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-                            String(today.getDate()).padStart(2, '0');
-            
+            const todayStr = today.getFullYear() + '-' +
+                String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                String(today.getDate()).padStart(2, '0');
+
             // 设置最小日期为今天
             dateInput.min = todayStr;
-            
+
             // 添加日期校验事件
-            dateInput.addEventListener('change', function() {
+            dateInput.addEventListener('change', function () {
                 const selectedDate = new Date(this.value);
                 const currentDate = new Date();
-                
+
                 // 设置日期为当天零时以进行准确比较
                 currentDate.setHours(0, 0, 0, 0);
                 selectedDate.setHours(0, 0, 0, 0);
-                
+
                 if (selectedDate < currentDate) {
                     alert('访问日期不能早于今天');
                     this.value = '';
                 }
             });
+
+            // 预约类型切换事件（仅在res_type选择框存在时执行）
+            const resTypeSelect = document.getElementById('res_type');
+            const groupInfoDiv = document.getElementById('group_info');
+
+            if (resTypeSelect && groupInfoDiv) {
+                resTypeSelect.addEventListener('change', function () {
+                    if (this.value === '团队') {
+                        groupInfoDiv.style.display = 'block';
+                    } else {
+                        groupInfoDiv.style.display = 'none';
+                    }
+                });
+
+                // 初始化时检查预约类型
+                if (resTypeSelect.value === '团队') {
+                    groupInfoDiv.style.display = 'block';
+                }
+            }
+
+            // 场馆分类和场馆联动（仅在venue_category选择框存在时执行）
+            const venueCategorySelect = document.getElementById('venue_category');
+            const venueSelect = document.getElementById('venue_id');
+
+            if (venueCategorySelect) {
+                // 初始化场馆选择
+                function initVenueSelect() {
+                    const selectedCategory = venueCategorySelect.value;
+
+                    // 清空并重置场馆选择
+                    venueSelect.innerHTML = '';
+
+                    if (!selectedCategory) {
+                        venueSelect.innerHTML = '<option value="">请先选择场馆分类</option>';
+                        return;
+                    }
+
+                    // 添加默认选项
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = '请选择场馆';
+                    venueSelect.appendChild(defaultOption);
+
+                    // 遍历所有场馆选项，只显示对应分类的场馆
+                    const allVenueOptions = document.querySelectorAll('#venue_id option[data-category]');
+                    allVenueOptions.forEach(function (option) {
+                        if (option.getAttribute('data-category') === selectedCategory) {
+                            venueSelect.appendChild(option.cloneNode(true));
+                        }
+                    });
+                }
+
+                // 绑定场馆分类变化事件
+                venueCategorySelect.addEventListener('change', initVenueSelect);
+
+                // 页面加载时初始化场馆选择
+                initVenueSelect();
+            }
         });
     </script>
 </body>
+
 </html>

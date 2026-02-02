@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from datetime import datetime
 from ..extensions import db
-from ..models import User, SystemConfig, Announcement, Reservation
+from ..models import User, SystemConfig, Announcement, Reservation, Venue
 from ..validators import validate_certificate, validate_phone, validate_visit_date
 from ..decorators import login_required
 
@@ -110,10 +110,8 @@ def home():
         config=config
     )
 
-@h5_bp.route("/h5/reserve", methods=["GET", "POST"])
-@login_required
-def reserve():
-
+# 预约基础函数
+def _reserve_base(venue_category, res_type):
     # 检查用户是否存在
     user = User.query.get(session["user_id"])
     if not user:
@@ -126,40 +124,118 @@ def reserve():
         flash("系统维护中，暂时关闭预约")
         return redirect(url_for("h5.home"))
 
+    # 获取对应分类的启用场馆
+    venues = Venue.query.filter_by(is_active=True, category=venue_category).all()
+    if not venues:
+        flash(f"暂无可用{venue_category}")
+        return redirect(url_for("h5.home"))
+
+    # 对于现代化预约页面，只使用第一个场馆（因为从index.html进入时已经确定了场馆）
+    venue = venues[0]
+
     if request.method == "POST":
-        area = request.form.get("area")
+        venue_id = request.form.get("venue_id")
         visit_date = request.form.get("visit_date")
         visit_time = request.form.get("visit_time")
         reason = request.form.get("reason")
-        res_type = request.form.get("res_type")
+        group_name = request.form.get("group_name")
+        group_contact = request.form.get("group_contact")
+        group_size = request.form.get("group_size", 1, type=int)
         identity = request.form.get("identity")
 
+        # 验证场馆是否存在且启用
+        venue = Venue.query.filter_by(id=venue_id, is_active=True, category=venue_category).first()
+        if not venue:
+            flash("选择的场馆不存在或未启用")
+            return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venue=venue)
+
+        # 验证预约日期
         is_date_valid, date_msg = validate_visit_date(visit_date)
         if not is_date_valid:
             flash(date_msg)
-            campuses = config.campuses.split(",")
-            times = config.visit_times.split(",")
-            return render_template("h5_reserve.html", user=user, campuses=campuses, times=times)
+            return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venue=venue)
 
+        # 验证团体信息
+        if res_type == "团队":
+            if not group_name:
+                flash("请输入团体名称")
+                return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venue=venue)
+            if not group_contact:
+                flash("请输入团体联系人")
+                return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venue=venue)
+            if group_size < venue.group_min_size:
+                flash(f"团体人数至少为{venue.group_min_size}人")
+                return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venue=venue)
+            if group_size > venue.group_max_size:
+                flash(f"团体人数不能超过{venue.group_max_size}人")
+                return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venue=venue)
+
+        # 检查场馆当日预约人数是否已满
+        visit_date_obj = datetime.strptime(visit_date, "%Y-%m-%d").date()
+        current_count = Reservation.query.filter_by(
+            venue_id=venue_id,
+            visit_date=visit_date_obj,
+            status="已同意"
+        ).count()
+        
+        if current_count >= venue.daily_limit:
+            flash(f"{venue.name} {visit_date} 预约人数已满，请选择其他日期")
+            return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venue=venue)
+
+        # 创建预约记录
         res = Reservation(
             user_id=session["user_id"],
-            area=area,
-            visit_date=datetime.strptime(visit_date, "%Y-%m-%d").date(),
+            venue_id=venue_id,
+            visit_date=visit_date_obj,
             visit_time=visit_time,
             reason=reason,
             res_type=res_type,
+            group_name=group_name,
+            group_contact=group_contact,
+            group_size=group_size,
             identity=identity,
         )
         db.session.add(res)
         db.session.commit()
 
+        # 处理附件上传
+        if 'attachments' in request.files:
+            files = request.files.getlist('attachments')
+            for file in files:
+                if file and file.filename:
+                    # 这里可以添加文件保存逻辑
+                    # 例如：file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    print(f"【附件上传】用户 {user.id} 上传了文件: {file.filename}")
+
         print(f"【模拟微信通知】用户 {session['user_id']} 预约提交成功，等待审核。")
         flash("预约提交成功，请等待审核通知")
         return redirect(url_for("h5.history"))
 
-    campuses = config.campuses.split(",")
-    times = config.visit_times.split(",")
-    return render_template("h5_reserve.html", user=user, campuses=campuses, times=times)
+    return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venue=venue)
+
+# 校史馆个人预约
+@h5_bp.route("/h5/reserve/xiaoshi/individual", methods=["GET", "POST"])
+@login_required
+def reserve_xiaoshi_individual():
+    return _reserve_base("校史馆", "个人")
+
+# 标本馆个人预约
+@h5_bp.route("/h5/reserve/biaoben/individual", methods=["GET", "POST"])
+@login_required
+def reserve_biaoben_individual():
+    return _reserve_base("标本馆", "个人")
+
+# 校史馆团体预约
+@h5_bp.route("/h5/reserve/xiaoshi/group", methods=["GET", "POST"])
+@login_required
+def reserve_xiaoshi_group():
+    return _reserve_base("校史馆", "团队")
+
+# 标本馆团体预约
+@h5_bp.route("/h5/reserve/biaoben/group", methods=["GET", "POST"])
+@login_required
+def reserve_biaoben_group():
+    return _reserve_base("标本馆", "团队")
 
 @h5_bp.route("/h5/history")
 @login_required

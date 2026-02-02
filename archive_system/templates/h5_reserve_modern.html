@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>{% block title %}填写预约信息{% endblock %}</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
+    <style>
+        /* 现代化预约页面样式 */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f5f7fa;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+            color: white;
+            padding: 20px 16px;
+            text-align: center;
+        }
+
+        .card-header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 20px 16px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #E4E7ED;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: #4A90E2;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+            outline: none;
+        }
+
+        .form-control:disabled {
+            background-color: #F5F7FA;
+            color: #909399;
+        }
+
+        /* 日期选择卡片样式 */
+        .date-section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+        .date-cards {
+            display: flex;
+            overflow-x: auto;
+            padding-bottom: 12px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .date-cards::-webkit-scrollbar {
+            display: none;
+        }
+
+        .date-card {
+            flex: 0 0 auto;
+            width: 100px;
+            margin-right: 12px;
+            padding: 16px 12px;
+            background: white;
+            border: 2px solid #E4E7ED;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .date-card:hover {
+            border-color: #4A90E2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.15);
+        }
+
+        .date-card.active {
+            border-color: #4A90E2;
+            background: rgba(74, 144, 226, 0.05);
+        }
+
+        .date-card .day {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            line-height: 1;
+        }
+
+        .date-card .weekday {
+            font-size: 12px;
+            color: #606266;
+            margin-top: 4px;
+        }
+
+        .date-card .month {
+            font-size: 12px;
+            color: #909399;
+            margin-top: 4px;
+        }
+
+        /* 时间段选择样式 */
+        .time-section {
+            margin-bottom: 24px;
+        }
+
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .time-slot {
+            padding: 12px 16px;
+            background: white;
+            border: 1px solid #E4E7ED;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .time-slot:hover {
+            border-color: #4A90E2;
+        }
+
+        .time-slot.active {
+            border-color: #4A90E2;
+            background: rgba(74, 144, 226, 0.05);
+            color: #4A90E2;
+            font-weight: 500;
+        }
+
+        /* 校区信息样式 */
+        .campus-info {
+            margin: 16px 0;
+            padding: 12px 16px;
+            background: rgba(74, 144, 226, 0.05);
+            border-left: 4px solid #4A90E2;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .campus-info p {
+            margin: 0;
+            font-size: 14px;
+            color: #606266;
+        }
+
+        /* 附件上传样式 */
+        .attachment-section {
+            margin-bottom: 24px;
+        }
+
+        .upload-container {
+            border: 2px dashed #DCDFE6;
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .upload-container:hover {
+            border-color: #4A90E2;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #C0C4CC;
+            margin-bottom: 12px;
+        }
+
+        .upload-text {
+            font-size: 14px;
+            color: #909399;
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 12px;
+            color: #C0C4CC;
+        }
+
+        .file-list {
+            margin-top: 16px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border: 1px solid #E4E7ED;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .file-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-right: 12px;
+            background: #f5f5f5;
+        }
+
+        .file-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-size {
+            font-size: 12px;
+            color: #909399;
+        }
+
+        .file-remove {
+            padding: 8px;
+            color: #F56C6C;
+            cursor: pointer;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #606266;
+            border: 1px solid #DCDFE6;
+            margin-top: 12px;
+        }
+
+        .btn-secondary:hover {
+            background: #F5F7FA;
+        }
+
+        /* 错误提示样式 */
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .alert-danger {
+            background: #FEF0F0;
+            color: #F56C6C;
+            border: 1px solid #FBC4C4;
+        }
+
+        .alert-success {
+            background: #F0F9EB;
+            color: #67C23A;
+            border: 1px solid #E1F3D8;
+        }
+
+        /* 团队信息样式 */
+        .group-info {
+            margin-bottom: 20px;
+        }
+
+        .group-info h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+        /* 底部导航 */
+        .bottom-nav {
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+            padding: 12px 0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .bottom-nav .container {
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #909399;
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .bottom-nav-item.active {
+            color: #4A90E2;
+        }
+
+        .bottom-nav-item i {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        /* 页脚 */
+        .footer {
+            text-align: center;
+            padding: 20px 0;
+            font-size: 12px;
+            color: #909399;
+            margin-bottom: 60px;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 480px) {
+            .time-slots {
+                grid-template-columns: 1fr;
+            }
+
+            .date-card {
+                width: 80px;
+            }
+
+            .date-card .day {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 加载动画 -->
+    <div class="loading" id="loading"></div>
+
+    <!-- 顶部导航栏 -->
+    <nav class="top-nav">
+        <div class="back-btn" onclick="window.history.back()">
+            <i class="icon icon-back"></i>
+        </div>
+        <h1>{% block page_title %}新建预约{% endblock %}</h1>
+        <div class="nav-right"></div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <div class="container mt-4">
+            <!-- 显示错误信息 -->
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ 'danger' if '错误' in message else 'success' }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <form method="POST" enctype="multipart/form-data" id="reservationForm">
+                <!-- 隐藏字段 -->
+                <input type="hidden" name="visit_date" id="hiddenVisitDate">
+                <input type="hidden" name="visit_time" id="hiddenVisitTime">
+                <input type="hidden" name="venue_id" value="{{ venue.id }}">
+
+                <div class="card">
+                    <div class="card-header">
+                        <h1>预约信息</h1>
+                    </div>
+                    <div class="card-body">
+                        <!-- 用户信息 -->
+                        <div class="form-group">
+                            <label class="form-label">预约人</label>
+                            <input type="text" class="form-control" value="{{ user.name }}" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">手机号</label>
+                            <input type="text" class="form-control" value="{{ user.phone }}" disabled>
+                        </div>
+
+                        <!-- 场馆信息 -->
+                        <div class="form-group">
+                            <label class="form-label">参观场馆</label>
+                            <input type="text" class="form-control" value="{{ venue.name }}" disabled>
+                        </div>
+
+                        <!-- 校区信息 -->
+                        {% if venue.campus %}
+                        <div class="campus-info">
+                            <p><strong>校区：</strong>{{ venue.campus }}</p>
+                        </div>
+                        {% endif %}
+
+                        <!-- 日期选择 -->
+                        <div class="date-section">
+                            <h3 class="section-title">选择日期</h3>
+                            <div class="date-cards" id="dateCards">
+                                <!-- 日期卡片将通过JavaScript生成 -->
+                            </div>
+                        </div>
+
+                        <!-- 时间段选择 -->
+                        <div class="time-section">
+                            <h3 class="section-title">选择时间段</h3>
+                            <div class="time-slots" id="timeSlots">
+                                <div class="time-slot" data-time="09:00-10:30">09:00-10:30</div>
+                                <div class="time-slot" data-time="10:30-12:00">10:30-12:00</div>
+                                <div class="time-slot" data-time="14:00-15:30">14:00-15:30</div>
+                                <div class="time-slot" data-time="15:30-17:00">15:30-17:00</div>
+                            </div>
+                        </div>
+
+                        <!-- 团体信息 -->
+                        {% block group_section %}
+                        {% endblock %}
+
+                        <!-- 访客身份 -->
+                        <div class="form-group">
+                            <label class="form-label">访客身份</label>
+                            <select name="identity" class="form-control" required>
+                                <option value="校内师生">校内师生</option>
+                                <option value="校友">校友</option>
+                                <option value="校外人员">校外人员</option>
+                            </select>
+                        </div>
+
+                        <!-- 预约缘由 -->
+                        <div class="form-group">
+                            <label class="form-label">预约缘由</label>
+                            <textarea name="reason" class="form-control" rows="3" placeholder="请简要说明参观目的" required></textarea>
+                        </div>
+
+                        <!-- 附件上传 -->
+                        <div class="attachment-section">
+                            <h3 class="section-title">附件上传（可选）</h3>
+                            <div class="upload-container" onclick="document.getElementById('fileInput').click()">
+                                <div class="upload-icon">📎</div>
+                                <div class="upload-text">点击上传图片</div>
+                                <div class="upload-hint">最多8张，单张不超过15MB</div>
+                            </div>
+                            <input type="file" id="fileInput" name="attachments" multiple accept="image/*" style="display: none;">
+                            <div class="file-list" id="fileList">
+                                <!-- 上传的文件将显示在这里 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="submitBtn" disabled>提交申请</button>
+                <a href="{{ url_for('h5.home') }}" class="btn btn-secondary">返回</a>
+            </form>
+        </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <nav class="bottom-nav">
+        <a href="{{ url_for('h5.index') }}" class="bottom-nav-item">
+            <i class="icon icon-home"></i>
+            <span>首页</span>
+        </a>
+        <a href="{{ url_for('h5.announcements') }}" class="bottom-nav-item">
+            <i class="icon icon-news"></i>
+            <span>公告</span>
+        </a>
+        <a href="{{ url_for('h5.history') }}" class="bottom-nav-item">
+            <i class="icon icon-history"></i>
+            <span>历史</span>
+        </a>
+        <a href="{{ url_for('h5.profile') }}" class="bottom-nav-item">
+            <i class="icon icon-user"></i>
+            <span>我的</span>
+        </a>
+    </nav>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <p>&copy; <span id="currentYear"></span> 河南农业大学校史馆预约系统</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        // 页面加载完成后执行
+        window.onload = function () {
+            // 隐藏加载动画
+            setTimeout(function () {
+                document.getElementById('loading').style.display = 'none';
+            }, 1000);
+
+            // 设置当前年份
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+            // 生成日期卡片
+            generateDateCards();
+
+            // 绑定事件
+            bindEvents();
+        };
+
+        // 生成日期卡片
+        function generateDateCards() {
+            const dateCardsContainer = document.getElementById('dateCards');
+            const today = new Date();
+            const oneDay = 24 * 60 * 60 * 1000;
+
+            // 生成未来14天的日期卡片
+            for (let i = 0; i < 14; i++) {
+                const currentDate = new Date(today.getTime() + i * oneDay);
+                const day = currentDate.getDate();
+                const month = currentDate.getMonth() + 1;
+                const weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][currentDate.getDay()];
+                const dateStr = currentDate.toISOString().split('T')[0];
+
+                const dateCard = document.createElement('div');
+                dateCard.className = 'date-card';
+                dateCard.dataset.date = dateStr;
+                dateCard.innerHTML = `
+                    <div class="day">${day}</div>
+                    <div class="weekday">${weekday}</div>
+                    <div class="month">${month}月</div>
+                `;
+
+                dateCardsContainer.appendChild(dateCard);
+            }
+        }
+
+        // 绑定事件
+        function bindEvents() {
+            // 日期卡片点击事件
+            document.querySelectorAll('.date-card').forEach(card => {
+                card.addEventListener('click', function () {
+                    // 移除其他卡片的活跃状态
+                    document.querySelectorAll('.date-card').forEach(c => c.classList.remove('active'));
+                    // 添加当前卡片的活跃状态
+                    this.classList.add('active');
+                    // 更新隐藏字段
+                    document.getElementById('hiddenVisitDate').value = this.dataset.date;
+                    // 启用时间段选择
+                    enableTimeSlots();
+                    // 检查是否可以提交
+                    checkFormValidity();
+                });
+            });
+
+            // 时间段点击事件
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                slot.addEventListener('click', function () {
+                    // 移除其他时间段的活跃状态
+                    document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('active'));
+                    // 添加当前时间段的活跃状态
+                    this.classList.add('active');
+                    // 更新隐藏字段
+                    document.getElementById('hiddenVisitTime').value = this.dataset.time;
+                    // 检查是否可以提交
+                    checkFormValidity();
+                });
+            });
+
+            // 文件上传事件
+            document.getElementById('fileInput').addEventListener('change', function (e) {
+                const files = e.target.files;
+                const fileList = document.getElementById('fileList');
+                const maxFiles = 8;
+                const maxFileSize = 15 * 1024 * 1024; // 15MB
+
+                // 检查文件数量
+                if (files.length > maxFiles) {
+                    alert(`最多只能上传${maxFiles}个文件`);
+                    return;
+                }
+
+                // 清空现有文件列表
+                fileList.innerHTML = '';
+
+                // 显示上传的文件
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+
+                    // 检查文件大小
+                    if (file.size > maxFileSize) {
+                        alert(`文件${file.name}超过15MB限制`);
+                        continue;
+                    }
+
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+
+                    // 创建文件预览
+                    const filePreview = document.createElement('div');
+                    filePreview.className = 'file-preview';
+
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            filePreview.appendChild(img);
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        filePreview.innerHTML = '<i class="icon icon-file"></i>';
+                    }
+
+                    // 创建文件信息
+                    const fileInfo = document.createElement('div');
+                    fileInfo.className = 'file-info';
+                    fileInfo.innerHTML = `
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-size">${(file.size / 1024 / 1024).toFixed(2)}MB</div>
+                    `;
+
+                    // 创建删除按钮
+                    const fileRemove = document.createElement('div');
+                    fileRemove.className = 'file-remove';
+                    fileRemove.innerHTML = '×';
+                    fileRemove.addEventListener('click', function () {
+                        fileItem.remove();
+                    });
+
+                    // 组装文件项
+                    fileItem.appendChild(filePreview);
+                    fileItem.appendChild(fileInfo);
+                    fileItem.appendChild(fileRemove);
+                    fileList.appendChild(fileItem);
+                }
+            });
+
+            // 表单提交事件
+            document.getElementById('reservationForm').addEventListener('submit', function (e) {
+                const submitBtn = document.getElementById('submitBtn');
+                submitBtn.disabled = true;
+                submitBtn.textContent = '提交中...';
+            });
+        }
+
+        // 启用时间段选择
+        function enableTimeSlots() {
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                slot.style.pointerEvents = 'auto';
+                slot.style.opacity = '1';
+            });
+        }
+
+        // 检查表单有效性
+        function checkFormValidity() {
+            const visitDate = document.getElementById('hiddenVisitDate').value;
+            const visitTime = document.getElementById('hiddenVisitTime').value;
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (visitDate && visitTime) {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
+        }
+    </script>
+</body>
+
+</html>

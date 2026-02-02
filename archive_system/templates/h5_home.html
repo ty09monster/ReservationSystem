@@ -83,7 +83,7 @@
         <!-- 功能按钮 -->
         <div class="row g-4">
             <div class="col-md-6">
-                <a href="{{ url_for('h5.reserve') }}"
+                <a href="{{ url_for('h5.index') }}?scroll_to_reserve=1"
                     class="btn btn-primary btn-lg p-4 shadow-sm w-100 {{ 'disabled' if not config.is_open else '' }}">
                     <div class="text-center">
                         <h5 class="mb-1">{{ '立即预约' if config.is_open else '系统维护中' }}</h5>
@@ -108,7 +108,7 @@
             <i class="icon icon-home"></i>
             <span>首页</span>
         </a>
-        <a href="{{ url_for('h5.reserve') }}" class="bottom-nav-item">
+        <a href="{{ url_for('h5.index') }}?scroll_to_reserve=1" class="bottom-nav-item">
             <i class="icon icon-calendar"></i>
             <span>预约</span>
         </a>

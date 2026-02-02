@@ -42,7 +42,7 @@
             <div class="container">
                 <h2>欢迎访问校史馆预约系统</h2>
                 <p>探索河南农业大学的历史与文化，预约参观校史馆和档案馆</p>
-                <a href="{{ url_for('h5.login') }}" class="btn btn-primary">立即预约</a>
+                <button onclick="scrollToReserve()" class="btn btn-primary">立即预约</button>
                 <a href="{{ url_for('h5.announcements') }}" class="btn btn-secondary">查看公告</a>
             </div>
         </section>
@@ -120,36 +120,39 @@
         </section>
         {% endif %}
 
-        <!-- 功能模块 -->
+        <!-- 预约功能模块 -->
         <section class="feature-section">
+            <div class="section-header">
+                <h3>预约服务</h3>
+            </div>
             <div class="feature-grid">
-                <a href="{{ url_for('h5.login') }}" class="feature-item">
+                <a href="{{ url_for('h5.reserve_xiaoshi_individual') }}" class="feature-item">
                     <div class="feature-icon">
                         <i class="icon icon-calendar"></i>
                     </div>
-                    <h3 class="feature-title">在线预约</h3>
-                    <p class="feature-desc">方便快捷的在线预约系统</p>
+                    <h3 class="feature-title">校史馆预约</h3>
+                    <p class="feature-desc">个人参观校史馆</p>
                 </a>
-                <a href="{{ url_for('h5.about') }}" class="feature-item">
+                <a href="{{ url_for('h5.reserve_biaoben_individual') }}" class="feature-item">
                     <div class="feature-icon">
                         <i class="icon icon-clock"></i>
                     </div>
-                    <h3 class="feature-title">参观时间</h3>
-                    <p class="feature-desc">合理安排参观时间</p>
+                    <h3 class="feature-title">标本馆预约</h3>
+                    <p class="feature-desc">个人参观标本馆</p>
                 </a>
-                <a href="{{ url_for('h5.login') }}" class="feature-item">
+                <a href="{{ url_for('h5.reserve_xiaoshi_group') }}" class="feature-item">
                     <div class="feature-icon">
                         <i class="icon icon-history"></i>
                     </div>
-                    <h3 class="feature-title">历史记录</h3>
-                    <p class="feature-desc">查看预约历史记录</p>
+                    <h3 class="feature-title">校史馆团体预约</h3>
+                    <p class="feature-desc">团队参观校史馆</p>
                 </a>
-                <a href="{{ url_for('h5.about') }}" class="feature-item">
+                <a href="{{ url_for('h5.reserve_biaoben_group') }}" class="feature-item">
                     <div class="feature-icon">
                         <i class="icon icon-info"></i>
                     </div>
-                    <h3 class="feature-title">校史介绍</h3>
-                    <p class="feature-desc">了解学校发展历程</p>
+                    <h3 class="feature-title">标本馆团体预约</h3>
+                    <p class="feature-desc">团队参观标本馆</p>
                 </a>
             </div>
         </section>
@@ -223,7 +226,21 @@
 
         // 设置当前年份
         document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        // 检测URL参数，自动滚动到预约服务区域
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('scroll_to_reserve')) {
+            setTimeout(scrollToReserve, 500);
+        }
     };
+
+    // 滚动到预约服务区域
+    function scrollToReserve() {
+        const reserveSection = document.querySelector('.feature-section');
+        if (reserveSection) {
+            reserveSection.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
 </script>
 
 </html>

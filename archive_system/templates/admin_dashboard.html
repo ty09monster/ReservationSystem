@@ -58,6 +58,9 @@
                     <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-config">
                         ⚙️ 系统配置
                     </button>
+                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-venue">
+                        🏛️ 场馆管理
+                    </button>
                     <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-account">
                         👮 账号管理
                     </button>
@@ -125,7 +128,7 @@
                                     <th>姓名</th>
                                     <th>身份</th>
                                     <th>参观日期/时间</th>
-                                    <th>校区</th>
+                                    <th>场馆</th>
                                     <th>状态</th>
                                     <th>操作</th>
                                 </tr>
@@ -153,7 +156,7 @@
                                             {{ res.visit_time }}
                                         </small>
                                     </td>
-                                    <td>{{ res.area }}</td>
+                                    <td>{{ res.venue.name }}</td>
                                     <td>
                                         {% if res.status == '待审核' %}
                                         <span class="badge bg-warning text-dark">
@@ -177,7 +180,7 @@
                                             data-idtype="{{ res.user.id_type }}" data-idcard="{{ res.user.id_card }}"
                                             data-identity="{{ res.identity }}"
                                             data-visitdate="{{ res.visit_date }} {{ res.visit_time }}"
-                                            data-area="{{ res.area }}" data-reason="{{ res.reason }}"
+                                            data-area="{{ res.venue.name }}" data-reason="{{ res.reason }}"
                                             data-status="{{ res.status }}"
                                             data-rejectreason="{{ res.reject_reason or '' }}">
                                             查看详情
@@ -235,7 +238,7 @@
                                         </div>
                                     </div>
                                     <script>
-                                        document.querySelector('textarea[name="content"]').addEventListener('input', function() {
+                                        document.querySelector('textarea[name="content"]').addEventListener('input', function () {
                                             document.getElementById('content-length').textContent = this.value.length;
                                         });
                                     </script>
@@ -266,24 +269,33 @@
                                 </div>
                                 <div class="d-flex gap-2">
                                     <!-- 顶置/取消顶置按钮 -->
-                                    <form method="POST" action="{{ url_for('admin.toggle_announcement_pin', ann_id=notice.id) }}" class="d-inline">
-                                        <button type="submit" class="btn btn-sm {% if notice.is_pinned %}btn-secondary{% else %}btn-warning{% endif %}">
+                                    <form method="POST"
+                                        action="{{ url_for('admin.toggle_announcement_pin', ann_id=notice.id) }}"
+                                        class="d-inline">
+                                        <button type="submit"
+                                            class="btn btn-sm {% if notice.is_pinned %}btn-secondary{% else %}btn-warning{% endif %}">
                                             {% if notice.is_pinned %}取消顶置{% else %}顶置{% endif %}
                                         </button>
                                     </form>
                                     <!-- 隐藏/显示按钮 -->
-                                    <form method="POST" action="{{ url_for('admin.toggle_announcement_hide', ann_id=notice.id) }}" class="d-inline">
-                                        <button type="submit" class="btn btn-sm {% if notice.is_hidden %}btn-success{% else %}btn-danger{% endif %}">
+                                    <form method="POST"
+                                        action="{{ url_for('admin.toggle_announcement_hide', ann_id=notice.id) }}"
+                                        class="d-inline">
+                                        <button type="submit"
+                                            class="btn btn-sm {% if notice.is_hidden %}btn-success{% else %}btn-danger{% endif %}">
                                             {% if notice.is_hidden %}显示{% else %}隐藏{% endif %}
                                         </button>
                                     </form>
                                     <!-- 编辑按钮 -->
-                                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editAnnouncementModal" 
-                                            data-id="{{ notice.id }}" data-title="{{ notice.title }}" data-content="{{ notice.content }}">
+                                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                                        data-bs-target="#editAnnouncementModal" data-id="{{ notice.id }}"
+                                        data-title="{{ notice.title }}" data-content="{{ notice.content }}">
                                         编辑
                                     </button>
                                     <!-- 删除按钮 -->
-                                    <form method="POST" action="{{ url_for('admin.delete_announcement', ann_id=notice.id) }}" class="d-inline" onsubmit="return confirm('确定要删除这条公告吗？');">
+                                    <form method="POST"
+                                        action="{{ url_for('admin.delete_announcement', ann_id=notice.id) }}"
+                                        class="d-inline" onsubmit="return confirm('确定要删除这条公告吗？');">
                                         <button type="submit" class="btn btn-sm btn-danger">删除</button>
                                     </form>
                                 </div>
@@ -297,19 +309,22 @@
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title">编辑公告</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                            aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
                                         <form method="POST" id="editAnnouncementForm">
                                             <input type="hidden" name="id" id="edit-id">
                                             <div class="mb-2">
-                                                <input type="text" name="title" id="edit-title" class="form-control" placeholder="公告标题" required>
+                                                <input type="text" name="title" id="edit-title" class="form-control"
+                                                    placeholder="公告标题" required>
                                             </div>
                                             <div class="mb-2">
                                                 <label class="form-label text-muted small">
                                                     支持 HTML 格式，内容长度限制 5000 字符
                                                 </label>
-                                                <textarea name="content" id="edit-content" class="form-control" placeholder="公告内容" rows="4" required maxlength="5000"></textarea>
+                                                <textarea name="content" id="edit-content" class="form-control"
+                                                    placeholder="公告内容" rows="4" required maxlength="5000"></textarea>
                                                 <div class="text-muted small mt-1">
                                                     <span id="edit-content-length">0</span>/5000
                                                 </div>
@@ -329,18 +344,18 @@
                                 const id = button.getAttribute('data-id');
                                 const title = button.getAttribute('data-title');
                                 const content = button.getAttribute('data-content');
-                                
+
                                 const form = document.getElementById('editAnnouncementForm');
                                 form.action = `{{ url_for('admin.edit_announcement', ann_id=0) }}`.replace('/0/', `/${id}/`);
-                                
+
                                 document.getElementById('edit-id').value = id;
                                 document.getElementById('edit-title').value = title;
                                 document.getElementById('edit-content').value = content;
                                 document.getElementById('edit-content-length').textContent = content.length;
                             });
-                            
+
                             // 编辑内容长度计数
-                            document.getElementById('edit-content').addEventListener('input', function() {
+                            document.getElementById('edit-content').addEventListener('input', function () {
                                 document.getElementById('edit-content-length').textContent = this.value.length;
                             });
                         </script>
@@ -369,25 +384,7 @@
                             </div>
                         </div>
 
-                        <div class="card mb-4">
-                            <div class="card-header">基础参数设置</div>
-                            <div class="card-body">
-                                <form method="POST" action="{{ url_for('admin.config') }}">
-                                    <input type="hidden" name="update_config" value="1">
-                                    <div class="mb-3">
-                                        <label>可参观校区 (用逗号分隔)</label>
-                                        <input type="text" name="campuses" class="form-control"
-                                            value="{{ config.campuses }}">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label>参观时间段 (用逗号分隔)</label>
-                                        <input type="text" name="visit_times" class="form-control"
-                                            value="{{ config.visit_times }}">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">保存配置</button>
-                                </form>
-                            </div>
-                        </div>
+
 
                         <div class="card">
                             <div class="card-header">隐私声明配置</div>
@@ -497,10 +494,217 @@
                         {% endif %}
                     </div>
 
+                    <div class="tab-pane fade" id="tab-venue">
+                        <h4>场馆管理</h4>
+
+                        <div class="card mb-4">
+                            <div class="card-header">场馆设置</div>
+                            <div class="card-body">
+                                <p class="text-muted">
+                                    系统支持管理两种固定场馆：校史馆和标本馆。您可以在此页面设置每个场馆的详细信息和预约规则。
+                                </p>
+                            </div>
+                        </div>
+
+                        <h5>场馆列表</h5>
+                        <div class="list-group">
+                            {% for venue in venues %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="mb-0">
+                                        {{ venue.name }}
+                                        <span class="badge bg-primary ms-2">{{ venue.category }}</span>
+                                        {% if venue.is_active %}
+                                        <span class="badge bg-success ms-2">启用</span>
+                                        {% else %}
+                                        <span class="badge bg-danger ms-2">禁用</span>
+                                        {% endif %}
+                                    </h6>
+                                    <span class="text-muted small">
+                                        更新时间：{{ venue.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </span>
+                                </div>
+                                {% if venue.description %}
+                                <p class="mb-2 text-muted small">{{ venue.description }}</p>
+                                {% endif %}
+                                {% if venue.address %}
+                                <p class="mb-1 text-muted small">地址：{{ venue.address }}</p>
+                                {% endif %}
+                                <p class="mb-1 text-muted small">开放时间：{{ venue.open_hours }}</p>
+                                <div class="row mb-1">
+                                    <div class="col-md-6">
+                                        <p class="text-muted small">每日限额：{{ venue.daily_limit }}人</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="text-muted small">个人限额：{{ venue.individual_limit }}人</p>
+                                    </div>
+                                </div>
+                                <div class="row mb-1">
+                                    <div class="col-md-6">
+                                        <p class="text-muted small">团体限额：{{ venue.group_limit }}人</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="text-muted small">团体规模：{{ venue.group_min_size }}-{{
+                                            venue.group_max_size }}人</p>
+                                    </div>
+                                </div>
+                                <div class="row mb-1">
+                                    <div class="col-md-6">
+                                        <p class="text-muted small">可提前预约：{{ venue.advance_days }}天</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="text-muted small">当日截止时间：{{ venue.cutoff_time }}</p>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2 mt-2">
+                                    <!-- 编辑按钮 -->
+                                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                                        data-bs-target="#editVenueModal" data-id="{{ venue.id }}"
+                                        data-name="{{ venue.name }}" data-category="{{ venue.category }}"
+                                        data-description="{{ venue.description }}" data-address="{{ venue.address }}"
+                                        data-open_hours="{{ venue.open_hours }}"
+                                        data-daily_limit="{{ venue.daily_limit }}"
+                                        data-individual_limit="{{ venue.individual_limit }}"
+                                        data-group_limit="{{ venue.group_limit }}"
+                                        data-group_min_size="{{ venue.group_min_size }}"
+                                        data-group_max_size="{{ venue.group_max_size }}"
+                                        data-advance_days="{{ venue.advance_days }}"
+                                        data-cutoff_time="{{ venue.cutoff_time }}"
+                                        data-is_active="{{ venue.is_active }}">
+                                        编辑设置
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑场馆模态框 -->
+    <div class="modal fade" id="editVenueModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑场馆设置</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="POST" action="{{ url_for('admin.config') }}">
+                        <input type="hidden" name="update_venue" value="1">
+                        <input type="hidden" name="venue_id" id="edit-venue-id">
+                        <div class="mb-3">
+                            <label class="form-label">场馆名称</label>
+                            <input type="text" name="venue_name" id="edit-venue-name" class="form-control"
+                                placeholder="场馆名称" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">场馆描述</label>
+                            <textarea name="venue_description" id="edit-venue-description" class="form-control"
+                                placeholder="场馆描述" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">场馆地址</label>
+                            <input type="text" name="venue_address" id="edit-venue-address" class="form-control"
+                                placeholder="场馆地址">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">开放时间</label>
+                            <input type="text" name="venue_open_hours" id="edit-venue-open_hours" class="form-control"
+                                placeholder="开放时间" value="09:00-11:00,14:00-16:00">
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">每日限额</label>
+                                <input type="number" name="venue_daily_limit" id="edit-venue-daily_limit"
+                                    class="form-control" placeholder="每日限额" min="1" max="1000" value="50">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">个人预约限额</label>
+                                <input type="number" name="venue_individual_limit" id="edit-venue-individual_limit"
+                                    class="form-control" placeholder="个人预约限额" min="1" max="1000" value="20">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">团体预约限额</label>
+                                <input type="number" name="venue_group_limit" id="edit-venue-group_limit"
+                                    class="form-control" placeholder="团体预约限额" min="1" max="1000" value="30">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">团体最小人数</label>
+                                <input type="number" name="venue_group_min_size" id="edit-venue-group-min-size"
+                                    class="form-control" placeholder="团体最小人数" min="2" max="50" value="2">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">团体最大人数</label>
+                                <input type="number" name="venue_group_max_size" id="edit-venue-group-max-size"
+                                    class="form-control" placeholder="团体最大人数" min="2" max="100" value="50">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">可提前预约天数</label>
+                                <input type="number" name="venue_advance_days" id="edit-venue-advance-days"
+                                    class="form-control" placeholder="可提前预约天数" min="1" max="30" value="7">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">当日预约截止时间</label>
+                            <input type="time" name="venue_cutoff_time" id="edit-venue-cutoff-time" class="form-control"
+                                value="16:00">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" name="venue_is_active" id="edit-venue-is_active"
+                                class="form-check-input">
+                            <label class="form-check-label" for="edit-venue-is_active">启用</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">保存修改</button>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        // 编辑场馆模态框处理
+        const editVenueModal = document.getElementById('editVenueModal');
+        editVenueModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const id = button.getAttribute('data-id');
+            const name = button.getAttribute('data-name');
+            const description = button.getAttribute('data-description');
+            const address = button.getAttribute('data-address');
+            const open_hours = button.getAttribute('data-open_hours');
+            const daily_limit = button.getAttribute('data-daily_limit');
+            const individual_limit = button.getAttribute('data-individual_limit') || 20;
+            const group_limit = button.getAttribute('data-group_limit') || 30;
+            const group_min_size = button.getAttribute('data-group_min_size') || 2;
+            const group_max_size = button.getAttribute('data-group_max_size') || 50;
+            const advance_days = button.getAttribute('data-advance_days') || 7;
+            const cutoff_time = button.getAttribute('data-cutoff_time') || '16:00';
+            const is_active = button.getAttribute('data-is_active') === 'True';
+            const category = button.getAttribute('data-category');
+
+            document.getElementById('edit-venue-id').value = id;
+            document.getElementById('edit-venue-name').value = name;
+            document.getElementById('edit-venue-description').value = description;
+            document.getElementById('edit-venue-address').value = address;
+            document.getElementById('edit-venue-open_hours').value = open_hours;
+            document.getElementById('edit-venue-daily_limit').value = daily_limit;
+            document.getElementById('edit-venue-individual_limit').value = individual_limit;
+            document.getElementById('edit-venue-group_limit').value = group_limit;
+            document.getElementById('edit-venue-group-min-size').value = group_min_size;
+            document.getElementById('edit-venue-group-max-size').value = group_max_size;
+            document.getElementById('edit-venue-advance-days').value = advance_days;
+            document.getElementById('edit-venue-cutoff-time').value = cutoff_time;
+            document.getElementById('edit-venue-is_active').checked = is_active;
+        });
+    </script>
 
     <div class="modal fade" id="auditModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">

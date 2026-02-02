@@ -1,28 +1,41 @@
 <!DOCTYPE html>
 <html lang="zh">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>预约记录</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
     <style>
         /* 折叠文本容器 */
-        .text-collapse { position: relative; line-height: 1.8; }
+        .text-collapse {
+            position: relative;
+            line-height: 1.8;
+        }
+
         /* 剩余文本默认隐藏 */
-        .text-collapse .more { display: none; }
+        .text-collapse .more {
+            display: none;
+        }
+
         /* 展开/收起按钮样式 */
-        .toggle-btn { 
-            color: #4CAF50; 
-            background: none; 
-            border: none; 
-            cursor: pointer; 
-            padding: 0; 
+        .toggle-btn {
+            color: #4CAF50;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
             margin-left: 5px;
         }
-        .toggle-btn:hover { text-decoration: underline; }
+
+        .toggle-btn:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
+
 <body>
     <!-- 加载动画 -->
     <div class="loading" id="loading"></div>
@@ -40,7 +53,7 @@
     <div class="main-content">
         <div class="container mt-4">
             <h3>我的预约</h3>
-            
+
             {% if not reservations %}
             <div class="card">
                 <p class="text-center text-muted">暂无预约记录</p>
@@ -51,7 +64,7 @@
             <div class="card mb-3">
                 <div class="card-body">
                     <div class="d-flex justify-content-between mb-2">
-                        <h4 class="card-title">{{ res.visit_date }} ({{ res.area }})</h4>
+                        <h4 class="card-title">{{ res.visit_date }} ({{ res.venue.name }})</h4>
                         {% if res.status == '待审核' %}
                         <span class="badge bg-warning text-dark">待审核</span>
                         {% elif res.status == '已同意' %}
@@ -62,19 +75,35 @@
                     </div>
                     <p class="card-text small text-muted mb-1">时间：{{ res.visit_time }}</p>
 
+                    {% if res.res_type == '团队' %}
+                    <p class="card-text small text-muted mb-1">类型：团队参观</p>
+                    {% if res.group_name %}
+                    <p class="card-text small text-muted mb-1">团体：{{ res.group_name }}</p>
+                    {% endif %}
+                    {% if res.group_contact %}
+                    <p class="card-text small text-muted mb-1">联系人：{{ res.group_contact }}</p>
+                    {% endif %}
+                    {% if res.group_size %}
+                    <p class="card-text small text-muted mb-1">人数：{{ res.group_size }}人</p>
+                    {% endif %}
+                    {% else %}
+                    <p class="card-text small text-muted mb-1">类型：个人参观</p>
+                    {% endif %}
+
                     <p class="card-text small text-muted mb-1 text-collapse" id="privacyContent">
                         {% if res.reason and res.reason|length > 50 %}
-                            <!-- 字数>50：显示预览（前50字+省略号）+ 隐藏完整文本 + 展开按钮 -->
-                            <span class="preview" style="display: inline; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                缘由：{{ res.reason[:50] }}
-                            </span>
-                            <span class="more" style="display: none;">缘由：{{ res.reason }}</span>
-                            <button class="toggle-btn" onclick="toggleText(this)">展开</button>
+                        <!-- 字数>50：显示预览（前50字+省略号）+ 隐藏完整文本 + 展开按钮 -->
+                        <span class="preview"
+                            style="display: inline; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            缘由：{{ res.reason[:50] }}
+                        </span>
+                        <span class="more" style="display: none;">缘由：{{ res.reason }}</span>
+                        <button class="toggle-btn" onclick="toggleText(this)">展开</button>
                         {% else %}
-                            <!-- 字数≤50/空：直接显示完整文本，无按钮 -->
-                            <span style="display: inline;">
-                                缘由：{{ res.reason or '' }}
-                            </span>
+                        <!-- 字数≤50/空：直接显示完整文本，无按钮 -->
+                        <span style="display: inline;">
+                            缘由：{{ res.reason or '' }}
+                        </span>
                         {% endif %}
                     </p>
 
@@ -95,7 +124,7 @@
             <i class="icon icon-home"></i>
             <span>首页</span>
         </a>
-        <a href="{{ url_for('h5.reserve') }}" class="bottom-nav-item">
+        <a href="{{ url_for('h5.index') }}?scroll_to_reserve=1" class="bottom-nav-item">
             <i class="icon icon-calendar"></i>
             <span>预约</span>
         </a>
@@ -116,11 +145,11 @@
 
     <script>
         // 页面加载完成后隐藏加载动画
-        window.onload = function() {
-            setTimeout(function() {
+        window.onload = function () {
+            setTimeout(function () {
                 document.getElementById('loading').style.display = 'none';
             }, 1000);
-            
+
             // 设置当前年份
             document.getElementById('currentYear').textContent = new Date().getFullYear();
         };
@@ -129,7 +158,7 @@
             const parent = btn.parentElement;
             const preview = parent.querySelector('.preview');
             const more = parent.querySelector('.more');
-            
+
             if (more.style.display === 'none') {
                 // 展开：隐藏预览，显示全部
                 preview.style.display = 'none';
@@ -144,4 +173,5 @@
         }
     </script>
 </body>
+
 </html>

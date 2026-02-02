@@ -2,7 +2,7 @@ from flask import Flask
 from werkzeug.security import generate_password_hash
 from .config import Config
 from .extensions import db
-from .models import Admin, SystemConfig, Announcement
+from .models import Admin, SystemConfig, Announcement, Venue
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -39,6 +39,45 @@ def init_data():
     # 创建默认系统配置
     if not SystemConfig.query.first():
         db.session.add(SystemConfig())
+    
+    # 创建默认场馆
+    if not Venue.query.first():
+        # 校史馆
+        db.session.add(
+            Venue(
+                name="校史馆",
+                category="校史馆",
+                description="河南农业大学校史馆是展示学校历史发展、办学成就和校园文化的重要窗口。馆内收藏了大量珍贵的历史文物、照片和文献资料，生动再现了学校自1902年创建以来的发展历程。",
+                address="河南省郑州市金水区农业路63号河南农业大学文化路校区",
+                open_hours="09:00-11:00,14:00-16:00",
+                daily_limit=50,
+                individual_limit=20,
+                group_limit=30,
+                group_min_size=2,
+                group_max_size=50,
+                advance_days=7,
+                cutoff_time="16:00",
+                is_active=True
+            )
+        )
+        # 标本馆（中原农业博物馆）
+        db.session.add(
+            Venue(
+                name="标本馆",
+                category="标本馆",
+                description="中原农业博物馆坐落于河南农业大学文化路校区，建有'百年农大厅'、'农业文明厅'、'昆虫王国厅'和'鸟类世界厅'四大主题展厅。馆内馆藏丰富，堪称'中原农业生物与文明的活档案'。",
+                address="河南省郑州市金水区农业路63号河南农业大学文化路校区",
+                open_hours="09:00-11:00,14:00-16:00",
+                daily_limit=50,
+                individual_limit=20,
+                group_limit=30,
+                group_min_size=2,
+                group_max_size=50,
+                advance_days=7,
+                cutoff_time="16:00",
+                is_active=True
+            )
+        )
     
     # 创建默认公告（仅当没有公告时）
     if not Announcement.query.first():

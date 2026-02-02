@@ -1,0 +1,24 @@
+{% extends 'h5_reserve_modern.html' %}
+
+{% block title %}标本馆团体预约{% endblock %}
+
+{% block page_title %}标本馆团体预约{% endblock %}
+
+{% block group_section %}
+<!-- 团体信息 -->
+<div class="group-info">
+    <h3>团体信息</h3>
+    <div class="form-group">
+        <label class="form-label">团体名称</label>
+        <input type="text" name="group_name" class="form-control" placeholder="请输入团体名称" required>
+    </div>
+    <div class="form-group">
+        <label class="form-label">团体联系人</label>
+        <input type="text" name="group_contact" class="form-control" placeholder="请输入团体联系人" required>
+    </div>
+    <div class="form-group">
+        <label class="form-label">团体人数</label>
+        <input type="number" name="group_size" class="form-control" min="2" max="50" value="2" placeholder="请输入团体人数" required>
+    </div>
+</div>
+{% endblock %}
