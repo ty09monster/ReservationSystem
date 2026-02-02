@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from datetime import datetime
+import os
+import uuid
 from ..extensions import db
-from ..models import User, SystemConfig, Announcement, Reservation, Venue
+from ..models import User, SystemConfig, Announcement, Reservation, Venue, Attachment
 from ..validators import validate_certificate, validate_phone, validate_visit_date
 from ..decorators import login_required
 
@@ -201,11 +203,41 @@ def _reserve_base(venue_category, res_type):
         # 处理附件上传
         if 'attachments' in request.files:
             files = request.files.getlist('attachments')
+            
+            # 创建上传目录
+            upload_dir = os.path.join(os.path.dirname(__file__), '..', 'static', 'uploads')
+            if not os.path.exists(upload_dir):
+                os.makedirs(upload_dir)
+            
+            # 处理上传的文件
             for file in files:
                 if file and file.filename:
-                    # 这里可以添加文件保存逻辑
-                    # 例如：file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                    print(f"【附件上传】用户 {user.id} 上传了文件: {file.filename}")
+                    # 检查文件大小
+                    if file.content_length > 15 * 1024 * 1024:
+                        flash(f"文件 {file.filename} 超过15MB限制")
+                        return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venue=venue)
+                    
+                    # 生成唯一文件名
+                    ext = os.path.splitext(file.filename)[1]
+                    filename = f"{uuid.uuid4()}{ext}"
+                    filepath = os.path.join(upload_dir, filename)
+                    
+                    # 保存文件
+                    file.save(filepath)
+                    
+                    # 创建附件记录
+                    attachment = Attachment(
+                        reservation_id=res.id,
+                        filename=file.filename,
+                        filepath=os.path.join('uploads', filename),
+                        file_size=file.content_length
+                    )
+                    db.session.add(attachment)
+                    
+                    print(f"【附件上传】用户 {user.id} 上传了文件: {file.filename}，保存为: {filename}")
+            
+            # 提交附件记录
+            db.session.commit()
 
         print(f"【模拟微信通知】用户 {session['user_id']} 预约提交成功，等待审核。")
         flash("预约提交成功，请等待审核通知")

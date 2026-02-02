@@ -2,7 +2,7 @@ from flask import Flask
 from werkzeug.security import generate_password_hash
 from .config import Config
 from .extensions import db
-from .models import Admin, SystemConfig, Announcement, Venue
+from .models import Admin, SystemConfig, Announcement, Venue, Attachment
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -19,7 +19,8 @@ def create_app(config_class=Config):
 
     # 初始化数据库（仅用于开发环境，生产环境应使用 Flask-Migrate）
     with app.app_context():
-        # 只创建表，不删除已有数据
+        # 删除现有表，重新创建（用于开发环境，解决字段添加问题）
+        db.drop_all()
         db.create_all()
         init_data()
 
@@ -49,6 +50,7 @@ def init_data():
                 category="校史馆",
                 description="河南农业大学校史馆是展示学校历史发展、办学成就和校园文化的重要窗口。馆内收藏了大量珍贵的历史文物、照片和文献资料，生动再现了学校自1902年创建以来的发展历程。",
                 address="河南省郑州市金水区农业路63号河南农业大学文化路校区",
+                campus="文化路校区",
                 open_hours="09:00-11:00,14:00-16:00",
                 daily_limit=50,
                 individual_limit=20,
@@ -67,6 +69,7 @@ def init_data():
                 category="标本馆",
                 description="中原农业博物馆坐落于河南农业大学文化路校区，建有'百年农大厅'、'农业文明厅'、'昆虫王国厅'和'鸟类世界厅'四大主题展厅。馆内馆藏丰富，堪称'中原农业生物与文明的活档案'。",
                 address="河南省郑州市金水区农业路63号河南农业大学文化路校区",
+                campus="文化路校区",
                 open_hours="09:00-11:00,14:00-16:00",
                 daily_limit=50,
                 individual_limit=20,

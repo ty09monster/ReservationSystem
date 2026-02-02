@@ -48,6 +48,7 @@ class Venue(db.Model):
     category = db.Column(db.String(50), nullable=False, comment='场馆分类：校史馆/标本馆')
     description = db.Column(db.Text, comment='场馆描述')
     address = db.Column(db.String(200), comment='场馆地址')
+    campus = db.Column(db.String(100), comment='校区')
     open_hours = db.Column(db.String(200), default="09:00-11:00,14:00-16:00", comment='开放时间')
     daily_limit = db.Column(db.Integer, default=50, comment='每日限额')
     individual_limit = db.Column(db.Integer, default=20, comment='个人预约限额')
@@ -81,3 +82,15 @@ class Reservation(db.Model):
 
     user = db.relationship("User", backref=db.backref("reservations", lazy=True))
     venue = db.relationship("Venue", backref=db.backref("reservations", lazy=True))
+
+class Attachment(db.Model):
+    """附件表"""
+    __tablename__ = 'attachment'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    reservation_id = db.Column(db.Integer, db.ForeignKey("reservation.id"), nullable=False, index=True, comment='预约ID')
+    filename = db.Column(db.String(255), nullable=False, comment='文件名')
+    filepath = db.Column(db.String(255), nullable=False, comment='文件路径')
+    file_size = db.Column(db.Integer, nullable=False, comment='文件大小（字节）')
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, comment='创建时间')
+
+    reservation = db.relationship("Reservation", backref=db.backref("attachments", lazy=True))

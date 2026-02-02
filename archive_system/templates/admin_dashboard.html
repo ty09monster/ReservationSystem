@@ -757,6 +757,14 @@
                         <div class="reason-box" id="m-reason"></div>
                     </div>
 
+                    <!-- 附件信息 -->
+                    <div class="mb-3">
+                        <div class="detail-label">附件</div>
+                        <div id="m-attachments">
+                            <div class="text-muted">无附件</div>
+                        </div>
+                    </div>
+
                     <div id="m-old-reject" class="alert alert-danger py-2" style="display:none;">
                         <strong>拒绝原因：</strong>
                         <span id="m-old-reject-text"></span>
@@ -846,6 +854,35 @@
 
             const form = document.getElementById('auditForm');
             form.action = "/admin/audit/" + data.id;
+
+            // 获取附件信息
+            fetch(`/admin/get-attachments/${data.id}`)
+                .then(response => response.json())
+                .then(data => {
+                    const attachmentsContainer = document.getElementById('m-attachments');
+                    if (data.attachments && data.attachments.length > 0) {
+                        let attachmentsHtml = '<div class="row row-cols-2 gap-2">';
+                        data.attachments.forEach(attachment => {
+                            const fileSize = (attachment.file_size / 1024 / 1024).toFixed(2);
+                            attachmentsHtml += `
+                                <div class="col">
+                                    <a href="/static/${attachment.filepath}" target="_blank" class="d-block p-2 border rounded">
+                                        <div class="text-truncate">${attachment.filename}</div>
+                                        <div class="text-xs text-muted">${fileSize}MB</div>
+                                    </a>
+                                </div>
+                            `;
+                        });
+                        attachmentsHtml += '</div>';
+                        attachmentsContainer.innerHTML = attachmentsHtml;
+                    } else {
+                        attachmentsContainer.innerHTML = '<div class="text-muted">无附件</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('获取附件信息失败:', error);
+                    document.getElementById('m-attachments').innerHTML = '<div class="text-muted">无附件</div>';
+                });
 
             // UI 状态重置
             const pendingGroup = document.getElementById('btn-group-pending');

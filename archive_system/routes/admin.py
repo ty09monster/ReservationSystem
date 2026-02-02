@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_, case
 from ..extensions import db
-from ..models import Admin, Reservation, User, Announcement, SystemConfig, Venue
+from ..models import Admin, Reservation, User, Announcement, SystemConfig, Venue, Attachment
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -314,3 +314,24 @@ def logout():
     session.clear()
     flash("您已安全退出")
     return redirect(url_for("admin.login"))
+
+@admin_bp.route("/get-attachments/<int:res_id>")
+def get_attachments(res_id):
+    if not session.get("admin_logged_in"):
+        return {"attachments": []}
+    
+    # 获取预约的附件
+    reservation = Reservation.query.get(res_id)
+    if not reservation:
+        return {"attachments": []}
+    
+    # 构建附件信息列表
+    attachments = []
+    for attachment in reservation.attachments:
+        attachments.append({
+            "filename": attachment.filename,
+            "filepath": attachment.filepath,
+            "file_size": attachment.file_size
+        })
+    
+    return {"attachments": attachments}
