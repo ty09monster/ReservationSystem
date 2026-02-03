@@ -180,8 +180,8 @@
                                             data-idtype="{{ res.user.id_type }}" data-idcard="{{ res.user.id_card }}"
                                             data-identity="{{ res.identity }}"
                                             data-visitdate="{{ res.visit_date }} {{ res.visit_time }}"
-                                            data-area="{{ res.venue.name }}" data-reason="{{ res.reason }}"
-                                            data-status="{{ res.status }}"
+                                            data-venue="{{ res.venue.name }}" data-campus="{{ res.campus }}"
+                                            data-reason="{{ res.reason }}" data-status="{{ res.status }}"
                                             data-rejectreason="{{ res.reject_reason or '' }}">
                                             查看详情
                                         </button>
@@ -530,6 +530,9 @@
                                 {% if venue.address %}
                                 <p class="mb-1 text-muted small">地址：{{ venue.address }}</p>
                                 {% endif %}
+                                {% if venue.campus %}
+                                <p class="mb-1 text-muted small">校区：{{ venue.campus }}</p>
+                                {% endif %}
                                 <p class="mb-1 text-muted small">开放时间：{{ venue.open_hours }}</p>
                                 <div class="row mb-1">
                                     <div class="col-md-6">
@@ -569,7 +572,7 @@
                                         data-group_min_size="{{ venue.group_min_size }}"
                                         data-group_max_size="{{ venue.group_max_size }}"
                                         data-advance_days="{{ venue.advance_days }}"
-                                        data-cutoff_time="{{ venue.cutoff_time }}"
+                                        data-cutoff_time="{{ venue.cutoff_time }}" data-campus="{{ venue.campus }}"
                                         data-is_active="{{ venue.is_active }}">
                                         编辑设置
                                     </button>
@@ -611,6 +614,11 @@
                             <label class="form-label">场馆地址</label>
                             <input type="text" name="venue_address" id="edit-venue-address" class="form-control"
                                 placeholder="场馆地址">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">校区</label>
+                            <input type="text" name="venue_campus" id="edit-venue-campus" class="form-control"
+                                placeholder="校区">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">开放时间</label>
@@ -679,6 +687,7 @@
             const name = button.getAttribute('data-name');
             const description = button.getAttribute('data-description');
             const address = button.getAttribute('data-address');
+            const campus = button.getAttribute('data-campus');
             const open_hours = button.getAttribute('data-open_hours');
             const daily_limit = button.getAttribute('data-daily_limit');
             const individual_limit = button.getAttribute('data-individual_limit') || 20;
@@ -694,6 +703,7 @@
             document.getElementById('edit-venue-name').value = name;
             document.getElementById('edit-venue-description').value = description;
             document.getElementById('edit-venue-address').value = address;
+            document.getElementById('edit-venue-campus').value = campus;
             document.getElementById('edit-venue-open_hours').value = open_hours;
             document.getElementById('edit-venue-daily_limit').value = daily_limit;
             document.getElementById('edit-venue-individual_limit').value = individual_limit;
@@ -747,8 +757,12 @@
                             <div class="detail-value text-primary" id="m-visitdate"></div>
                         </div>
                         <div class="col-6">
+                            <div class="detail-label">场馆</div>
+                            <div class="detail-value" id="m-venue"></div>
+                        </div>
+                        <div class="col-6">
                             <div class="detail-label">校区</div>
-                            <div class="detail-value" id="m-area"></div>
+                            <div class="detail-value" id="m-campus"></div>
                         </div>
                     </div>
 
@@ -849,7 +863,8 @@
             document.getElementById('m-idcard').innerText = data.idcard;
             document.getElementById('m-identity').innerText = data.identity;
             document.getElementById('m-visitdate').innerText = data.visitdate;
-            document.getElementById('m-area').innerText = data.area;
+            document.getElementById('m-venue').innerText = data.venue;
+            document.getElementById('m-campus').innerText = data.campus || '未指定';
             document.getElementById('m-reason').innerText = data.reason;
 
             const form = document.getElementById('auditForm');

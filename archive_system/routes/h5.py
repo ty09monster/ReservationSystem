@@ -144,6 +144,7 @@ def _reserve_base(venue_category, res_type):
         group_contact = request.form.get("group_contact")
         group_size = request.form.get("group_size", 1, type=int)
         identity = request.form.get("identity")
+        campus = request.form.get("campus")
 
         # 验证场馆是否存在且启用
         venue = Venue.query.filter_by(id=venue_id, is_active=True, category=venue_category).first()
@@ -196,6 +197,7 @@ def _reserve_base(venue_category, res_type):
             group_contact=group_contact,
             group_size=group_size,
             identity=identity,
+            campus=campus,
         )
         db.session.add(res)
         db.session.commit()

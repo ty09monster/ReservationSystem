@@ -467,12 +467,15 @@
                             <input type="text" class="form-control" value="{{ venue.name }}" disabled>
                         </div>
 
-                        <!-- 校区信息 -->
-                        {% if venue.campus %}
-                        <div class="campus-info">
-                            <p><strong>校区：</strong>{{ venue.campus }}</p>
+                        <!-- 校区选择 -->
+                        <div class="form-group">
+                            <label class="form-label">校区</label>
+                            <select name="campus" class="form-control" required>
+                                <option value="">请选择校区</option>
+                                <option value="文化路校区">文化路校区</option>
+                                <option value="龙子湖校区">龙子湖校区</option>
+                            </select>
                         </div>
-                        {% endif %}
 
                         <!-- 日期选择 -->
                         <div class="date-section">

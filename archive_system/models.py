@@ -75,6 +75,7 @@ class Reservation(db.Model):
     group_contact = db.Column(db.String(50), comment='团体联系人')
     group_size = db.Column(db.Integer, default=1, comment='团体人数')
     identity = db.Column(db.String(50), comment='身份')
+    campus = db.Column(db.String(100), comment='校区')
     status = db.Column(db.String(20), default="待审核", index=True, comment='状态：待审核, 已同意, 已拒绝')
     reject_reason = db.Column(db.Text, comment='拒绝原因')
     created_at = db.Column(db.DateTime, default=datetime.now, index=True, comment='创建时间')
