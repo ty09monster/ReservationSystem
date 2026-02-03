@@ -20,6 +20,24 @@
     <title>河南农业大学校史馆预约系统</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
+    <style>
+        .feature-icon {
+            width: 48px;    /* 圆形大小，可改（宽高必须相等，否则变椭圆） */
+            height: 48px;
+            border-radius: 50%;  /* 关键：变圆形 */
+            overflow: hidden;    /* 关键：裁剪超出圆形的图片 */
+            display: flex;       /* 图片水平+垂直居中 */
+            align-items: center;
+            justify-content: center;
+            background-color: #f5f5f5; /* 可选：容器背景色，图片透明时显示 */
+        }
+        .feature-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;  /* 核心：保持图片比例，填满圆形不变形 */
+            object-position: center; /* 图片显示中心区域（默认） */
+        }
+    </style>
 </head>
 
 <body>
@@ -128,28 +146,32 @@
             <div class="feature-grid">
                 <a href="{{ url_for('h5.reserve_xiaoshi_individual') }}" class="feature-item">
                     <div class="feature-icon">
-                        <i class="icon icon-calendar"></i>
+                        <!-- <i class="icon icon-calendar"></i> -->
+                        <img src="../static/个人预约.png" alt="个人预约图标">
                     </div>
                     <h3 class="feature-title">校史馆预约</h3>
                     <p class="feature-desc">个人参观校史馆</p>
                 </a>
                 <a href="{{ url_for('h5.reserve_biaoben_individual') }}" class="feature-item">
                     <div class="feature-icon">
-                        <i class="icon icon-clock"></i>
+                        <!-- <i class="icon icon-clock"></i> -->
+                        <img src="../static/个人预约.png" alt="个人预约图标">
                     </div>
                     <h3 class="feature-title">标本馆预约</h3>
                     <p class="feature-desc">个人参观标本馆</p>
                 </a>
                 <a href="{{ url_for('h5.reserve_xiaoshi_group') }}" class="feature-item">
                     <div class="feature-icon">
-                        <i class="icon icon-history"></i>
+                        <!-- <i class="icon icon-history"></i> -->
+                        <img src="../static/团队预约.png" alt="团队预约图标">
                     </div>
                     <h3 class="feature-title">校史馆团体预约</h3>
                     <p class="feature-desc">团队参观校史馆</p>
                 </a>
                 <a href="{{ url_for('h5.reserve_biaoben_group') }}" class="feature-item">
                     <div class="feature-icon">
-                        <i class="icon icon-info"></i>
+                        <!-- <i class="icon icon-info"></i> -->
+                        <img src="../static/团队预约.png" alt="团队预约图标">
                     </div>
                     <h3 class="feature-title">标本馆团体预约</h3>
                     <p class="feature-desc">团队参观标本馆</p>
