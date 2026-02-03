@@ -41,16 +41,27 @@ def init_data():
     if not SystemConfig.query.first():
         db.session.add(SystemConfig())
     
-    # 创建默认场馆
+    # 创建默认场馆和校区子类别
     if not Venue.query.first():
-        # 校史馆
+        # 创建父场馆：校史馆
+        xiaoshi_venue = Venue(
+            name="校史馆",
+            category="校史馆",
+            description="河南农业大学校史馆是展示学校历史发展、办学成就和校园文化的重要窗口。馆内收藏了大量珍贵的历史文物、照片和文献资料，生动再现了学校自1902年创建以来的发展历程。",
+            is_active=True
+        )
+        db.session.add(xiaoshi_venue)
+        db.session.flush()  # 获取xiaoshi_venue的ID
+        
+        # 为校史馆创建校区子类别
         db.session.add(
             Venue(
-                name="校史馆",
+                name="校史馆-文化路校区",
                 category="校史馆",
-                description="河南农业大学校史馆是展示学校历史发展、办学成就和校园文化的重要窗口。馆内收藏了大量珍贵的历史文物、照片和文献资料，生动再现了学校自1902年创建以来的发展历程。",
-                address="河南省郑州市金水区农业路63号河南农业大学文化路校区",
+                parent_venue_id=xiaoshi_venue.id,
                 campus="文化路校区",
+                description="河南农业大学校史馆文化路校区分馆",
+                address="河南省郑州市金水区农业路63号河南农业大学文化路校区",
                 open_hours="09:00-11:00,14:00-16:00",
                 daily_limit=50,
                 individual_limit=20,
@@ -62,14 +73,64 @@ def init_data():
                 is_active=True
             )
         )
-        # 标本馆（中原农业博物馆）
         db.session.add(
             Venue(
-                name="标本馆",
+                name="校史馆-龙子湖校区",
+                category="校史馆",
+                parent_venue_id=xiaoshi_venue.id,
+                campus="龙子湖校区",
+                description="河南农业大学校史馆龙子湖校区分馆",
+                address="河南省郑州市郑东新区平安大道218号河南农业大学龙子湖校区",
+                open_hours="09:00-11:00,14:00-16:00",
+                daily_limit=50,
+                individual_limit=20,
+                group_limit=30,
+                group_min_size=2,
+                group_max_size=50,
+                advance_days=7,
+                cutoff_time="16:00",
+                is_active=True
+            )
+        )
+        
+        # 创建父场馆：标本馆
+        biaoben_venue = Venue(
+            name="标本馆",
+            category="标本馆",
+            description="中原农业博物馆是展示农业生物多样性和农业文明的重要场所，馆内收藏了大量珍贵的标本和展品。",
+            is_active=True
+        )
+        db.session.add(biaoben_venue)
+        db.session.flush()  # 获取biaoben_venue的ID
+        
+        # 为标本馆创建校区子类别
+        db.session.add(
+            Venue(
+                name="标本馆-文化路校区",
                 category="标本馆",
-                description="中原农业博物馆坐落于河南农业大学文化路校区，建有'百年农大厅'、'农业文明厅'、'昆虫王国厅'和'鸟类世界厅'四大主题展厅。馆内馆藏丰富，堪称'中原农业生物与文明的活档案'。",
-                address="河南省郑州市金水区农业路63号河南农业大学文化路校区",
+                parent_venue_id=biaoben_venue.id,
                 campus="文化路校区",
+                description="中原农业博物馆文化路校区分馆，建有'百年农大厅'、'农业文明厅'、'昆虫王国厅'和'鸟类世界厅'四大主题展厅。",
+                address="河南省郑州市金水区农业路63号河南农业大学文化路校区",
+                open_hours="09:00-11:00,14:00-16:00",
+                daily_limit=50,
+                individual_limit=20,
+                group_limit=30,
+                group_min_size=2,
+                group_max_size=50,
+                advance_days=7,
+                cutoff_time="16:00",
+                is_active=True
+            )
+        )
+        db.session.add(
+            Venue(
+                name="标本馆-龙子湖校区",
+                category="标本馆",
+                parent_venue_id=biaoben_venue.id,
+                campus="龙子湖校区",
+                description="中原农业博物馆龙子湖校区分馆",
+                address="河南省郑州市郑东新区平安大道218号河南农业大学龙子湖校区",
                 open_hours="09:00-11:00,14:00-16:00",
                 daily_limit=50,
                 individual_limit=20,

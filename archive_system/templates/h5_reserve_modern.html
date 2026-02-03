@@ -462,21 +462,67 @@
                             <input type="text" class="form-control" value="{{ user.phone }}" disabled>
                         </div>
 
-                        <!-- 场馆信息 -->
+                        <!-- 场馆选择 -->
                         <div class="form-group">
                             <label class="form-label">参观场馆</label>
-                            <input type="text" class="form-control" value="{{ venue.name }}" disabled>
+                            <select name="venue_id" id="venueSelect" class="form-control" required>
+                                <option value="">请选择场馆</option>
+                                {% for v in venues %}
+                                {% if not v.parent_venue_id %} <!-- 只显示父场馆 -->
+                                <option value="{{ v.id }}">{{ v.name }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
                         </div>
 
                         <!-- 校区选择 -->
                         <div class="form-group">
                             <label class="form-label">校区</label>
-                            <select name="campus" class="form-control" required>
-                                <option value="">请选择校区</option>
-                                <option value="文化路校区">文化路校区</option>
-                                <option value="龙子湖校区">龙子湖校区</option>
+                            <select name="campus_venue_id" id="campusSelect" class="form-control" required>
+                                <option value="">请先选择场馆</option>
                             </select>
                         </div>
+
+                        <script>
+                            // 场馆校区数据
+                            const venueCampusData = {
+                                {% for v in venues %}
+                                {% if not v.parent_venue_id %} <!-- 只处理父场馆 -->
+                                {{ v.id }}: [
+                                    {% for child in v.child_venues %}
+                                    { id: {{ child.id }}, name: '{{ child.name }}', campus: '{{ child.campus }}' },
+                                    {% endfor %}
+                                ],
+                                {% endif %}
+                                {% endfor %}
+                            };
+
+                            // 场馆选择变化时更新校区选择
+                            document.getElementById('venueSelect').addEventListener('change', function() {
+                                const venueId = this.value;
+                                const campusSelect = document.getElementById('campusSelect');
+                                
+                                // 清空校区选择
+                                campusSelect.innerHTML = '';
+                                
+                                if (venueId) {
+                                    // 添加校区选项
+                                    const campuses = venueCampusData[venueId];
+                                    campuses.forEach(campus => {
+                                        const option = document.createElement('option');
+                                        option.value = campus.id;
+                                        option.textContent = campus.campus;
+                                        campusSelect.appendChild(option);
+                                    });
+                                } else {
+                                    // 添加默认选项
+                                    const option = document.createElement('option');
+                                    option.value = '';
+                                    option.textContent = '请先选择场馆';
+                                    campusSelect.appendChild(option);
+                                }
+                            });
+                        </script>
 
                         <!-- 日期选择 -->
                         <div class="date-section">

@@ -150,6 +150,7 @@ def config():
         description = request.form.get("venue_description")
         address = request.form.get("venue_address")
         campus = request.form.get("venue_campus")
+        parent_id = request.form.get("venue_parent_id", type=int)
         open_hours = request.form.get("venue_open_hours")
         daily_limit = request.form.get("venue_daily_limit", 50, type=int)
         individual_limit = request.form.get("venue_individual_limit", 20, type=int)
@@ -166,6 +167,7 @@ def config():
             venue.description = description
             venue.address = address
             venue.campus = campus
+            venue.parent_venue_id = parent_id
             venue.open_hours = open_hours
             venue.daily_limit = daily_limit
             venue.individual_limit = individual_limit
