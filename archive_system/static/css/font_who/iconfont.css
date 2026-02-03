@@ -1,0 +1,151 @@
+@font-face {
+  font-family: "iconfont"; /* Project id  */
+  src: url('iconfont.ttf?t=1770125530940') format('truetype');
+}
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon {
+  font-family: "iconfont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+/* 2. 类名一一映射：匹配HTML中的icon-home/icon-news/icon-about/icon-user */
+.icon-home:before {
+  content: "\e666"; /* 复用现有首页图标编码，轮廓清晰，适配导航 */
+}
+.icon-news:before {
+  content: "\e634"; /* 复用现有公告图标编码，与“公告”功能精准匹配 */
+}
+.icon-about:before {
+  content: "\e686"; /* 复用现有关于图标编码，样式统一 */
+}
+.icon-user:before {
+  content: "\e61d"; /* 复用现有登录图标编码，对应“登录”功能 */
+}
+.icon-calendar:before {
+  content: "\e60e"; /* 复用现有登录图标编码，对应“登录”功能 */
+}
+.icon-history:before {
+  content: "\e690"; /* 复用现有登录图标编码，对应“登录”功能 */
+}
+
+
+
+
+.icon-shouye:before {
+  content: "\e666";
+}
+
+.icon-lishibaogao:before {
+  content: "\e61a";
+}
+
+.icon-guanyu:before {
+  content: "\e686";
+}
+
+.icon-shouye1:before {
+  content: "\e501";
+}
+
+.icon-about:before {
+  content: "\e503";
+}
+
+.icon-guanyu1:before {
+  content: "\e620";
+}
+
+.icon-yuyueh:before {
+  content: "\e60d";
+}
+
+.icon-yuyuen:before {
+  content: "\e60e";
+}
+
+.icon-gonggao:before {
+  content: "\e63b";
+}
+
+.icon-shouye2:before {
+  content: "\e52c";
+}
+
+.icon-guanyu2:before {
+  content: "\e60b";
+}
+
+.icon-denglu-weixindenglu:before {
+  content: "\e629";
+}
+
+.icon-tongzhigonggao:before {
+  content: "\e6b9";
+}
+
+.icon-wode:before {
+  content: "\e502";
+}
+
+.icon-dengluzhanghao:before {
+  content: "\e61d";
+}
+
+.icon-gonggaozhongxin:before {
+  content: "\e634";
+}
+
+.icon-shouye3:before {
+  content: "\e504";
+}
+
+.icon-lishi:before {
+  content: "\ece8";
+}
+
+.icon-shouye-copy:before {
+  content: "\e50c";
+}
+
+.icon-gonggao1:before {
+  content: "\100f4";
+}
+
+.icon-shouye4:before {
+  content: "\e505";
+}
+
+.icon-denglu:before {
+  content: "\e506";
+}
+
+.icon-signin:before {
+  content: "\eafa";
+}
+
+.icon-guanyu3:before {
+  content: "\e507";
+}
+
+.icon-lishi1:before {
+  content: "\e690";
+}
+
+.icon-wode1:before {
+  content: "\e62a";
+}
+
+.icon-wode2:before {
+  content: "\e508";
+}
+
