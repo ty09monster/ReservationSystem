@@ -445,7 +445,6 @@
                 <!-- 隐藏字段 -->
                 <input type="hidden" name="visit_date" id="hiddenVisitDate">
                 <input type="hidden" name="visit_time" id="hiddenVisitTime">
-                <input type="hidden" name="venue_id" value="{{ venue.id }}">
 
                 <div class="card">
                     <div class="card-header">
@@ -462,65 +461,29 @@
                             <input type="text" class="form-control" value="{{ user.phone }}" disabled>
                         </div>
 
-                        <!-- 场馆选择 -->
-                        <div class="form-group">
-                            <label class="form-label">参观场馆</label>
-                            <select name="venue_id" id="venueSelect" class="form-control" required>
-                                <option value="">请选择场馆</option>
-                                {% for v in venues %}
-                                {% if not v.parent_venue_id %} <!-- 只显示父场馆 -->
-                                <option value="{{ v.id }}">{{ v.name }}</option>
-                                {% endif %}
-                                {% endfor %}
-                            </select>
-                        </div>
-
                         <!-- 校区选择 -->
                         <div class="form-group">
                             <label class="form-label">校区</label>
                             <select name="campus_venue_id" id="campusSelect" class="form-control" required>
-                                <option value="">请先选择场馆</option>
+                                <option value="">请选择校区</option>
+                                {% set page_title = self.page_title() %}
+                                {% set current_venue_name = page_title.split('个人')[0].split('团队')[0].strip() %}
+                                {% for parent_venue in venues %}
+                                {% if not parent_venue.parent_venue_id and parent_venue.name == current_venue_name %}
+                                {% for child_venue in venues %}
+                                {% if child_venue.parent_venue_id == parent_venue.id %}
+                                <option value="{{ child_venue.id }}">{{ child_venue.campus }}</option>
+                                {% endif %}
+                                {% endfor %}
+                                {% endif %}
+                                {% endfor %}
                             </select>
                         </div>
 
                         <script>
-                            // 场馆校区数据
-                            const venueCampusData = {
-                                {% for v in venues %}
-                                {% if not v.parent_venue_id %} <!-- 只处理父场馆 -->
-                                {{ v.id }}: [
-                                    {% for child in v.child_venues %}
-                                    { id: {{ child.id }}, name: '{{ child.name }}', campus: '{{ child.campus }}' },
-                                    {% endfor %}
-                                ],
-                                {% endif %}
-                                {% endfor %}
-                            };
-
-                            // 场馆选择变化时更新校区选择
-                            document.getElementById('venueSelect').addEventListener('change', function() {
-                                const venueId = this.value;
-                                const campusSelect = document.getElementById('campusSelect');
-                                
-                                // 清空校区选择
-                                campusSelect.innerHTML = '';
-                                
-                                if (venueId) {
-                                    // 添加校区选项
-                                    const campuses = venueCampusData[venueId];
-                                    campuses.forEach(campus => {
-                                        const option = document.createElement('option');
-                                        option.value = campus.id;
-                                        option.textContent = campus.campus;
-                                        campusSelect.appendChild(option);
-                                    });
-                                } else {
-                                    // 添加默认选项
-                                    const option = document.createElement('option');
-                                    option.value = '';
-                                    option.textContent = '请先选择场馆';
-                                    campusSelect.appendChild(option);
-                                }
+                            // 校区选择变化时更新时段选择
+                            document.getElementById('campusSelect').addEventListener('change', function () {
+                                updateTimeSlots();
                             });
                         </script>
 
@@ -535,12 +498,19 @@
                         <!-- 时间段选择 -->
                         <div class="time-section">
                             <h3 class="section-title">选择时间段</h3>
+
+                            <!-- 时间段容器 -->
                             <div class="time-slots" id="timeSlots">
                                 <div class="time-slot" data-time="09:00-10:30">09:00-10:30</div>
                                 <div class="time-slot" data-time="10:30-12:00">10:30-12:00</div>
                                 <div class="time-slot" data-time="14:00-15:30">14:00-15:30</div>
                                 <div class="time-slot" data-time="15:30-17:00">15:30-17:00</div>
                             </div>
+                            {% if '团队' in self.page_title() %}
+                            <div class="mt-2 text-sm text-muted">
+                                团体预约无人数限制
+                            </div>
+                            {% endif %}
                         </div>
 
                         <!-- 团体信息 -->
@@ -685,8 +655,8 @@
                                 if (hiddenVisitDate) {
                                     hiddenVisitDate.value = this.dataset.date;
                                 }
-                                // 启用时间段选择
-                                enableTimeSlots();
+                                // 更新时间段选择（显示剩余名额）
+                                updateTimeSlots();
                                 // 检查是否可以提交
                                 checkFormValidity();
                             } catch (error) {
@@ -702,7 +672,11 @@
                     timeSlots.forEach(slot => {
                         slot.addEventListener('click', function () {
                             try {
-                                // 移除其他时间段的活跃状态
+                                // 检查是否已禁用
+                                if (this.classList.contains('disabled')) {
+                                    return;
+                                }
+                                // 移除所有时间段的活跃状态
                                 document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('active'));
                                 // 添加当前时间段的活跃状态
                                 this.classList.add('active');
@@ -740,14 +714,103 @@
             }
         }
 
+        // 更新时间段选择（显示剩余名额）
+        function updateTimeSlots() {
+            try {
+                const campusSelect = document.getElementById('campusSelect');
+                const hiddenVisitDate = document.getElementById('hiddenVisitDate');
+                const timeSlotsContainer = document.getElementById('timeSlots');
+
+                if (!campusSelect || !hiddenVisitDate || !timeSlotsContainer) {
+                    console.error('Required elements not found');
+                    return;
+                }
+
+                const venueId = campusSelect.value;
+                const visitDate = hiddenVisitDate.value;
+
+                if (!venueId || !visitDate) {
+                    // 清空时间段选择
+                    timeSlotsContainer.innerHTML = `
+                        <div class="time-slot" data-time="09:00-10:30">09:00-10:30</div>
+                        <div class="time-slot" data-time="10:30-12:00">10:30-12:00</div>
+                        <div class="time-slot" data-time="14:00-15:30">14:00-15:30</div>
+                        <div class="time-slot" data-time="15:30-17:00">15:30-17:00</div>
+                    `;
+                    // 重新绑定事件
+                    bindEvents();
+                    return;
+                }
+
+                // 显示加载状态
+                timeSlotsContainer.innerHTML = '<div class="text-center py-4">加载中...</div>';
+
+                // 调用API获取可用时段
+                fetch(`{{ url_for('h5.get_available_slots') }}?venue_id=${venueId}&visit_date=${visitDate}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.slots && data.slots.length > 0) {
+                            // 清空时间段选择
+                            timeSlotsContainer.innerHTML = '';
+
+                            // 生成时间段选项
+                            data.slots.forEach(slot => {
+                                const timeSlot = document.createElement('div');
+                                const isGroupPage = document.title.includes('团队');
+                                const available = isGroupPage ? slot.available_group : slot.available_individual;
+                                const remaining = isGroupPage ? '无限制' : `${slot.remaining_individual}/${slot.individual_capacity}`;
+
+                                timeSlot.className = `time-slot ${available ? '' : 'disabled'}`;
+                                timeSlot.dataset.time = slot.time_slot;
+                                timeSlot.innerHTML = `
+                                    <div>${slot.time_slot}</div>
+                                    <div class="text-xs text-muted">${isGroupPage ? '无人数限制' : `剩余: ${remaining}`}</div>
+                                `;
+
+                                // 禁用已满的时段
+                                if (!available) {
+                                    timeSlot.style.pointerEvents = 'none';
+                                    timeSlot.style.opacity = '0.5';
+                                    timeSlot.style.backgroundColor = '#f5f5f5';
+                                }
+
+                                timeSlotsContainer.appendChild(timeSlot);
+                            });
+                        } else {
+                            // 无可用时段
+                            timeSlotsContainer.innerHTML = '<div class="text-center py-4 text-muted">暂无可用时段</div>';
+                        }
+
+                        // 重新绑定事件
+                        bindEvents();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching available slots:', error);
+                        // 恢复默认时间段
+                        timeSlotsContainer.innerHTML = `
+                            <div class="time-slot" data-time="09:00-10:30">09:00-10:30</div>
+                            <div class="time-slot" data-time="10:30-12:00">10:30-12:00</div>
+                            <div class="time-slot" data-time="14:00-15:30">14:00-15:30</div>
+                            <div class="time-slot" data-time="15:30-17:00">15:30-17:00</div>
+                        `;
+                        // 重新绑定事件
+                        bindEvents();
+                    });
+            } catch (error) {
+                console.error('Error updating time slots:', error);
+            }
+        }
+
         // 启用时间段选择
         function enableTimeSlots() {
             try {
                 const timeSlots = document.querySelectorAll('.time-slot');
                 if (timeSlots.length > 0) {
                     timeSlots.forEach(slot => {
-                        slot.style.pointerEvents = 'auto';
-                        slot.style.opacity = '1';
+                        if (!slot.classList.contains('disabled')) {
+                            slot.style.pointerEvents = 'auto';
+                            slot.style.opacity = '1';
+                        }
                     });
                 }
             } catch (error) {

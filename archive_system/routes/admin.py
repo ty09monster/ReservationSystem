@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_, case
 from ..extensions import db
-from ..models import Admin, Reservation, User, Announcement, SystemConfig, Venue, Attachment
+from ..models import Admin, Reservation, User, Announcement, SystemConfig, Venue, VenueTimeSlot, Attachment
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -51,6 +51,7 @@ def dashboard():
     keyword = request.args.get('keyword', '').strip()
     status_filter = request.args.get('status', '').strip()
     page = request.args.get('page', 1, type=int)
+    active_tab = request.args.get('active_tab', '')
     
     query = Reservation.query.join(User)
 
@@ -91,7 +92,8 @@ def dashboard():
         venues=venues,
         curr_keyword=keyword,
         curr_status=status_filter,
-        admin_list=admin_list
+        admin_list=admin_list,
+        active_tab=active_tab
     )
 
 @admin_bp.route("/audit/<int:res_id>", methods=["POST"])
@@ -123,6 +125,7 @@ def config():
         return redirect(url_for("admin.login"))
 
     config = SystemConfig.query.first()
+    active_tab = request.form.get("active_tab", "venue")
 
     if "toggle_system" in request.form:
         config.is_open = not config.is_open
@@ -151,12 +154,6 @@ def config():
         address = request.form.get("venue_address")
         campus = request.form.get("venue_campus")
         parent_id = request.form.get("venue_parent_id", type=int)
-        open_hours = request.form.get("venue_open_hours")
-        daily_limit = request.form.get("venue_daily_limit", 50, type=int)
-        individual_limit = request.form.get("venue_individual_limit", 20, type=int)
-        group_limit = request.form.get("venue_group_limit", 30, type=int)
-        group_min_size = request.form.get("venue_group_min_size", 2, type=int)
-        group_max_size = request.form.get("venue_group_max_size", 50, type=int)
         advance_days = request.form.get("venue_advance_days", 7, type=int)
         cutoff_time = request.form.get("venue_cutoff_time", "16:00")
         is_active = "venue_is_active" in request.form
@@ -168,12 +165,6 @@ def config():
             venue.address = address
             venue.campus = campus
             venue.parent_venue_id = parent_id
-            venue.open_hours = open_hours
-            venue.daily_limit = daily_limit
-            venue.individual_limit = individual_limit
-            venue.group_limit = group_limit
-            venue.group_min_size = group_min_size
-            venue.group_max_size = group_max_size
             venue.advance_days = advance_days
             venue.cutoff_time = cutoff_time
             venue.is_active = is_active
@@ -182,7 +173,7 @@ def config():
             flash("场馆不存在")
 
     db.session.commit()
-    return redirect(url_for("admin.dashboard"))
+    return redirect(url_for("admin.dashboard", active_tab=active_tab))
 
 @admin_bp.route("/announcement/<int:ann_id>/toggle-pin", methods=["POST"])
 def toggle_announcement_pin(ann_id):
@@ -318,6 +309,88 @@ def logout():
     session.clear()
     flash("您已安全退出")
     return redirect(url_for("admin.login"))
+
+@admin_bp.route("/time-slot-config", methods=["POST"])
+def time_slot_config():
+    if not session.get("admin_logged_in"):
+        return redirect(url_for("admin.login"))
+    
+    venue_id = request.form.get("venue_id", type=int)
+    active_tab = request.form.get("active_tab", "venue")
+    if not venue_id:
+        flash("场馆ID无效")
+        return redirect(url_for("admin.dashboard", active_tab=active_tab))
+    
+    # 获取所有表单字段
+    form_data = request.form
+    
+    # 提取所有时间段值
+    time_slot_values = set()
+    for key in form_data:
+        if key.startswith('individual_capacity_'):
+            # 提取时间段值
+            parts = key.split('_')
+            if len(parts) > 3:
+                # 重组时间段值（处理包含下划线的时间段，如 09:00-10:30）
+                time_slot = '_'.join(parts[2:-1])
+                time_slot_values.add(time_slot)
+    
+    # 如果没有找到时段值，保持空时段状态
+    # 不再使用默认时段，这样管理员可以完全删除所有时段
+    # if not time_slot_values:
+    #     time_slot_values = {"09:00-10:30", "10:30-12:00", "14:00-15:30", "15:30-17:00"}
+    
+    # 先删除该场馆的所有现有时段设置
+    VenueTimeSlot.query.filter_by(venue_id=venue_id).delete()
+    
+    # 为每个时段创建新的设置
+    for time_slot in time_slot_values:
+        for day in range(7):
+            individual_capacity_key = f"individual_capacity_{time_slot}_{day}"
+            active_key = f"active_{time_slot}_{day}"
+            is_group_active_key = f"is_group_active_{time_slot}_{day}"
+            
+            individual_capacity = request.form.get(individual_capacity_key, type=int)
+            is_active = active_key in request.form
+            is_group_active = is_group_active_key in request.form
+            
+            if individual_capacity:
+                # 创建新记录
+                new_slot = VenueTimeSlot(
+                    venue_id=venue_id,
+                    day_of_week=day,
+                    time_slot=time_slot,
+                    individual_capacity=individual_capacity,
+                    is_group_active=is_group_active,
+                    is_active=is_active
+                )
+                db.session.add(new_slot)
+    
+    db.session.commit()
+    flash("时段设置更新成功")
+    return redirect(url_for("admin.dashboard", active_tab=active_tab))
+
+@admin_bp.route("/get-time-slots/<int:venue_id>")
+def get_time_slots(venue_id):
+    """获取场馆的时段设置"""
+    if not session.get("admin_logged_in"):
+        return {"error": "未登录"}, 401
+    
+    # 获取该场馆的所有时段设置
+    time_slots = VenueTimeSlot.query.filter_by(venue_id=venue_id).all()
+    
+    # 整理时段设置数据
+    slot_data = {}
+    for slot in time_slots:
+        if slot.time_slot not in slot_data:
+            slot_data[slot.time_slot] = {}
+        slot_data[slot.time_slot][slot.day_of_week] = {
+            "individual_capacity": slot.individual_capacity,
+            "is_active": slot.is_active,
+            "is_group_active": slot.is_group_active
+        }
+    
+    return {"slots": slot_data}
 
 @admin_bp.route("/get-attachments/<int:res_id>")
 def get_attachments(res_id):

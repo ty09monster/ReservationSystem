@@ -49,19 +49,25 @@
         <div class="row">
             <div class="col-md-2">
                 <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist">
-                    <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-audit">
+                    <button
+                        class="nav-link {% if active_tab != 'notice' and active_tab != 'config' and active_tab != 'venue' and active_tab != 'account' %}active{% endif %}"
+                        data-bs-toggle="pill" data-bs-target="#tab-audit">
                         📅 预约审核
                     </button>
-                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-notice">
+                    <button class="nav-link {% if active_tab == 'notice' %}active{% endif %}" data-bs-toggle="pill"
+                        data-bs-target="#tab-notice">
                         📢 公告管理
                     </button>
-                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-config">
+                    <button class="nav-link {% if active_tab == 'config' %}active{% endif %}" data-bs-toggle="pill"
+                        data-bs-target="#tab-config">
                         ⚙️ 系统配置
                     </button>
-                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-venue">
+                    <button class="nav-link {% if active_tab == 'venue' %}active{% endif %}" data-bs-toggle="pill"
+                        data-bs-target="#tab-venue">
                         🏛️ 场馆管理
                     </button>
-                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-account">
+                    <button class="nav-link {% if active_tab == 'account' %}active{% endif %}" data-bs-toggle="pill"
+                        data-bs-target="#tab-account">
                         👮 账号管理
                     </button>
 
@@ -84,7 +90,8 @@
 
                 <div class="tab-content">
 
-                    <div class="tab-pane fade show active" id="tab-audit">
+                    <div class="tab-pane fade {% if active_tab != 'notice' and active_tab != 'config' and active_tab != 'venue' and active_tab != 'account' %}show active{% endif %}"
+                        id="tab-audit">
                         <h4>预约申请列表</h4>
 
                         <div class="card bg-light mb-3 mt-3">
@@ -217,7 +224,7 @@
                         {% endif %}
                     </div>
 
-                    <div class="tab-pane fade" id="tab-notice">
+                    <div class="tab-pane fade {% if active_tab == 'notice' %}show active{% endif %}" id="tab-notice">
                         <div class="card mb-4">
                             <div class="card-header">发布新公告</div>
                             <div class="card-body">
@@ -361,7 +368,7 @@
                         </script>
                     </div>
 
-                    <div class="tab-pane fade" id="tab-config">
+                    <div class="tab-pane fade {% if active_tab == 'config' %}show active{% endif %}" id="tab-config">
                         <div class="card mb-4">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 系统总开关
@@ -406,7 +413,7 @@
                         </div>
                     </div>
 
-                    <div class="tab-pane fade" id="tab-account">
+                    <div class="tab-pane fade {% if active_tab == 'account' %}show active{% endif %}" id="tab-account">
 
                         <div class="card mb-4">
                             <div class="card-header bg-warning text-dark">修改我的密码</div>
@@ -494,7 +501,7 @@
                         {% endif %}
                     </div>
 
-                    <div class="tab-pane fade" id="tab-venue">
+                    <div class="tab-pane fade {% if active_tab == 'venue' %}show active{% endif %}" id="tab-venue">
                         <h4>场馆管理</h4>
 
                         <div class="card mb-4">
@@ -554,24 +561,6 @@
                                         {% if child_venue.campus %}
                                         <p class="mb-1 text-muted small">校区：{{ child_venue.campus }}</p>
                                         {% endif %}
-                                        <p class="mb-1 text-muted small">开放时间：{{ child_venue.open_hours }}</p>
-                                        <div class="row mb-1">
-                                            <div class="col-md-6">
-                                                <p class="text-muted small">每日限额：{{ child_venue.daily_limit }}人</p>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <p class="text-muted small">个人限额：{{ child_venue.individual_limit }}人</p>
-                                            </div>
-                                        </div>
-                                        <div class="row mb-1">
-                                            <div class="col-md-6">
-                                                <p class="text-muted small">团体限额：{{ child_venue.group_limit }}人</p>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <p class="text-muted small">团体规模：{{ child_venue.group_min_size }}-{{
-                                                    child_venue.group_max_size }}人</p>
-                                            </div>
-                                        </div>
                                         <div class="row mb-1">
                                             <div class="col-md-6">
                                                 <p class="text-muted small">可提前预约：{{ child_venue.advance_days }}天</p>
@@ -588,18 +577,18 @@
                                                 data-category="{{ child_venue.category }}"
                                                 data-description="{{ child_venue.description }}"
                                                 data-address="{{ child_venue.address }}"
-                                                data-open_hours="{{ child_venue.open_hours }}"
-                                                data-daily_limit="{{ child_venue.daily_limit }}"
-                                                data-individual_limit="{{ child_venue.individual_limit }}"
-                                                data-group_limit="{{ child_venue.group_limit }}"
-                                                data-group_min_size="{{ child_venue.group_min_size }}"
-                                                data-group_max_size="{{ child_venue.group_max_size }}"
                                                 data-advance_days="{{ child_venue.advance_days }}"
                                                 data-cutoff_time="{{ child_venue.cutoff_time }}"
                                                 data-campus="{{ child_venue.campus }}"
                                                 data-parent_venue_id="{{ child_venue.parent_venue_id }}"
                                                 data-is_active="{{ child_venue.is_active }}">
-                                                编辑设置
+                                                编辑基本设置
+                                            </button>
+                                            <!-- 时段设置按钮 -->
+                                            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal"
+                                                data-bs-target="#timeSlotModal" data-venue-id="{{ child_venue.id }}"
+                                                data-venue-name="{{ child_venue.name }}">
+                                                时段设置
                                             </button>
                                         </div>
                                     </div>
@@ -663,41 +652,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">开放时间</label>
-                            <input type="text" name="venue_open_hours" id="edit-venue-open_hours" class="form-control"
-                                placeholder="开放时间" value="09:00-11:00,14:00-16:00">
-                        </div>
                         <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">每日限额</label>
-                                <input type="number" name="venue_daily_limit" id="edit-venue-daily_limit"
-                                    class="form-control" placeholder="每日限额" min="1" max="1000" value="50">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">个人预约限额</label>
-                                <input type="number" name="venue_individual_limit" id="edit-venue-individual_limit"
-                                    class="form-control" placeholder="个人预约限额" min="1" max="1000" value="20">
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">团体预约限额</label>
-                                <input type="number" name="venue_group_limit" id="edit-venue-group_limit"
-                                    class="form-control" placeholder="团体预约限额" min="1" max="1000" value="30">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">团体最小人数</label>
-                                <input type="number" name="venue_group_min_size" id="edit-venue-group-min-size"
-                                    class="form-control" placeholder="团体最小人数" min="2" max="50" value="2">
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">团体最大人数</label>
-                                <input type="number" name="venue_group_max_size" id="edit-venue-group-max-size"
-                                    class="form-control" placeholder="团体最大人数" min="2" max="100" value="50">
-                            </div>
                             <div class="col-md-6">
                                 <label class="form-label">可提前预约天数</label>
                                 <input type="number" name="venue_advance_days" id="edit-venue-advance-days"
@@ -732,12 +687,6 @@
             const address = button.getAttribute('data-address');
             const campus = button.getAttribute('data-campus');
             const parent_venue_id = button.getAttribute('data-parent_venue_id');
-            const open_hours = button.getAttribute('data-open_hours');
-            const daily_limit = button.getAttribute('data-daily_limit');
-            const individual_limit = button.getAttribute('data-individual_limit') || 20;
-            const group_limit = button.getAttribute('data-group_limit') || 30;
-            const group_min_size = button.getAttribute('data-group_min_size') || 2;
-            const group_max_size = button.getAttribute('data-group_max_size') || 50;
             const advance_days = button.getAttribute('data-advance_days') || 7;
             const cutoff_time = button.getAttribute('data-cutoff_time') || '16:00';
             const is_active = button.getAttribute('data-is_active') === 'True';
@@ -748,12 +697,6 @@
             document.getElementById('edit-venue-description').value = description;
             document.getElementById('edit-venue-address').value = address;
             document.getElementById('edit-venue-campus').value = campus;
-            document.getElementById('edit-venue-open_hours').value = open_hours;
-            document.getElementById('edit-venue-daily_limit').value = daily_limit;
-            document.getElementById('edit-venue-individual_limit').value = individual_limit;
-            document.getElementById('edit-venue-group_limit').value = group_limit;
-            document.getElementById('edit-venue-group-min-size').value = group_min_size;
-            document.getElementById('edit-venue-group-max-size').value = group_max_size;
             document.getElementById('edit-venue-advance-days').value = advance_days;
             document.getElementById('edit-venue-cutoff-time').value = cutoff_time;
             document.getElementById('edit-venue-is_active').checked = is_active;
@@ -1022,6 +965,266 @@
                     '<span class="spinner-border spinner-border-sm"></span> 处理中...';
             }
             form.submit();
+        }
+    </script>
+
+    <!-- 时段设置模态框 -->
+    <div class="modal fade" id="timeSlotModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">时段设置 - <span id="timeSlotVenueName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="POST" action="{{ url_for('admin.time_slot_config') }}" id="timeSlotForm">
+                        <input type="hidden" name="venue_id" id="timeSlotVenueId">
+                        <input type="hidden" name="active_tab" id="activeTabInput">
+
+                        <div class="mb-3 alert alert-info">
+                            <strong>设置说明：</strong>
+                            <ul>
+                                <li>个人容量：设置该时段个人预约可预约的最大人数</li>
+                                <li>团体预约：无人数限制，但需要选择时段</li>
+                                <li>启用：勾选表示该时段开放预约</li>
+                            </ul>
+                        </div>
+
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-success btn-sm" onclick="addTimeSlot()">
+                                <i class="bi bi-plus"></i> 添加时段
+                            </button>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>时间段</th>
+                                        <th>周日</th>
+                                        <th>周一</th>
+                                        <th>周二</th>
+                                        <th>周三</th>
+                                        <th>周四</th>
+                                        <th>周五</th>
+                                        <th>周六</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="timeSlotTableBody">
+                                    <!-- 时间段设置表格将通过JavaScript动态生成 -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">保存设置</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 时段设置模态框处理
+        const timeSlotModal = document.getElementById('timeSlotModal');
+        timeSlotModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const venueId = button.getAttribute('data-venue-id');
+            const venueName = button.getAttribute('data-venue-name');
+
+            document.getElementById('timeSlotVenueId').value = venueId;
+            document.getElementById('timeSlotVenueName').textContent = venueName;
+
+            // 获取当前活动标签页
+            const activeTab = document.querySelector('.nav-link.active').getAttribute('data-bs-target').replace('#tab-', '');
+            document.getElementById('activeTabInput').value = activeTab;
+
+            // 清空表格
+            const tableBody = document.getElementById('timeSlotTableBody');
+            tableBody.innerHTML = '<tr><td colspan="9" class="text-center py-4">加载中...</td></tr>';
+
+            // 调用API获取现有的时段设置
+            fetch(`{{ url_for('admin.get_time_slots', venue_id=0) }}`.replace('/0', `/${venueId}`))
+                .then(response => response.json())
+                .then(data => {
+                    // 清空表格
+                    tableBody.innerHTML = '';
+
+                    if (data.slots && Object.keys(data.slots).length > 0) {
+                        // 生成现有时段行
+                        const timeSlots = Object.keys(data.slots);
+                        timeSlots.forEach(timeSlot => {
+                            addTimeSlotRow(timeSlot, data.slots[timeSlot]);
+                        });
+                    } else {
+                        // 如果没有现有的时段设置，生成默认的时段行
+                        const defaultTimeSlots = ['09:00-10:30', '10:30-12:00', '14:00-15:30', '15:30-17:00'];
+                        defaultTimeSlots.forEach(timeSlot => {
+                            addTimeSlotRow(timeSlot);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching time slots:', error);
+                    // 加载失败，生成默认的时段行
+                    tableBody.innerHTML = '';
+                    const defaultTimeSlots = ['09:00-10:30', '10:30-12:00', '14:00-15:30', '15:30-17:00'];
+                    defaultTimeSlots.forEach(timeSlot => {
+                        addTimeSlotRow(timeSlot);
+                    });
+                });
+        });
+
+        // 添加时段行
+        function addTimeSlotRow(timeSlotValue = '09:00-10:30', slotData = {}) {
+            const tableBody = document.getElementById('timeSlotTableBody');
+            const row = document.createElement('tr');
+
+            // 时间段列
+            const timeSlotCell = document.createElement('td');
+            timeSlotCell.className = 'font-weight-bold';
+
+            const timeSlotInput = document.createElement('input');
+            timeSlotInput.type = 'text';
+            timeSlotInput.name = 'time_slot_value';
+            timeSlotInput.value = timeSlotValue;
+            timeSlotInput.className = 'form-control';
+            timeSlotInput.placeholder = '例如：09:00-10:30';
+            timeSlotInput.onchange = function () {
+                updateFieldNames(row, this.value);
+            };
+
+            timeSlotCell.appendChild(timeSlotInput);
+            row.appendChild(timeSlotCell);
+
+            // 星期列
+            for (let day = 0; day < 7; day++) {
+                const dayCell = document.createElement('td');
+
+                // 获取该日期的时段设置
+                const dayData = slotData[day] || {};
+
+                // 个人容量输入
+                const individualCapacityDiv = document.createElement('div');
+                individualCapacityDiv.className = 'form-group';
+
+                const individualCapacityLabel = document.createElement('label');
+                individualCapacityLabel.className = 'form-label text-xs';
+                individualCapacityLabel.textContent = '个人容量';
+                individualCapacityDiv.appendChild(individualCapacityLabel);
+
+                const individualCapacityInput = document.createElement('input');
+                individualCapacityInput.type = 'number';
+                individualCapacityInput.name = `individual_capacity_${timeSlotValue}_${day}`;
+                individualCapacityInput.value = dayData.individual_capacity || '20';
+                individualCapacityInput.min = '0';
+                individualCapacityInput.max = '100';
+                individualCapacityInput.className = 'form-control';
+                individualCapacityDiv.appendChild(individualCapacityInput);
+
+                // 启用复选框
+                const activeDiv = document.createElement('div');
+                activeDiv.className = 'form-check';
+
+                const activeInput = document.createElement('input');
+                activeInput.type = 'checkbox';
+                activeInput.name = `active_${timeSlotValue}_${day}`;
+                activeInput.checked = dayData.is_active !== undefined ? dayData.is_active : true;
+                activeInput.className = 'form-check-input';
+
+                const activeLabel = document.createElement('label');
+                activeLabel.className = 'form-check-label';
+                activeLabel.textContent = '个人预约启用';
+                activeLabel.htmlFor = `active_${timeSlotValue}_${day}`;
+
+                activeDiv.appendChild(activeInput);
+                activeDiv.appendChild(activeLabel);
+
+                // 团体预约启用复选框
+                const groupActiveDiv = document.createElement('div');
+                groupActiveDiv.className = 'form-check';
+
+                const groupActiveInput = document.createElement('input');
+                groupActiveInput.type = 'checkbox';
+                groupActiveInput.name = `is_group_active_${timeSlotValue}_${day}`;
+                groupActiveInput.checked = dayData.is_group_active !== undefined ? dayData.is_group_active : true;
+                groupActiveInput.className = 'form-check-input';
+
+                const groupActiveLabel = document.createElement('label');
+                groupActiveLabel.className = 'form-check-label';
+                groupActiveLabel.textContent = '团体预约启用';
+                groupActiveLabel.htmlFor = `is_group_active_${timeSlotValue}_${day}`;
+
+                groupActiveDiv.appendChild(groupActiveInput);
+                groupActiveDiv.appendChild(groupActiveLabel);
+
+                dayCell.appendChild(individualCapacityDiv);
+                dayCell.appendChild(activeDiv);
+                dayCell.appendChild(groupActiveDiv);
+                row.appendChild(dayCell);
+            }
+
+            // 操作列
+            const actionCell = document.createElement('td');
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'btn btn-danger btn-sm';
+            deleteButton.onclick = function () {
+                removeTimeSlot(this);
+            };
+            deleteButton.innerHTML = '<i class="bi bi-trash"></i> 删除';
+            actionCell.appendChild(deleteButton);
+            row.appendChild(actionCell);
+
+            tableBody.appendChild(row);
+        }
+
+        // 更新字段名称
+        function updateFieldNames(row, newTimeSlotValue) {
+            const cells = row.querySelectorAll('td');
+
+            // 从第二个单元格开始（跳过时间段单元格）
+            for (let i = 1; i < cells.length - 1; i++) { // 跳过最后一个操作单元格
+                const day = i - 1; // 星期几（0-6）
+
+                // 更新个人容量输入名称
+                const individualCapacityInput = cells[i].querySelector('input[type="number"]');
+                if (individualCapacityInput) {
+                    individualCapacityInput.name = `individual_capacity_${newTimeSlotValue}_${day}`;
+                }
+
+                // 更新个人预约启用复选框名称
+                const activeInputs = cells[i].querySelectorAll('input[type="checkbox"]');
+                if (activeInputs.length > 0) {
+                    // 个人预约启用复选框
+                    activeInputs[0].name = `active_${newTimeSlotValue}_${day}`;
+                    const activeLabels = cells[i].querySelectorAll('label');
+                    if (activeLabels.length > 0) {
+                        activeLabels[0].htmlFor = `active_${newTimeSlotValue}_${day}`;
+                    }
+
+                    // 团体预约启用复选框
+                    if (activeInputs.length > 1) {
+                        activeInputs[1].name = `is_group_active_${newTimeSlotValue}_${day}`;
+                        if (activeLabels.length > 1) {
+                            activeLabels[1].htmlFor = `is_group_active_${newTimeSlotValue}_${day}`;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 添加新时段
+        function addTimeSlot() {
+            addTimeSlotRow('00:00-00:00');
+        }
+
+        // 删除时段
+        function removeTimeSlot(button) {
+            const row = button.closest('tr');
+            row.remove();
         }
     </script>
 </body>

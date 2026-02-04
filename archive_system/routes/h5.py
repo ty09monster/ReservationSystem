@@ -3,7 +3,7 @@ from datetime import datetime
 import os
 import uuid
 from ..extensions import db
-from ..models import User, SystemConfig, Announcement, Reservation, Venue, Attachment
+from ..models import User, SystemConfig, Announcement, Reservation, Venue, VenueTimeSlot, Attachment
 from ..validators import validate_certificate, validate_phone, validate_visit_date
 from ..decorators import login_required
 
@@ -132,6 +132,9 @@ def _reserve_base(venue_category, res_type):
         flash(f"暂无可用场馆")
         return redirect(url_for("h5.home"))
 
+    # 获取默认场馆（第一个启用的场馆）
+    default_venue = venues[0] if venues else None
+
     if request.method == "POST":
         campus_venue_id = request.form.get("campus_venue_id")
         visit_date = request.form.get("visit_date")
@@ -146,40 +149,70 @@ def _reserve_base(venue_category, res_type):
         venue = Venue.query.filter_by(id=campus_venue_id, is_active=True).first()
         if not venue:
             flash("选择的场馆不存在或未启用")
-            return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues)
+            return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
 
         # 验证预约日期
         is_date_valid, date_msg = validate_visit_date(visit_date)
         if not is_date_valid:
             flash(date_msg)
-            return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues)
+            return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
 
         # 验证团体信息
         if res_type == "团队":
             if not group_name:
                 flash("请输入团体名称")
-                return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues)
+                return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
             if not group_contact:
                 flash("请输入团体联系人")
-                return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues)
-            if group_size < venue.group_min_size:
-                flash(f"团体人数至少为{venue.group_min_size}人")
-                return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues)
-            if group_size > venue.group_max_size:
-                flash(f"团体人数不能超过{venue.group_max_size}人")
-                return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues)
+                return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
 
-        # 检查场馆当日预约人数是否已满
+        # 检查用户当天是否已经有该场馆的申请（审核中或已批准）
         visit_date_obj = datetime.strptime(visit_date, "%Y-%m-%d").date()
-        current_count = Reservation.query.filter_by(
+        existing_reservations = Reservation.query.filter_by(
+            user_id=session["user_id"],
             venue_id=campus_venue_id,
-            visit_date=visit_date_obj,
-            status="已同意"
+            visit_date=visit_date_obj
+        ).filter(
+            Reservation.status.in_(["待审核", "已同意"])
         ).count()
         
-        if current_count >= venue.daily_limit:
-            flash(f"{venue.name} {visit_date} 预约人数已满，请选择其他日期")
-            return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues)
+        if existing_reservations > 0:
+            flash("您当天已经有该场馆的预约申请，请等待审核结果或选择其他日期")
+            return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
+
+        # 获取该时段的容量配置
+        day_of_week = visit_date_obj.weekday()
+        time_slot_config = VenueTimeSlot.query.filter_by(
+            venue_id=campus_venue_id,
+            day_of_week=day_of_week,
+            time_slot=visit_time,
+            is_active=True
+        ).first()
+        
+        if not time_slot_config:
+            flash("所选时段未开放，请选择其他时段")
+            return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
+        
+        # 只有个人预约需要检查名额
+        if res_type == "个人":
+            # 检查所选时段是否已满（包括已同意和审核中的申请）
+            time_slot_reservations = Reservation.query.filter_by(
+                venue_id=campus_venue_id,
+                visit_date=visit_date_obj,
+                visit_time=visit_time,
+                res_type="个人"
+            ).filter(
+                Reservation.status.in_(["待审核", "已同意"])
+            ).all()
+            
+            # 计算已预约人数
+            reserved_individual = 0
+            for res in time_slot_reservations:
+                reserved_individual += res.group_size
+            
+            if reserved_individual + group_size > time_slot_config.individual_capacity:
+                flash(f"所选时段个人预约人数已满，请选择其他时段")
+                return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
 
         # 创建预约记录
         res = Reservation(
@@ -213,7 +246,7 @@ def _reserve_base(venue_category, res_type):
                     # 检查文件大小
                     if file.content_length > 15 * 1024 * 1024:
                         flash(f"文件 {file.filename} 超过15MB限制")
-                        return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues)
+                        return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
                     
                     # 生成唯一文件名
                     ext = os.path.splitext(file.filename)[1]
@@ -241,7 +274,8 @@ def _reserve_base(venue_category, res_type):
         flash("预约提交成功，请等待审核通知")
         return redirect(url_for("h5.history"))
 
-    return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues)
+    # GET请求时显示预约表单
+    return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
 
 # 校史馆个人预约
 @h5_bp.route("/h5/reserve/xiaoshi/individual", methods=["GET", "POST"])
@@ -310,3 +344,60 @@ def profile():
         return redirect(url_for("h5.home"))
 
     return render_template("h5_profile.html", user=user)
+
+@h5_bp.route("/h5/api/available-slots")
+@login_required
+def get_available_slots():
+    """获取可用时段和剩余名额"""
+    try:
+        venue_id = request.args.get("venue_id", type=int)
+        visit_date = request.args.get("visit_date")
+        
+        if not venue_id or not visit_date:
+            return {"error": "缺少必要参数"}, 400
+        
+        # 解析日期
+        visit_date_obj = datetime.strptime(visit_date, "%Y-%m-%d").date()
+        day_of_week = visit_date_obj.weekday()  # 0-6，0表示周一
+        
+        # 获取该场馆在该日期的所有时段
+        time_slots = VenueTimeSlot.query.filter_by(
+            venue_id=venue_id,
+            day_of_week=day_of_week,
+            is_active=True
+        ).all()
+        
+        # 获取该场馆在该日期的已预约人数（已同意和待审核的）
+        reservations = Reservation.query.filter_by(
+            venue_id=venue_id,
+            visit_date=visit_date_obj
+        ).filter(
+            Reservation.status.in_(["已同意", "待审核"])
+        ).all()
+        
+        # 统计每个时段的已预约人数（只统计个人预约）
+        slot_counts = {}
+        for res in reservations:
+            if res.res_type == "个人":
+                if res.visit_time not in slot_counts:
+                    slot_counts[res.visit_time] = 0
+                slot_counts[res.visit_time] += res.group_size
+        
+        # 生成可用时段和剩余名额
+        available_slots = []
+        for slot in time_slots:
+            used_individual = slot_counts.get(slot.time_slot, 0)
+            remaining_individual = slot.individual_capacity - used_individual
+            available_slots.append({
+                "time_slot": slot.time_slot,
+                "individual_capacity": slot.individual_capacity,
+                "used_individual": used_individual,
+                "remaining_individual": remaining_individual,
+                "available_individual": remaining_individual > 0,
+                "available_group": getattr(slot, 'is_group_active', True)  # 检查团体预约是否启用
+            })
+        
+        return {"slots": available_slots}
+    except Exception as e:
+        print(f"Error in get_available_slots: {e}")
+        return {"error": "获取可用时段失败"}, 500

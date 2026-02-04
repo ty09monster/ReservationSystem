@@ -2,7 +2,7 @@ from flask import Flask
 from werkzeug.security import generate_password_hash
 from .config import Config
 from .extensions import db
-from .models import Admin, SystemConfig, Announcement, Venue, Attachment
+from .models import Admin, SystemConfig, Announcement, Venue, VenueTimeSlot, Attachment
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -142,6 +142,26 @@ def init_data():
                 is_active=True
             )
         )
+        
+        # 为所有场馆添加默认时间段设置
+        all_venues = Venue.query.all()
+        time_slots = ["09:00-10:30", "10:30-12:00", "14:00-15:30", "15:30-17:00"]
+        
+        for venue in all_venues:
+            # 只为校区子类别添加时间段设置
+            if venue.parent_venue_id:
+                for day in range(7):  # 0-6，0表示周日
+                    for time_slot in time_slots:
+                        db.session.add(
+                            VenueTimeSlot(
+                                venue_id=venue.id,
+                                day_of_week=day,
+                                time_slot=time_slot,
+                                individual_capacity=20,
+                                is_group_active=True,
+                                is_active=True
+                            )
+                        )
     
     # 创建默认公告（仅当没有公告时）
     if not Announcement.query.first():

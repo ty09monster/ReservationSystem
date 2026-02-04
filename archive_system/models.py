@@ -88,6 +88,21 @@ class Reservation(db.Model):
     user = db.relationship("User", backref=db.backref("reservations", lazy=True))
     venue = db.relationship("Venue", backref=db.backref("reservations", lazy=True))
 
+class VenueTimeSlot(db.Model):
+    """场馆时段表"""
+    __tablename__ = 'venue_time_slot'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    venue_id = db.Column(db.Integer, db.ForeignKey('venue.id'), nullable=False, index=True, comment='场馆ID')
+    day_of_week = db.Column(db.Integer, nullable=False, comment='星期几（0-6，0表示周日）')
+    time_slot = db.Column(db.String(50), nullable=False, comment='时间段（如09:00-10:30）')
+    individual_capacity = db.Column(db.Integer, default=20, comment='个人预约最大容量')
+    is_group_active = db.Column(db.Boolean, default=True, comment='团体预约是否启用')
+    is_active = db.Column(db.Boolean, default=True, comment='是否启用')
+    created_at = db.Column(db.DateTime, default=datetime.now, comment='创建时间')
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, nullable=False, comment='更新时间')
+
+    venue = db.relationship('Venue', backref=db.backref('time_slots', lazy=True))
+
 class Attachment(db.Model):
     """附件表"""
     __tablename__ = 'attachment'
