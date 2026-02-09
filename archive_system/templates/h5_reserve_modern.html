@@ -467,7 +467,7 @@
                             <select name="campus_venue_id" id="campusSelect" class="form-control" required>
                                 <option value="">请选择校区</option>
                                 {% set page_title = self.page_title() %}
-                                {% set current_venue_name = page_title.split('个人')[0].split('团队')[0].strip() %}
+                                {% set current_venue_name = page_title.split('个人')[0].split('团队')[0].split('团体')[0].strip() %}
                                 {% for parent_venue in venues %}
                                 {% if not parent_venue.parent_venue_id and parent_venue.name == current_venue_name %}
                                 {% for child_venue in venues %}
@@ -756,16 +756,25 @@
                             // 生成时间段选项
                             data.slots.forEach(slot => {
                                 const timeSlot = document.createElement('div');
-                                const isGroupPage = document.title.includes('团队');
+                                const isGroupPage = document.title.includes('团队') || document.title.includes('团体');
                                 const available = isGroupPage ? slot.available_group : slot.available_individual;
-                                const remaining = isGroupPage ? '无限制' : `${slot.remaining_individual}/${slot.individual_capacity}`;
 
                                 timeSlot.className = `time-slot ${available ? '' : 'disabled'}`;
                                 timeSlot.dataset.time = slot.time_slot;
-                                timeSlot.innerHTML = `
-                                    <div>${slot.time_slot}</div>
-                                    <div class="text-xs text-muted">${isGroupPage ? '无人数限制' : `剩余: ${remaining}`}</div>
-                                `;
+                                
+                                // 团体预约页面只显示时间段，不显示剩余名额
+                                if (isGroupPage) {
+                                    timeSlot.innerHTML = `
+                                        <div>${slot.time_slot}</div>
+                                    `;
+                                } else {
+                                    // 个人预约页面显示剩余名额
+                                    const remaining = `${slot.remaining_individual}/${slot.individual_capacity}`;
+                                    timeSlot.innerHTML = `
+                                        <div>${slot.time_slot}</div>
+                                        <div class="text-xs text-muted">剩余: ${remaining}</div>
+                                    `;
+                                }
 
                                 // 禁用已满的时段
                                 if (!available) {

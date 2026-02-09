@@ -193,82 +193,108 @@ def _reserve_base(venue_category, res_type):
             flash("所选时段未开放，请选择其他时段")
             return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
         
-        # 只有个人预约需要检查名额
-        if res_type == "个人":
-            # 检查所选时段是否已满（包括已同意和审核中的申请）
-            time_slot_reservations = Reservation.query.filter_by(
+        # 使用事务确保并发安全
+        from sqlalchemy.exc import SQLAlchemyError
+        
+        try:
+            
+            # 重新获取时段配置（加锁）
+            time_slot_config = VenueTimeSlot.query.filter_by(
+                venue_id=campus_venue_id,
+                day_of_week=day_of_week,
+                time_slot=visit_time,
+                is_active=True
+            ).with_for_update().first()
+            
+            if not time_slot_config:
+                db.session.rollback()
+                flash("所选时段未开放，请选择其他时段")
+                return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
+            
+            # 只有个人预约需要检查名额
+            if res_type == "个人":
+                # 检查所选时段是否已满（包括已同意和审核中的申请），加锁
+                time_slot_reservations = Reservation.query.filter_by(
+                    venue_id=campus_venue_id,
+                    visit_date=visit_date_obj,
+                    visit_time=visit_time,
+                    res_type="个人"
+                ).filter(
+                    Reservation.status.in_(["待审核", "已同意"])
+                ).with_for_update().all()
+                
+                # 计算已预约人数
+                reserved_individual = 0
+                for res in time_slot_reservations:
+                    reserved_individual += res.group_size
+                
+                if reserved_individual + group_size > time_slot_config.individual_capacity:
+                    db.session.rollback()
+                    flash(f"所选时段个人预约人数已满，请选择其他时段")
+                    return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
+
+            # 创建预约记录
+            res = Reservation(
+                user_id=session["user_id"],
                 venue_id=campus_venue_id,
                 visit_date=visit_date_obj,
                 visit_time=visit_time,
-                res_type="个人"
-            ).filter(
-                Reservation.status.in_(["待审核", "已同意"])
-            ).all()
+                reason=reason,
+                res_type=res_type,
+                group_name=group_name,
+                group_contact=group_contact,
+                group_size=group_size,
+                identity=identity,
+                campus=venue.campus,
+            )
+            db.session.add(res)
+            db.session.flush()  # 获取res的ID，用于附件关联
             
-            # 计算已预约人数
-            reserved_individual = 0
-            for res in time_slot_reservations:
-                reserved_individual += res.group_size
+            # 处理附件上传
+            if 'attachments' in request.files:
+                files = request.files.getlist('attachments')
+                
+                # 创建上传目录
+                upload_dir = os.path.join(os.path.dirname(__file__), '..', 'static', 'uploads')
+                if not os.path.exists(upload_dir):
+                    os.makedirs(upload_dir)
+                
+                # 处理上传的文件
+                for file in files:
+                    if file and file.filename:
+                        # 检查文件大小
+                        if file.content_length > 15 * 1024 * 1024:
+                            db.session.rollback()
+                            flash(f"文件 {file.filename} 超过15MB限制")
+                            return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
+                        
+                        # 生成唯一文件名
+                        ext = os.path.splitext(file.filename)[1]
+                        filename = f"{uuid.uuid4()}{ext}"
+                        filepath = os.path.join(upload_dir, filename)
+                        
+                        # 保存文件
+                        file.save(filepath)
+                        
+                        # 创建附件记录
+                        attachment = Attachment(
+                            reservation_id=res.id,
+                            filename=file.filename,
+                            filepath=os.path.join('uploads', filename),
+                            file_size=file.content_length
+                        )
+                        db.session.add(attachment)
+                        
+                        print(f"【附件上传】用户 {user.id} 上传了文件: {file.filename}，保存为: {filename}")
             
-            if reserved_individual + group_size > time_slot_config.individual_capacity:
-                flash(f"所选时段个人预约人数已满，请选择其他时段")
-                return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
-
-        # 创建预约记录
-        res = Reservation(
-            user_id=session["user_id"],
-            venue_id=campus_venue_id,
-            visit_date=visit_date_obj,
-            visit_time=visit_time,
-            reason=reason,
-            res_type=res_type,
-            group_name=group_name,
-            group_contact=group_contact,
-            group_size=group_size,
-            identity=identity,
-            campus=venue.campus,
-        )
-        db.session.add(res)
-        db.session.commit()
-
-        # 处理附件上传
-        if 'attachments' in request.files:
-            files = request.files.getlist('attachments')
-            
-            # 创建上传目录
-            upload_dir = os.path.join(os.path.dirname(__file__), '..', 'static', 'uploads')
-            if not os.path.exists(upload_dir):
-                os.makedirs(upload_dir)
-            
-            # 处理上传的文件
-            for file in files:
-                if file and file.filename:
-                    # 检查文件大小
-                    if file.content_length > 15 * 1024 * 1024:
-                        flash(f"文件 {file.filename} 超过15MB限制")
-                        return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
-                    
-                    # 生成唯一文件名
-                    ext = os.path.splitext(file.filename)[1]
-                    filename = f"{uuid.uuid4()}{ext}"
-                    filepath = os.path.join(upload_dir, filename)
-                    
-                    # 保存文件
-                    file.save(filepath)
-                    
-                    # 创建附件记录
-                    attachment = Attachment(
-                        reservation_id=res.id,
-                        filename=file.filename,
-                        filepath=os.path.join('uploads', filename),
-                        file_size=file.content_length
-                    )
-                    db.session.add(attachment)
-                    
-                    print(f"【附件上传】用户 {user.id} 上传了文件: {file.filename}，保存为: {filename}")
-            
-            # 提交附件记录
+            # 提交所有更改
             db.session.commit()
+            
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            print(f"Error during reservation: {e}")
+            flash("预约提交失败，请稍后重试")
+            return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
 
         print(f"【模拟微信通知】用户 {session['user_id']} 预约提交成功，等待审核。")
         flash("预约提交成功，请等待审核通知")
