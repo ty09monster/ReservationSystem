@@ -310,6 +310,13 @@ def logout():
     flash("您已安全退出")
     return redirect(url_for("admin.login"))
 
+@admin_bp.route("/stats")
+def stats():
+    if not session.get("admin_logged_in"):
+        return redirect(url_for("admin.login"))
+    
+    return render_template("admin_stats.html")
+
 @admin_bp.route("/time-slot-config", methods=["POST"])
 def time_slot_config():
     if not session.get("admin_logged_in"):
@@ -412,3 +419,315 @@ def get_attachments(res_id):
         })
     
     return {"attachments": attachments}
+
+@admin_bp.route("/get-venues")
+def get_venues():
+    if not session.get("admin_logged_in"):
+        return {"error": "未登录"}, 401
+    
+    # 获取所有场馆
+    venues = Venue.query.all()
+    
+    # 构建场馆列表
+    venue_list = []
+    for venue in venues:
+        venue_list.append({
+            "id": venue.id,
+            "name": venue.name
+        })
+    
+    return {"venues": venue_list}
+
+# 统计数据API
+@admin_bp.route("/stats/reservation-trend")
+def reservation_trend():
+    if not session.get("admin_logged_in"):
+        return {"error": "未登录"}, 401
+    
+    # 获取时间范围
+    time_range = request.args.get("time_range", "month")
+    
+    # 构建查询
+    query = Reservation.query
+    
+    # 按时间范围分组
+    if time_range == "day":
+        # 按日统计
+        from sqlalchemy import func
+        result = db.session.query(
+            func.date(Reservation.created_at).label('date'),
+            func.count(Reservation.id).label('count')
+        ).group_by(func.date(Reservation.created_at)).order_by('date').all()
+        
+        data = {
+            "labels": [item.date.strftime('%Y-%m-%d') for item in result],
+            "values": [item.count for item in result]
+        }
+    elif time_range == "week":
+        # 按周统计
+        from sqlalchemy import func
+        # 使用MySQL的DATE_FORMAT函数代替strftime
+        result = db.session.query(
+            func.date_format(Reservation.created_at, '%Y-%u').label('week'),
+            func.count(Reservation.id).label('count')
+        ).group_by('week').order_by('week').all()
+        
+        data = {
+            "labels": [item.week for item in result],
+            "values": [item.count for item in result]
+        }
+    else:  # month
+        # 按月统计
+        from sqlalchemy import func
+        # 使用MySQL的DATE_FORMAT函数代替strftime
+        result = db.session.query(
+            func.date_format(Reservation.created_at, '%Y-%m').label('month'),
+            func.count(Reservation.id).label('count')
+        ).group_by('month').order_by('month').all()
+        
+        data = {
+            "labels": [item.month for item in result],
+            "values": [item.count for item in result]
+        }
+    
+    return data
+
+@admin_bp.route("/stats/reservation-status")
+def reservation_status():
+    if not session.get("admin_logged_in"):
+        return {"error": "未登录"}, 401
+    
+    # 统计预约状态分布
+    from sqlalchemy import func
+    result = db.session.query(
+        Reservation.status,
+        func.count(Reservation.id).label('count')
+    ).group_by(Reservation.status).all()
+    
+    data = {
+        "labels": [item.status for item in result],
+        "values": [item.count for item in result]
+    }
+    
+    return data
+
+@admin_bp.route("/stats/venue-comparison")
+def venue_comparison():
+    if not session.get("admin_logged_in"):
+        return {"error": "未登录"}, 401
+    
+    # 统计场馆/校区对比
+    from sqlalchemy import func
+    result = db.session.query(
+        Venue.campus,
+        func.count(Reservation.id).label('count')
+    ).join(Reservation, Venue.id == Reservation.venue_id).group_by(Venue.campus).all()
+    
+    data = {
+        "labels": [item.campus for item in result],
+        "values": [item.count for item in result]
+    }
+    
+    return data
+
+@admin_bp.route("/stats/reservation-type")
+def reservation_type():
+    if not session.get("admin_logged_in"):
+        return {"error": "未登录"}, 401
+    
+    # 统计个人/团体比例
+    from sqlalchemy import func
+    result = db.session.query(
+        Reservation.res_type,
+        func.count(Reservation.id).label('count')
+    ).group_by(Reservation.res_type).all()
+    
+    data = {
+        "labels": [item.res_type for item in result],
+        "values": [item.count for item in result]
+    }
+    
+    return data
+
+@admin_bp.route("/stats/visitor-trend")
+def visitor_trend():
+    if not session.get("admin_logged_in"):
+        return {"error": "未登录"}, 401
+    
+    # 获取时间范围
+    time_range = request.args.get("time_range", "month")
+    
+    # 构建查询
+    query = Reservation.query.filter(Reservation.status == "已同意")
+    
+    # 按时间范围分组
+    if time_range == "day":
+        # 按日统计
+        from sqlalchemy import func
+        result = db.session.query(
+            func.date(Reservation.visit_date).label('date'),
+            func.sum(Reservation.group_size).label('count')
+        ).filter(Reservation.status == "已同意").group_by(func.date(Reservation.visit_date)).order_by('date').all()
+        
+        data = {
+            "labels": [item.date.strftime('%Y-%m-%d') for item in result],
+            "values": [item.count for item in result]
+        }
+    elif time_range == "week":
+        # 按周统计
+        from sqlalchemy import func
+        # 使用MySQL的DATE_FORMAT函数代替strftime
+        result = db.session.query(
+            func.date_format(Reservation.visit_date, '%Y-%u').label('week'),
+            func.sum(Reservation.group_size).label('count')
+        ).filter(Reservation.status == "已同意").group_by('week').order_by('week').all()
+        
+        data = {
+            "labels": [item.week for item in result],
+            "values": [item.count for item in result]
+        }
+    else:  # month
+        # 按月统计
+        from sqlalchemy import func
+        # 使用MySQL的DATE_FORMAT函数代替strftime
+        result = db.session.query(
+            func.date_format(Reservation.visit_date, '%Y-%m').label('month'),
+            func.sum(Reservation.group_size).label('count')
+        ).filter(Reservation.status == "已同意").group_by('month').order_by('month').all()
+        
+        data = {
+            "labels": [item.month for item in result],
+            "values": [item.count for item in result]
+        }
+    
+    return data
+
+@admin_bp.route("/stats/peak-hours")
+def peak_hours():
+    if not session.get("admin_logged_in"):
+        return {"error": "未登录"}, 401
+    
+    # 统计高峰时段
+    from sqlalchemy import func
+    result = db.session.query(
+        Reservation.visit_time,
+        func.sum(Reservation.group_size).label('count')
+    ).filter(Reservation.status == "已同意").group_by(Reservation.visit_time).order_by('count').all()
+    
+    data = {
+        "labels": [item.visit_time for item in result],
+        "values": [item.count for item in result]
+    }
+    
+    return data
+
+@admin_bp.route("/stats/campus-comparison")
+def campus_comparison():
+    if not session.get("admin_logged_in"):
+        return {"error": "未登录"}, 401
+    
+    # 统计校区客流对比
+    from sqlalchemy import func
+    result = db.session.query(
+        Venue.campus,
+        func.sum(Reservation.group_size).label('count')
+    ).join(Reservation, Venue.id == Reservation.venue_id).filter(Reservation.status == "已同意").group_by(Venue.campus).all()
+    
+    data = {
+        "labels": [item.campus for item in result],
+        "values": [item.count for item in result]
+    }
+    
+    return data
+
+@admin_bp.route("/stats/time-utilization")
+def time_utilization():
+    if not session.get("admin_logged_in"):
+        return {"error": "未登录"}, 401
+    
+    # 统计时段利用率
+    from sqlalchemy import func
+    
+    # 获取所有时段
+    time_slots = VenueTimeSlot.query.distinct(VenueTimeSlot.time_slot).all()
+    time_slot_list = [slot.time_slot for slot in time_slots]
+    
+    # 统计每个时段的使用情况
+    utilization_data = []
+    for time_slot in time_slot_list:
+        # 计算该时段的总容量
+        capacity = db.session.query(
+            func.sum(VenueTimeSlot.individual_capacity)
+        ).filter(VenueTimeSlot.time_slot == time_slot).scalar() or 0
+        
+        # 计算该时段的实际使用量
+        usage = db.session.query(
+            func.sum(Reservation.group_size)
+        ).filter(
+            Reservation.visit_time == time_slot,
+            Reservation.status == "已同意"
+        ).scalar() or 0
+        
+        # 计算利用率
+        utilization = (usage / capacity * 100) if capacity > 0 else 0
+        
+        utilization_data.append({
+            "time_slot": time_slot,
+            "utilization": round(utilization, 2)
+        })
+    
+    # 按利用率排序
+    utilization_data.sort(key=lambda x: x["utilization"], reverse=True)
+    
+    data = {
+        "labels": [item["time_slot"] for item in utilization_data],
+        "values": [item["utilization"] for item in utilization_data]
+    }
+    
+    return data
+
+@admin_bp.route("/stats/total")
+def total_statistics():
+    if not session.get("admin_logged_in"):
+        return {"error": "未登录"}, 401
+    
+    # 统计总数据
+    from sqlalchemy import func
+    
+    # 总预约量
+    total_reservations = db.session.query(
+        func.count(Reservation.id)
+    ).scalar() or 0
+    
+    # 已同意预约量
+    approved_reservations = db.session.query(
+        func.count(Reservation.id)
+    ).filter(Reservation.status == "已同意").scalar() or 0
+    
+    # 总客流量
+    total_visitors = db.session.query(
+        func.sum(Reservation.group_size)
+    ).filter(Reservation.status == "已同意").scalar() or 0
+    
+    # 平均时段利用率
+    # 计算总容量
+    total_capacity = db.session.query(
+        func.sum(VenueTimeSlot.individual_capacity)
+    ).scalar() or 0
+    
+    # 计算总使用量
+    total_usage = db.session.query(
+        func.sum(Reservation.group_size)
+    ).filter(Reservation.status == "已同意").scalar() or 0
+    
+    # 计算平均利用率
+    avg_utilization = (total_usage / total_capacity * 100) if total_capacity > 0 else 0
+    
+    data = {
+        "total_reservations": total_reservations,
+        "approved_reservations": approved_reservations,
+        "total_visitors": total_visitors,
+        "avg_utilization": round(avg_utilization, 2)
+    }
+    
+    return data
