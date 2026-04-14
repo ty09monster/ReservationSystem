@@ -19,6 +19,7 @@ class User(db.Model):
     id_card = db.Column(db.String(50), unique=True, nullable=False, index=True, comment='证件号码')
     name = db.Column(db.String(50), nullable=False, comment='姓名')
     phone = db.Column(db.String(20), nullable=False, comment='手机号')
+    email = db.Column(db.String(120), comment='邮箱地址')
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, comment='创建时间')
 
 class Admin(db.Model):
@@ -93,7 +94,7 @@ class VenueTimeSlot(db.Model):
     __tablename__ = 'venue_time_slot'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     venue_id = db.Column(db.Integer, db.ForeignKey('venue.id'), nullable=False, index=True, comment='场馆ID')
-    day_of_week = db.Column(db.Integer, nullable=False, comment='星期几（0-6，0表示周日）')
+    day_of_week = db.Column(db.Integer, nullable=False, comment='星期几（0-6，0=周日，1=周一，...，6=周六）')
     time_slot = db.Column(db.String(50), nullable=False, comment='时间段（如09:00-10:30）')
     individual_capacity = db.Column(db.Integer, default=20, comment='个人预约最大容量')
     is_group_active = db.Column(db.Boolean, default=True, comment='团体预约是否启用')

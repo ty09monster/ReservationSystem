@@ -335,10 +335,7 @@
             {% endwith %}
 
             <form method="POST" enctype="multipart/form-data" id="reservationForm">
-                <!-- 隐藏字段（已自动赋值） -->
-                <input type="hidden" name="visit_date" id="hiddenVisitDate">
-                <input type="hidden" name="visit_time" id="hiddenVisitTime">
-                <input type="hidden" name="campus_venue_id" id="campusSelect" value="1">
+                <!-- 邮件查询无需日期和时段，已移除 visit_date/visit_time/campus_venue_id 隐藏字段 -->
 
                 <div class="card">
                     <div class="card-header">
@@ -405,9 +402,9 @@
             <i class="icon icon-home"></i>
             <span>首页</span>
         </a>
-        <a href="{{ url_for('h5.announcements') }}" class="bottom-nav-item">
-            <i class="icon icon-news"></i>
-            <span>公告</span>
+        <a href="{{ url_for('h5.index') }}?scroll_to_reserve=1" class="bottom-nav-item">
+            <i class="icon icon-calendar"></i>
+            <span>预约</span>
         </a>
         <a href="{{ url_for('h5.history') }}" class="bottom-nav-item">
             <i class="icon icon-history"></i>

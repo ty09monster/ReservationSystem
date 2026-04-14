@@ -55,7 +55,7 @@
                 <div class="announcement-item">
                     <h4>{{ announcement.title }}</h4>
                     <span class="date">{{ announcement.created_at.strftime('%Y-%m-%d') }}</span>
-                    <p>{{ announcement.content|safe }}</p>
+                    <p>{{ announcement._safe_content }}</p>
                 </div>
                 {% endfor %}
                 {% else %}

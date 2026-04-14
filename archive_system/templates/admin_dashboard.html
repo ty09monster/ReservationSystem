@@ -188,6 +188,7 @@
                                             data-id="{{ res.id }}"
                                             data-time="{{ res.created_at.strftime('%Y-%m-%d %H:%M') }}"
                                             data-name="{{ res.user.name }}" data-phone="{{ res.user.phone }}"
+                                            data-email="{{ res.user.email or '' }}"
                                             data-idtype="{{ res.user.id_type }}" data-idcard="{{ res.user.id_card }}"
                                             data-identity="{{ res.identity }}"
                                             data-visitdate="{{ res.visit_date }} {{ res.visit_time }}"
@@ -749,6 +750,10 @@
                             <div class="detail-value" id="m-phone"></div>
                         </div>
                         <div class="col-6">
+                            <div class="detail-label">邮箱</div>
+                            <div class="detail-value" id="m-email"></div>
+                        </div>
+                        <div class="col-6">
                             <div class="detail-label">身份</div>
                             <div class="detail-value" id="m-identity"></div>
                         </div>
@@ -862,6 +867,7 @@
             document.getElementById('m-time').innerText = data.time;
             document.getElementById('m-name').innerText = data.name;
             document.getElementById('m-phone').innerText = data.phone;
+            document.getElementById('m-email').innerText = data.email || '未填写';
             document.getElementById('m-idtype').innerText = data.idtype || '身份证';
             document.getElementById('m-idcard').innerText = data.idcard;
             document.getElementById('m-identity').innerText = data.identity;
