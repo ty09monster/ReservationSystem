@@ -327,6 +327,73 @@ def reserve_xiaoshi_group():
 def reserve_biaoben_group():
     return _reserve_base("标本馆", "团队")
 
+
+
+# 邮件个人查询档案
+@h5_bp.route("/h5/reserve/email/individual", methods=["GET", "POST"])
+@login_required
+def reserve_email_individual():
+    user = User.query.get(session["user_id"])
+    if not user:
+        flash("用户信息不存在，请重新登录")
+        session.clear()
+        return redirect(url_for("h5.login"))
+
+    config = SystemConfig.query.first()
+    if not config.is_open:
+        flash("系统维护中，暂时关闭预约")
+        return redirect(url_for("h5.home"))
+
+    venues = Venue.query.filter_by(is_active=True).all()
+    default_venue = venues[0] if venues else None
+
+    if request.method == "POST":
+        # 获取表单
+        email = request.form.get("email", "").strip()
+        reason = request.form.get("reason", "").strip()
+        identity = request.form.get("identity", "").strip()
+
+        # 极简校验
+        if not email or "@" not in email:
+            flash("请填写正确的邮箱")
+            return render_template("h5_reserve_邮件_个人.html", user=user)
+
+        if not reason:
+            flash("请填写申请理由")
+            return render_template("h5_reserve_邮件_个人.html", user=user)
+
+        # 创建预约记录（直接创建，不校验场馆、时间）
+        res = Reservation(
+            user_id=session["user_id"],
+            venue_id=1,
+            visit_date=datetime.now().date(),  # 今天
+            visit_time="线上办理",          # 固定时间
+            reason=f"【邮件咨询】{reason}",
+            res_type="个人",
+            group_name=None,
+            group_contact=None,
+            group_size=1,
+            identity=identity,
+            campus="无",
+        )
+        db.session.add(res)
+
+        try:
+            db.session.commit()
+            flash("线上预约提交成功，请等待审核")
+            return redirect(url_for("h5.history"))
+        except Exception as e:
+            db.session.rollback()
+            flash("提交失败，请稍后重试")
+            return render_template("h5_reserve_邮件_个人.html", user=user)
+
+    return render_template("h5_reserve_邮件_个人.html", user=user, venues=venues, venue=default_venue)
+
+
+
+
+
+
 @h5_bp.route("/h5/history")
 @login_required
 def history():
