@@ -52,7 +52,7 @@ def sanitize_html(raw_html):
         # 过滤属性
         allowed = ALLOWED_ATTRS.get(tag_name, set())
         safe_attrs = []
-        for attr_match in re.finditer(r'(\w+)\s*=\s*(?:"([^"]*)"|' "'([^']*)'", attrs_str):
+        for attr_match in re.finditer(r'(\w+)\s*=\s*(?:"([^"]*)"|' "'([^']*)')", attrs_str):
             attr_name = attr_match.group(1).lower()
             attr_val = attr_match.group(2) if attr_match.group(2) is not None else attr_match.group(3)
             if attr_name in allowed:
