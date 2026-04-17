@@ -50,7 +50,7 @@
             <div class="col-md-2">
                 <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist">
                     <button
-                        class="nav-link {% if active_tab != 'notice' and active_tab != 'config' and active_tab != 'venue' and active_tab != 'account' %}active{% endif %}"
+                        class="nav-link {% if active_tab not in ['notice', 'config', 'venue', 'account', 'archive'] %}active{% endif %}"
                         data-bs-toggle="pill" data-bs-target="#tab-audit">
                         📅 预约审核
                     </button>
@@ -69,6 +69,11 @@
                     <button class="nav-link {% if active_tab == 'account' %}active{% endif %}" data-bs-toggle="pill"
                         data-bs-target="#tab-account">
                         👮 账号管理
+                    </button>
+
+                    <button class="nav-link {% if active_tab == 'archive' %}active{% endif %}" data-bs-toggle="pill"
+                        data-bs-target="#tab-archive">
+                        📁 档案申请
                     </button>
 
                     <a href="{{ url_for('admin.stats') }}" class="nav-link">
@@ -94,7 +99,7 @@
 
                 <div class="tab-content">
 
-                    <div class="tab-pane fade {% if active_tab != 'notice' and active_tab != 'config' and active_tab != 'venue' and active_tab != 'account' %}show active{% endif %}"
+                    <div class="tab-pane fade {% if active_tab not in ['notice', 'config', 'venue', 'account', 'archive'] %}show active{% endif %}"
                         id="tab-audit">
                         <h4>预约申请列表</h4>
 
@@ -119,6 +124,14 @@
                                     <div class="col-auto">
                                         <input type="text" name="keyword" class="form-control" placeholder="搜索姓名或手机号"
                                             value="{{ curr_keyword }}">
+                                    </div>
+                                    <div class="col-auto">
+                                        <label class="form-label small text-muted mb-0">开始日期</label>
+                                        <input type="date" name="start_date" class="form-control" value="{{ curr_start_date }}">
+                                    </div>
+                                    <div class="col-auto">
+                                        <label class="form-label small text-muted mb-0">结束日期</label>
+                                        <input type="date" name="end_date" class="form-control" value="{{ curr_end_date }}">
                                     </div>
                                     <div class="col-auto">
                                         <button type="submit" class="btn btn-primary">
@@ -209,7 +222,7 @@
                             <ul class="pagination justify-content-center">
                                 <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
                                     <a class="page-link"
-                                        href="{{ url_for('admin.dashboard', page=pagination.prev_num, keyword=curr_keyword, status=curr_status) }}">
+                                        href="{{ url_for('admin.dashboard', page=pagination.prev_num, keyword=curr_keyword, status=curr_status, start_date=curr_start_date, end_date=curr_end_date) }}">
                                         上一页
                                     </a>
                                 </li>
@@ -220,7 +233,7 @@
                                 </li>
                                 <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
                                     <a class="page-link"
-                                        href="{{ url_for('admin.dashboard', page=pagination.next_num, keyword=curr_keyword, status=curr_status) }}">
+                                        href="{{ url_for('admin.dashboard', page=pagination.next_num, keyword=curr_keyword, status=curr_status, start_date=curr_start_date, end_date=curr_end_date) }}">
                                         下一页
                                     </a>
                                 </li>
@@ -504,6 +517,55 @@
                             </div>
                         </div>
                         {% endif %}
+                    </div>
+
+                    <div class="tab-pane fade {% if active_tab == 'archive' %}show active{% endif %}" id="tab-archive">
+                        <h4>档案查询申请列表</h4>
+
+                        <div class="card bg-light mb-3 mt-3">
+                            <div class="card-body py-3">
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-auto">
+                                        <select id="archiveStatusFilter" class="form-select">
+                                            <option value="">全部状态</option>
+                                            <option value="待处理">待处理</option>
+                                            <option value="已处理">已处理</option>
+                                            <option value="已拒绝">已拒绝</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-auto">
+                                        <button type="button" class="btn btn-primary" onclick="loadArchiveRequests()">
+                                            🔍 查询
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <table class="table table-hover mt-3 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>申请时间</th>
+                                    <th>姓名</th>
+                                    <th>证件类型</th>
+                                    <th>证件号码</th>
+                                    <th>手机号</th>
+                                    <th>提交邮箱</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="archiveRequestTableBody">
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4">
+                                        加载中...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <nav aria-label="Page navigation" class="mt-4" id="archivePagination">
+                        </nav>
                     </div>
 
                     <div class="tab-pane fade {% if active_tab == 'venue' %}show active{% endif %}" id="tab-venue">
@@ -1236,6 +1298,244 @@
             const row = button.closest('tr');
             row.remove();
         }
+    </script>
+
+    <!-- 档案查询申请详情模态框 -->
+    <div class="modal fade" id="archiveRequestModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">档案查询申请详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="detail-label">申请时间</div>
+                            <div class="detail-value" id="ar-time"></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="detail-label">状态</div>
+                            <div class="detail-value" id="ar-status"></div>
+                        </div>
+                        <div class="col-12"><hr class="my-2"></div>
+                        <div class="col-6">
+                            <div class="detail-label">姓名</div>
+                            <div class="detail-value fw-bold" id="ar-name"></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="detail-label">证件类型</div>
+                            <div class="detail-value" id="ar-idtype"></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="detail-label">证件号码</div>
+                            <div class="detail-value font-monospace" id="ar-idcard"></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="detail-label">手机号</div>
+                            <div class="detail-value" id="ar-phone"></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="detail-label">用户邮箱（注册时）</div>
+                            <div class="detail-value" id="ar-user-email"></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="detail-label">提交邮箱（用于接收档案）</div>
+                            <div class="detail-value text-primary fw-bold" id="ar-request-email"></div>
+                        </div>
+                    </div>
+
+                    <div id="ar-old-remark" class="alert alert-info py-2 mt-3" style="display:none;">
+                        <strong>处理备注：</strong>
+                        <span id="ar-old-remark-text"></span>
+                    </div>
+
+                    <form method="POST" id="archiveRequestForm">
+                        <input type="hidden" name="action" id="ar-action">
+                        <div class="collapse mb-3" id="arRemarkArea">
+                            <label class="form-label text-primary fw-bold">
+                                请填写处理备注：
+                            </label>
+                            <textarea name="remark" id="arRemarkText" class="form-control border-primary"
+                                rows="3" placeholder="请输入处理结果或备注信息"></textarea>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="modal-footer bg-light">
+                    <div id="ar-btn-pending"
+                        style="display: flex; gap: 10px; width: 100%; justify-content: flex-end;">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                        <button type="button" class="btn btn-danger" id="ar-btn-reject-trigger"
+                            onclick="showArchiveRejectInput()">拒绝</button>
+                        <button type="button" class="btn btn-danger" id="ar-btn-reject-confirm"
+                            onclick="submitArchiveRequest('reject')" style="display:none;">
+                            确认拒绝
+                        </button>
+                        <button type="button" class="btn btn-success" id="ar-btn-approve"
+                            onclick="submitArchiveRequest('approve')">同意处理</button>
+                    </div>
+
+                    <div id="ar-btn-done" style="display: none;">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let archiveCurrentPage = 1;
+        let archiveModal = new bootstrap.Modal(document.getElementById('archiveRequestModal'));
+
+        function loadArchiveRequests(page = 1) {
+            archiveCurrentPage = page;
+            const status = document.getElementById('archiveStatusFilter').value;
+            let url = `/admin/archive-requests?page=${page}`;
+            if (status) url += `&status=${status}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('archiveRequestTableBody');
+                    
+                    if (data.archive_requests && data.archive_requests.length > 0) {
+                        tbody.innerHTML = data.archive_requests.map(req => `
+                            <tr>
+                                <td>${req.created_at}</td>
+                                <td>${req.user_name}</td>
+                                <td>${req.user_id_type}</td>
+                                <td class="font-monospace">${req.user_id_card}</td>
+                                <td>${req.user_phone}</td>
+                                <td class="text-primary">${req.request_email}</td>
+                                <td>
+                                    <span class="badge 
+                                        ${req.status === '待处理' ? 'bg-warning text-dark' : 
+                                          req.status === '已处理' ? 'bg-success' : 'bg-danger'}">
+                                        ${req.status}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm" onclick="openArchiveRequestModal(${JSON.stringify(req).replace(/"/g, '&quot;')})">
+                                        查看详情
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">没有找到匹配的记录</td></tr>';
+                    }
+
+                    renderArchivePagination(data.pagination);
+                })
+                .catch(error => {
+                    console.error('加载档案申请失败:', error);
+                    document.getElementById('archiveRequestTableBody').innerHTML = 
+                        '<tr><td colspan="8" class="text-center text-danger py-4">加载失败，请重试</td></tr>';
+                });
+        }
+
+        function renderArchivePagination(pagination) {
+            const nav = document.getElementById('archivePagination');
+            
+            if (pagination.pages <= 1) {
+                nav.innerHTML = '';
+                return;
+            }
+
+            let html = '<ul class="pagination justify-content-center">';
+            html += `<li class="page-item ${!pagination.has_prev ? 'disabled' : ''}">
+                        <a class="page-link" onclick="loadArchiveRequests(${pagination.page - 1})">上一页</a>
+                      </li>`;
+            html += `<li class="page-item disabled"><span class="page-link">第 ${pagination.page} / ${pagination.pages} 页</span></li>`;
+            html += `<li class="page-item ${!pagination.has_next ? 'disabled' : ''}">
+                        <a class="page-link" onclick="loadArchiveRequests(${pagination.page + 1})">下一页</a>
+                      </li>`;
+            html += '</ul>';
+            nav.innerHTML = html;
+        }
+
+        function openArchiveRequestModal(req) {
+            document.getElementById('ar-time').innerText = req.created_at;
+            document.getElementById('ar-name').innerText = req.user_name;
+            document.getElementById('ar-idtype').innerText = req.user_id_type;
+            document.getElementById('ar-idcard').innerText = req.user_id_card;
+            document.getElementById('ar-phone').innerText = req.user_phone;
+            document.getElementById('ar-user-email').innerText = req.user_email || '未填写';
+            document.getElementById('ar-request-email').innerText = req.request_email;
+
+            const statusEl = document.getElementById('ar-status');
+            if (req.status === '待处理') {
+                statusEl.innerHTML = '<span class="badge bg-warning text-dark">待处理</span>';
+            } else if (req.status === '已处理') {
+                statusEl.innerHTML = '<span class="badge bg-success">已处理</span>';
+            } else {
+                statusEl.innerHTML = '<span class="badge bg-danger">已拒绝</span>';
+            }
+
+            const form = document.getElementById('archiveRequestForm');
+            form.action = `/admin/archive-request/${req.id}`;
+
+            const pendingGroup = document.getElementById('ar-btn-pending');
+            const doneGroup = document.getElementById('ar-btn-done');
+            const remarkArea = document.getElementById('arRemarkArea');
+            const oldRemarkArea = document.getElementById('ar-old-remark');
+
+            remarkArea.classList.remove('show');
+            document.getElementById('ar-btn-reject-trigger').style.display = 'inline-block';
+            document.getElementById('ar-btn-reject-confirm').style.display = 'none';
+            document.getElementById('ar-btn-reject-confirm').disabled = false;
+            document.getElementById('ar-btn-approve').disabled = false;
+            document.getElementById('arRemarkText').value = '';
+
+            if (req.status === '待处理') {
+                pendingGroup.style.display = 'flex';
+                doneGroup.style.display = 'none';
+                oldRemarkArea.style.display = 'none';
+            } else {
+                pendingGroup.style.display = 'none';
+                doneGroup.style.display = 'block';
+                if (req.admin_remark) {
+                    oldRemarkArea.style.display = 'block';
+                    document.getElementById('ar-old-remark-text').innerText = req.admin_remark;
+                } else {
+                    oldRemarkArea.style.display = 'none';
+                }
+            }
+            archiveModal.show();
+        }
+
+        function showArchiveRejectInput() {
+            document.getElementById('arRemarkArea').classList.add('show');
+            document.getElementById('ar-btn-approve').disabled = true;
+            document.getElementById('ar-btn-reject-trigger').style.display = 'none';
+            document.getElementById('ar-btn-reject-confirm').style.display = 'inline-block';
+        }
+
+        function submitArchiveRequest(actionType) {
+            const actionInput = document.getElementById('ar-action');
+            actionInput.value = actionType;
+
+            if (actionType === 'reject') {
+                const remark = document.getElementById('arRemarkText').value.trim();
+                if (!remark) { alert("请填写处理备注！"); return; }
+            }
+
+            const confirmed = confirm(actionType === 'approve' ? '确定要同意处理此申请吗？' : '确定要拒绝此申请吗？');
+            if (!confirmed) return;
+
+            const form = document.getElementById('archiveRequestForm');
+            form.submit();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const archiveTab = document.querySelector('[data-bs-target="#tab-archive"]');
+            if (archiveTab) {
+                archiveTab.addEventListener('shown.bs.tab', function() {
+                    loadArchiveRequests(1);
+                });
+            }
+        });
     </script>
 </body>
 

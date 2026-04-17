@@ -84,11 +84,11 @@
         <!-- 功能按钮 -->
         <div class="row g-4">
             <div class="col-md-6">
-                <a href="{{ url_for('h5.index') }}?scroll_to_reserve=1"
-                    class="btn btn-primary btn-lg p-4 shadow-sm w-100 {{ 'disabled' if not config.is_open else '' }}">
+                <a href="{{ url_for('h5.profile') }}"
+                    class="btn btn-primary btn-lg p-4 shadow-sm w-100">
                     <div class="text-center">
-                        <h5 class="mb-1">{{ '立即预约' if config.is_open else '系统维护中' }}</h5>
-                        <small class="text-white-80">预约参观校史馆</small>
+                        <h5 class="mb-1">修改个人信息</h5>
+                        <small class="text-white-80">编辑姓名和手机号</small>
                     </div>
                 </a>
             </div>
@@ -97,6 +97,14 @@
                     <div class="text-center">
                         <h5 class="mb-1">查看预约记录</h5>
                         <small class="text-muted">查看历史预约和状态</small>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="{{ url_for('h5.archive_request') }}" class="btn btn-info btn-lg p-4 shadow-sm w-100">
+                    <div class="text-center">
+                        <h5 class="mb-1">查询档案信息</h5>
+                        <small class="text-white-80">提交档案查询申请</small>
                     </div>
                 </a>
             </div>
@@ -109,15 +117,15 @@
             <i class="icon icon-home"></i>
             <span>首页</span>
         </a>
-        <a href="{{ url_for('h5.index') }}?scroll_to_reserve=1" class="bottom-nav-item">
-            <i class="icon icon-calendar"></i>
-            <span>预约</span>
+        <a href="{{ url_for('h5.announcements') }}" class="bottom-nav-item">
+            <i class="icon icon-news"></i>
+            <span>公告</span>
         </a>
-        <a href="{{ url_for('h5.history') }}" class="bottom-nav-item">
-            <i class="icon icon-history"></i>
-            <span>历史</span>
+        <a href="{{ url_for('h5.about') }}" class="bottom-nav-item">
+            <i class="icon icon-about"></i>
+            <span>关于</span>
         </a>
-        <a href="{{ url_for('h5.profile') }}" class="bottom-nav-item active">
+        <a href="{{ url_for('h5.home') }}" class="bottom-nav-item active">
             <i class="icon icon-user"></i>
             <span>我的</span>
         </a>

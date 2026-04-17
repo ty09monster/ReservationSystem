@@ -207,7 +207,11 @@
             let isValid = true;
             let msg = "";
 
-            if (!val) return; // 空值不校验
+            if (!val) {
+                input.classList.remove('is-valid', 'is-invalid');
+                errorDiv.style.display = 'none';
+                return true; // 空值不阻止提交，由 required 属性处理
+            }
 
             if (type === '身份证' || type === '港澳台居民居住证') {
                 const res = validateCnId(val);

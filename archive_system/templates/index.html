@@ -183,18 +183,7 @@
                     <p class="feature-desc">团队参观标本馆</p>
                 </a>
             </div>
-            <!-- ________________________________________ -->
-            <div class="feature-grid">
-                <a href="{{ url_for('h5.reserve_email_individual') }}" class="feature-item">
-                    <div class="feature-icon" align="center">
-                        <!-- <i class="icon icon-clock"></i> -->
-                        <img src="{{ url_for('static', filename='个人预约.jpg') }}" alt="线上预约图标">
-                    </div>
-                    <h3 class="feature-title">邮箱查询档案</h3>
-                    <p class="feature-desc">个人邮箱查询档案</p>
-                </a>
-            </div>
-            <!-- ________________________________________ -->
+            
         </section>
 
         <!-- 校史馆介绍 -->
@@ -244,9 +233,9 @@
             <i class="icon icon-about"></i>
             <span>关于</span>
         </a>
-        <a href="{{ url_for('h5.login') }}" class="bottom-nav-item">
+        <a href="{{ url_for('h5.home') if is_logged_in else url_for('h5.login') }}" class="bottom-nav-item">
             <i class="icon icon-user"></i>
-            <span>登录</span>
+            <span>{{ '我的' if is_logged_in else '登录' }}</span>
         </a>
     </nav>
 

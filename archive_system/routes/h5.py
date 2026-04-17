@@ -8,7 +8,7 @@ from datetime import datetime
 import os
 import uuid
 from ..extensions import db
-from ..models import User, SystemConfig, Announcement, Reservation, Venue, VenueTimeSlot, Attachment
+from ..models import User, SystemConfig, Announcement, Reservation, Venue, VenueTimeSlot, Attachment, ArchiveRequest
 from ..validators import validate_certificate, validate_phone, validate_visit_date
 from ..decorators import login_required
 
@@ -83,12 +83,12 @@ def index():
     无需登录即可访问
     """
     config = SystemConfig.query.first()
-    # 获取最新的公告，优先展示顶置的公告，最多展示2条
     announcements = Announcement.query.filter_by(is_hidden=False).order_by(
         Announcement.is_pinned.desc(),
         Announcement.created_at.desc()
     ).limit(2).all()
-    return render_template("index.html", config=config, announcements=announcements)
+    is_logged_in = "user_id" in session
+    return render_template("index.html", config=config, announcements=announcements, is_logged_in=is_logged_in)
 
 @h5_bp.route("/announcements")
 def announcements():
@@ -100,10 +100,10 @@ def announcements():
         Announcement.is_pinned.desc(),
         Announcement.created_at.desc()
     ).all()
-    # F9: 对公告内容做 HTML 净化，防止存储型 XSS
     for ann in announcements:
         ann._safe_content = sanitize_html(ann.content)
-    return render_template("announcements.html", announcements=announcements)
+    is_logged_in = "user_id" in session
+    return render_template("announcements.html", announcements=announcements, is_logged_in=is_logged_in)
 
 @h5_bp.route("/about")
 def about():
@@ -112,7 +112,8 @@ def about():
     无需登录即可访问
     """
     config = SystemConfig.query.first()
-    return render_template("about.html", config=config)
+    is_logged_in = "user_id" in session
+    return render_template("about.html", config=config, is_logged_in=is_logged_in)
 
 @h5_bp.route("/h5/login", methods=["GET", "POST"])
 def login():
@@ -432,139 +433,6 @@ def reserve_biaoben_group():
     return _reserve_base("标本馆", "团队")
 
 
-# 邮件个人查询档案
-@h5_bp.route("/h5/reserve/email/individual", methods=["GET", "POST"])
-@login_required
-def reserve_email_individual():
-    user = db.session.get(User, session["user_id"])
-    if not user:
-        flash("用户信息不存在，请重新登录")
-        session.clear()
-        return redirect(url_for("h5.login"))
-
-    config = SystemConfig.query.first()
-    if not config.is_open:
-        flash("系统维护中，暂时关闭预约")
-        return redirect(url_for("h5.home"))
-
-    venues = Venue.query.filter_by(is_active=True).all()
-    default_venue = venues[0] if venues else None
-
-    if request.method == "POST":
-        email = request.form.get("email", "").strip()
-        reason = request.form.get("reason", "").strip()
-        identity = request.form.get("identity", "").strip()
-
-        # 邮箱校验
-        if not email or "@" not in email or "." not in email.split("@")[-1]:
-            flash("请填写正确的邮箱地址")
-            return render_template("h5_reserve_邮件_个人.html", user=user, venues=venues, venue=default_venue)
-
-        if not reason:
-            flash("请填写申请理由")
-            return render_template("h5_reserve_邮件_个人.html", user=user, venues=venues, venue=default_venue)
-
-        # F2: 保存用户邮箱
-        user.email = email
-
-        # 动态查询档案馆场馆
-        archive_venue = Venue.query.filter(
-            Venue.category == "档案馆",
-            Venue.is_active == True
-        ).first()
-        if not archive_venue:
-            archive_venue = Venue.query.filter_by(is_active=True).first()
-        if not archive_venue:
-            flash("暂无可用场馆，无法提交申请")
-            return render_template("h5_reserve_邮件_个人.html", user=user, venues=venues, venue=default_venue)
-
-        # F12: 查重——每个用户每天最多 1 次档案查询
-        today = datetime.now().date()
-        existing = Reservation.query.filter_by(
-            user_id=session["user_id"],
-            visit_time="线上办理",
-            visit_date=today
-        ).filter(
-            Reservation.status.in_(["待审核", "已同意"])
-        ).count()
-        if existing > 0:
-            flash("您今天已提交过档案查询申请，请等待审核结果")
-            return render_template("h5_reserve_邮件_个人.html", user=user, venues=venues, venue=default_venue)
-
-        from sqlalchemy.exc import SQLAlchemyError
-        try:
-            # 创建预约记录
-            res = Reservation(
-                user_id=session["user_id"],
-                venue_id=archive_venue.id,
-                visit_date=today,
-                visit_time="线上办理",
-                reason=f"【邮件查询】{reason}",
-                res_type="个人",
-                group_name=None,
-                group_contact=None,
-                group_size=1,
-                identity=identity,
-                campus=archive_venue.campus or "无",
-            )
-            db.session.add(res)
-            db.session.flush()
-
-            # F1: 处理附件上传（复用安全上传逻辑）
-            if 'attachments' in request.files:
-                files = request.files.getlist('attachments')
-                if len(files) > MAX_FILE_COUNT:
-                    db.session.rollback()
-                    flash(f"最多上传 {MAX_FILE_COUNT} 个文件")
-                    return render_template("h5_reserve_邮件_个人.html", user=user, venues=venues, venue=default_venue)
-
-                upload_dir = os.path.join(os.path.dirname(__file__), '..', 'static', 'uploads')
-                if not os.path.exists(upload_dir):
-                    os.makedirs(upload_dir)
-
-                for file in files:
-                    if file and file.filename:
-                        ext = os.path.splitext(file.filename)[1].lower()
-                        if ext not in ALLOWED_EXTENSIONS:
-                            db.session.rollback()
-                            flash(f"不支持的文件类型: {file.filename}")
-                            return render_template("h5_reserve_邮件_个人.html", user=user, venues=venues, venue=default_venue)
-
-                        content = file.read()
-                        actual_size = len(content)
-                        if actual_size > MAX_FILE_SIZE:
-                            db.session.rollback()
-                            flash(f"文件 {file.filename} 超过15MB限制")
-                            return render_template("h5_reserve_邮件_个人.html", user=user, venues=venues, venue=default_venue)
-
-                        filename = f"{uuid.uuid4()}{ext}"
-                        filepath = os.path.join(upload_dir, filename)
-                        with open(filepath, 'wb') as f:
-                            f.write(content)
-
-                        attachment = Attachment(
-                            reservation_id=res.id,
-                            filename=file.filename,
-                            filepath=os.path.join('uploads', filename),
-                            file_size=actual_size
-                        )
-                        db.session.add(attachment)
-                        logger.info("档案查询附件: 用户 %s 上传 %s", user.id, file.filename)
-
-            db.session.commit()
-            logger.info("用户 %s 提交线上档案查询，邮箱: %s", session["user_id"], email)
-            flash("档案查询申请提交成功，审核通过后将发送至您的邮箱")
-            return redirect(url_for("h5.history"))
-
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            logger.error("档案查询提交失败: %s", e)
-            flash("提交失败，请稍后重试")
-            return render_template("h5_reserve_邮件_个人.html", user=user, venues=venues, venue=default_venue)
-
-    return render_template("h5_reserve_邮件_个人.html", user=user, venues=venues, venue=default_venue)
-
-
 @h5_bp.route("/h5/history")
 @login_required
 def history():
@@ -664,3 +532,41 @@ def get_available_slots():
     except Exception as e:
         logger.error("获取可用时段失败: %s", e)
         return {"error": "获取可用时段失败"}, 500
+
+@h5_bp.route("/h5/archive-request", methods=["GET", "POST"])
+@login_required
+def archive_request():
+    user = db.session.get(User, session["user_id"])
+    if not user:
+        flash("用户信息不存在，请重新登录")
+        session.clear()
+        return redirect(url_for("h5.login"))
+
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+
+        if not email or '@' not in email:
+            flash("请输入有效的邮箱地址")
+            return render_template("h5_archive_request.html", user=user)
+
+        existing_pending = ArchiveRequest.query.filter_by(
+            user_id=session["user_id"],
+            status="待处理"
+        ).first()
+
+        if existing_pending:
+            flash("您已有待处理的档案查询申请，请等待管理员处理")
+            return render_template("h5_archive_request.html", user=user)
+
+        archive_req = ArchiveRequest(
+            user_id=session["user_id"],
+            email=email
+        )
+        db.session.add(archive_req)
+        db.session.commit()
+
+        logger.info("用户 %s 提交档案查询申请，邮箱: %s", session['user_id'], email)
+        flash("档案查询申请已提交，请等待管理员处理")
+        return redirect(url_for("h5.home"))
+
+    return render_template("h5_archive_request.html", user=user)

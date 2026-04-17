@@ -115,3 +115,16 @@ class Attachment(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, comment='创建时间')
 
     reservation = db.relationship("Reservation", backref=db.backref("attachments", lazy=True))
+
+class ArchiveRequest(db.Model):
+    """档案查询申请表"""
+    __tablename__ = 'archive_request'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True, comment='用户ID')
+    email = db.Column(db.String(120), nullable=False, comment='用于接收档案信息的邮箱')
+    status = db.Column(db.String(20), default="待处理", index=True, comment='状态：待处理, 已处理, 已拒绝')
+    admin_remark = db.Column(db.Text, comment='管理员备注/处理结果')
+    created_at = db.Column(db.DateTime, default=datetime.now, index=True, comment='申请时间')
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, nullable=False, comment='更新时间')
+
+    user = db.relationship("User", backref=db.backref("archive_requests", lazy=True))

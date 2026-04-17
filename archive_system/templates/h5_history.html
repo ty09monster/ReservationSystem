@@ -52,10 +52,14 @@
 
     <!-- 主内容区域 -->
     <div class="main-content">
-        <div class="container mt-4">
-            <h3>我的预约</h3>
+        <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+            <h3 class="mb-0">我的预约</h3>
+            <a href="{{ url_for('h5.home') }}" class="btn btn-outline-primary btn-sm">
+                返回我的
+            </a>
+        </div>
 
-            {% if not reservations %}
+        {% if not reservations %}
             <div class="card">
                 <p class="text-center text-muted">暂无预约记录</p>
             </div>
@@ -125,28 +129,7 @@
                 </div>
             </div>
             {% endfor %}
-        </div>
     </div>
-
-    <!-- 底部导航 -->
-    <nav class="bottom-nav">
-        <a href="{{ url_for('h5.index') }}" class="bottom-nav-item">
-            <i class="icon icon-home"></i>
-            <span>首页</span>
-        </a>
-        <a href="{{ url_for('h5.index') }}?scroll_to_reserve=1" class="bottom-nav-item">
-            <i class="icon icon-calendar"></i>
-            <span>预约</span>
-        </a>
-        <a href="{{ url_for('h5.history') }}" class="bottom-nav-item active">
-            <i class="icon icon-history"></i>
-            <span>历史</span>
-        </a>
-        <a href="{{ url_for('h5.profile') }}" class="bottom-nav-item">
-            <i class="icon icon-user"></i>
-            <span>我的</span>
-        </a>
-    </nav>
 
     <!-- 页脚 -->
     <footer class="footer">

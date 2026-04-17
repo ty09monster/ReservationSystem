@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>查询档案信息 - 校史馆预约系统</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/font_who/iconfont.css') }}" rel="stylesheet">
+</head>
+
+<body>
+    <!-- 加载动画 -->
+    <div class="loading" id="loading"></div>
+
+    <!-- 顶部导航栏 -->
+    <nav class="top-nav">
+        <div class="back-btn" onclick="window.history.back()">
+            <i class="icon icon-back"></i>
+        </div>
+        <h1>查询档案信息</h1>
+        <div class="nav-right"></div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="alert alert-info">{{ messages[0] }}</div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- 说明卡片 -->
+        <div class="card mb-4">
+            <div class="card-body p-4">
+                <h5 class="card-title text-primary">📋 申请说明</h5>
+                <p class="card-text text-muted small">
+                    您可以在此提交档案查询申请。请填写您的邮箱地址，管理员审核通过后，将把相关档案信息发送至您提供的邮箱。
+                </p>
+            </div>
+        </div>
+
+        <!-- 用户信息展示 -->
+        <div class="card mb-4 border-primary">
+            <div class="card-body p-4">
+                <h6 class="text-primary mb-3 fw-bold">您的个人信息</h6>
+                <div class="row">
+                    <div class="col-6 mb-2">
+                        <small class="text-muted">姓名</small>
+                        <p class="mb-0 text-dark fw-bold">{{ user.name }}</p>
+                    </div>
+                    <div class="col-6 mb-2">
+                        <small class="text-muted">证件类型</small>
+                        <p class="mb-0 text-dark fw-bold">{{ user.id_type }}</p>
+                    </div>
+                    <div class="col-6 mb-2">
+                        <small class="text-muted">证件号码</small>
+                        <p class="mb-0 text-dark font-monospace">{{ user.id_card[:3] }}****{{ user.id_card[-4:] }}</p>
+                    </div>
+                    <div class="col-6 mb-2">
+                        <small class="text-muted">手机号</small>
+                        <p class="mb-0 text-dark fw-bold">{{ user.phone[:3] }}****{{ user.phone[-4:] }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 申请表单 -->
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('h5.archive_request') }}">
+                    <div class="mb-4">
+                        <label for="email" class="form-label text-dark fw-bold">
+                            <i class="icon icon-user"></i> 接收档案信息的邮箱
+                        </label>
+                        <input type="email" 
+                               class="form-control form-control-lg" 
+                               id="email" 
+                               name="email" 
+                               placeholder="请输入您的邮箱地址"
+                               value="{{ user.email or '' }}"
+                               required>
+                        <div class="form-text text-muted">
+                            档案查询结果将发送至此邮箱，请确保填写正确
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
+                        提交申请
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 历史申请记录 -->
+        {% if user.archive_requests %}
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">历史申请记录</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for req in user.archive_requests %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge 
+                                    {% if req.status == '待处理' %}bg-warning text-dark
+                                    {% elif req.status == '已处理' %}bg-success
+                                    {% else %}bg-danger{% endif %}">
+                                    {{ req.status }}
+                                </span>
+                                <span class="ms-2 text-muted small">{{ req.email }}</span>
+                            </div>
+                            <small class="text-muted">{{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </div>
+                        {% if req.admin_remark %}
+                        <div class="mt-2 text-muted small">
+                            <strong>备注：</strong>{{ req.admin_remark }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 底部导航 -->
+    <nav class="bottom-nav">
+        <a href="{{ url_for('h5.index') }}" class="bottom-nav-item">
+            <i class="icon icon-home"></i>
+            <span>首页</span>
+        </a>
+        <a href="{{ url_for('h5.announcements') }}" class="bottom-nav-item">
+            <i class="icon icon-news"></i>
+            <span>公告</span>
+        </a>
+        <a href="{{ url_for('h5.about') }}" class="bottom-nav-item">
+            <i class="icon icon-about"></i>
+            <span>关于</span>
+        </a>
+        <a href="{{ url_for('h5.home') }}" class="bottom-nav-item active">
+            <i class="icon icon-user"></i>
+            <span>我的</span>
+        </a>
+    </nav>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <p>&copy; <span id="currentYear"></span> 河南农业大学校史馆预约系统 版权所有</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+
+    <script>
+        window.onload = function () {
+            setTimeout(function () {
+                document.getElementById('loading').style.display = 'none';
+            }, 1000);
+
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+        };
+    </script>
+</body>
+
+</html>

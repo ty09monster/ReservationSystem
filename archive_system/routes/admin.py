@@ -1,9 +1,9 @@
 import logging
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_, case, func
 from ..extensions import db
-from ..models import Admin, Reservation, User, Announcement, SystemConfig, Venue, VenueTimeSlot, Attachment
+from ..models import Admin, Reservation, User, Announcement, SystemConfig, Venue, VenueTimeSlot, Attachment, ArchiveRequest
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +59,11 @@ def dashboard():
 
     keyword = request.args.get('keyword', '').strip()
     status_filter = request.args.get('status', '').strip()
+    start_date = request.args.get('start_date', '').strip()
+    end_date = request.args.get('end_date', '').strip()
     page = request.args.get('page', 1, type=int)
     active_tab = request.args.get('active_tab', '')
-    
+
     query = Reservation.query.join(User)
 
     if keyword:
@@ -75,12 +77,18 @@ def dashboard():
     if status_filter:
         query = query.filter(Reservation.status == status_filter)
 
+    if start_date:
+        query = query.filter(Reservation.visit_date >= start_date)
+
+    if end_date:
+        query = query.filter(Reservation.visit_date <= end_date)
+
     status_order = case(
         (Reservation.status == '待审核', 0),
         else_=1
     )
     query = query.order_by(status_order.asc(), Reservation.created_at.desc())
-    
+
     pagination = query.paginate(page=page, per_page=10, error_out=False)
     reservations = pagination.items
 
@@ -101,6 +109,8 @@ def dashboard():
         venues=venues,
         curr_keyword=keyword,
         curr_status=status_filter,
+        curr_start_date=start_date,
+        curr_end_date=end_date,
         admin_list=admin_list,
         active_tab=active_tab
     )
@@ -633,3 +643,73 @@ def total_statistics():
     }
     
     return data
+
+@admin_bp.route("/archive-requests")
+def archive_requests():
+    status_filter = request.args.get('status', '').strip()
+    page = request.args.get('page', 1, type=int)
+    
+    query = ArchiveRequest.query.join(User)
+    
+    if status_filter:
+        query = query.filter(ArchiveRequest.status == status_filter)
+    
+    query = query.order_by(ArchiveRequest.created_at.desc())
+    
+    pagination = query.paginate(page=page, per_page=10, error_out=False)
+    archive_requests = pagination.items
+    
+    return jsonify({
+        "archive_requests": [
+            {
+                "id": req.id,
+                "user_id": req.user_id,
+                "user_name": req.user.name,
+                "user_id_type": req.user.id_type,
+                "user_id_card": req.user.id_card,
+                "user_phone": req.user.phone,
+                "user_email": req.user.email,
+                "request_email": req.email,
+                "status": req.status,
+                "admin_remark": req.admin_remark,
+                "created_at": req.created_at.strftime('%Y-%m-%d %H:%M') if req.created_at else '',
+                "updated_at": req.updated_at.strftime('%Y-%m-%d %H:%M') if req.updated_at else ''
+            }
+            for req in archive_requests
+        ],
+        "pagination": {
+            "page": pagination.page,
+            "pages": pagination.pages,
+            "has_prev": pagination.has_prev,
+            "has_next": pagination.has_next,
+            "total": pagination.total
+        },
+        "curr_status": status_filter
+    })
+
+@admin_bp.route("/archive-request/<int:req_id>", methods=["POST"])
+def handle_archive_request(req_id):
+    action = request.form.get("action")
+    remark = request.form.get("remark", "")
+    
+    archive_req = db.session.get(ArchiveRequest, req_id)
+    if not archive_req:
+        return jsonify({"error": "申请记录不存在"}), 404
+    
+    if archive_req.status != '待处理':
+        return jsonify({"error": f"该申请已被处理 (当前状态: {archive_req.status})"}), 400
+    
+    if action == 'approve':
+        archive_req.status = "已处理"
+        archive_req.admin_remark = remark
+        logger.info("档案查询申请 %s 已处理，用户 %s", req_id, archive_req.user_id)
+    elif action == 'reject':
+        archive_req.status = "已拒绝"
+        archive_req.admin_remark = remark
+        logger.info("档案查询申请 %s 已拒绝，原因: %s", req_id, remark)
+    else:
+        return jsonify({"error": "无效的操作"}), 400
+    
+    db.session.commit()
+    flash(f"申请已{'处理' if action == 'approve' else '拒绝'}")
+    return redirect(url_for("admin.dashboard"))
