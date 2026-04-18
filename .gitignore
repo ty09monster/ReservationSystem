@@ -4,3 +4,5 @@ instance/
 .idea/
 flask/
 .trae/
+venv/
+.env
