@@ -104,6 +104,17 @@ class VenueTimeSlot(db.Model):
 
     venue = db.relationship('Venue', backref=db.backref('time_slots', lazy=True))
 
+class VenueTimeSlotDisabledDate(db.Model):
+    """场馆时段禁用日期表"""
+    __tablename__ = 'venue_time_slot_disabled_date'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    venue_id = db.Column(db.Integer, db.ForeignKey('venue.id'), nullable=False, index=True, comment='场馆ID')
+    time_slot = db.Column(db.String(50), nullable=False, comment='时间段（如09:00-10:30）')
+    disabled_date = db.Column(db.Date, nullable=False, index=True, comment='禁用的日期')
+    created_at = db.Column(db.DateTime, default=datetime.now, comment='创建时间')
+
+    venue = db.relationship('Venue', backref=db.backref('disabled_dates', lazy=True))
+
 class Attachment(db.Model):
     """附件表"""
     __tablename__ = 'attachment'

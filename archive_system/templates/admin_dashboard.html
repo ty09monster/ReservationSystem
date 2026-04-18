@@ -127,11 +127,13 @@
                                     </div>
                                     <div class="col-auto">
                                         <label class="form-label small text-muted mb-0">开始日期</label>
-                                        <input type="date" name="start_date" class="form-control" value="{{ curr_start_date }}">
+                                        <input type="date" name="start_date" class="form-control"
+                                            value="{{ curr_start_date }}">
                                     </div>
                                     <div class="col-auto">
                                         <label class="form-label small text-muted mb-0">结束日期</label>
-                                        <input type="date" name="end_date" class="form-control" value="{{ curr_end_date }}">
+                                        <input type="date" name="end_date" class="form-control"
+                                            value="{{ curr_end_date }}">
                                     </div>
                                     <div class="col-auto">
                                         <button type="submit" class="btn btn-primary">
@@ -201,9 +203,8 @@
                                             data-id="{{ res.id }}"
                                             data-time="{{ res.created_at.strftime('%Y-%m-%d %H:%M') }}"
                                             data-name="{{ res.user.name }}" data-phone="{{ res.user.phone }}"
-                                            data-email="{{ res.user.email or '' }}"
-                                            data-idtype="{{ res.user.id_type }}" data-idcard="{{ res.user.id_card }}"
-                                            data-identity="{{ res.identity }}"
+                                            data-email="{{ res.user.email or '' }}" data-idtype="{{ res.user.id_type }}"
+                                            data-idcard="{{ res.user.id_card }}" data-identity="{{ res.identity }}"
                                             data-visitdate="{{ res.visit_date }} {{ res.visit_time }}"
                                             data-venue="{{ res.venue.name }}" data-campus="{{ res.campus }}"
                                             data-reason="{{ res.reason }}" data-status="{{ res.status }}"
@@ -657,6 +658,12 @@
                                                 data-venue-name="{{ child_venue.name }}">
                                                 时段设置
                                             </button>
+                                            <!-- 禁用日期按钮 -->
+                                            <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal"
+                                                data-bs-target="#disabledDateModal" data-venue-id="{{ child_venue.id }}"
+                                                data-venue-name="{{ child_venue.name }}">
+                                                禁用日期
+                                            </button>
                                         </div>
                                     </div>
                                     {% endfor %}
@@ -921,6 +928,26 @@
 
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('form').forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    const submitBtns = form.querySelectorAll('button[type="submit"], input[type="submit"]');
+                    submitBtns.forEach(function (btn) {
+                        if (btn.dataset.submitted === 'true') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            return false;
+                        }
+                        btn.dataset.submitted = 'true';
+                        btn.disabled = true;
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 处理中...';
+                        btn.dataset.originalText = originalText;
+                    });
+                });
+            });
+        });
+
         var auditModal = new bootstrap.Modal(document.getElementById('auditModal'));
 
         // 1. 打开审核弹窗
@@ -1026,12 +1053,18 @@
             const btnApprove = document.getElementById('btn-approve');
             const btnRejectConfirm = document.getElementById('btn-reject-confirm');
 
+            if (btnApprove.dataset.submitted === 'true' || btnRejectConfirm.dataset.submitted === 'true') {
+                return;
+            }
+
             // Loading 状态
             if (actionType === 'approve') {
+                btnApprove.dataset.submitted = 'true';
                 btnApprove.disabled = true;
                 btnApprove.innerHTML =
                     '<span class="spinner-border spinner-border-sm"></span> 处理中...';
             } else {
+                btnRejectConfirm.dataset.submitted = 'true';
                 btnRejectConfirm.disabled = true;
                 btnRejectConfirm.innerHTML =
                     '<span class="spinner-border spinner-border-sm"></span> 处理中...';
@@ -1300,6 +1333,303 @@
         }
     </script>
 
+    <!-- 禁用日期设置模态框 -->
+    <div class="modal fade" id="disabledDateModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">禁用日期设置 - <span id="disabledDateVenueName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3 alert alert-warning">
+                        <strong>设置说明：</strong>选择要禁用的日期和时段，被禁用的日期时段将无法进行预约。
+                    </div>
+
+                    <form method="POST" action="{{ url_for('admin.manage_disabled_date') }}" id="disabledDateForm"
+                        class="mb-4">
+                        <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="venue_id" id="disabledDateVenueId">
+                        <input type="hidden" name="active_tab" id="disabledDateActiveTab">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label">选择日期</label>
+                                <input type="date" name="disabled_date" id="disabledDateInput" class="form-control"
+                                    required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">开始时间</label>
+                                <div class="input-group">
+                                    <select id="startHour" class="form-select">
+                                        <option value="08">08</option>
+                                        <option value="09" selected>09</option>
+                                        <option value="10">10</option>
+                                        <option value="11">11</option>
+                                        <option value="12">12</option>
+                                        <option value="13">13</option>
+                                        <option value="14">14</option>
+                                        <option value="15">15</option>
+                                        <option value="16">16</option>
+                                        <option value="17">17</option>
+                                    </select>
+                                    <span class="input-group-text">:</span>
+                                    <select id="startMinute" class="form-select">
+                                        <option value="00" selected>00</option>
+                                        <option value="01">01</option>
+                                        <option value="02">02</option>
+                                        <option value="03">03</option>
+                                        <option value="04">04</option>
+                                        <option value="05">05</option>
+                                        <option value="06">06</option>
+                                        <option value="07">07</option>
+                                        <option value="08">08</option>
+                                        <option value="09">09</option>
+                                        <option value="10">10</option>
+                                        <option value="11">11</option>
+                                        <option value="12">12</option>
+                                        <option value="13">13</option>
+                                        <option value="14">14</option>
+                                        <option value="15">15</option>
+                                        <option value="16">16</option>
+                                        <option value="17">17</option>
+                                        <option value="18">18</option>
+                                        <option value="19">19</option>
+                                        <option value="20">20</option>
+                                        <option value="21">21</option>
+                                        <option value="22">22</option>
+                                        <option value="23">23</option>
+                                        <option value="24">24</option>
+                                        <option value="25">25</option>
+                                        <option value="26">26</option>
+                                        <option value="27">27</option>
+                                        <option value="28">28</option>
+                                        <option value="29">29</option>
+                                        <option value="30">30</option>
+                                        <option value="31">31</option>
+                                        <option value="32">32</option>
+                                        <option value="33">33</option>
+                                        <option value="34">34</option>
+                                        <option value="35">35</option>
+                                        <option value="36">36</option>
+                                        <option value="37">37</option>
+                                        <option value="38">38</option>
+                                        <option value="39">39</option>
+                                        <option value="40">40</option>
+                                        <option value="41">41</option>
+                                        <option value="42">42</option>
+                                        <option value="43">43</option>
+                                        <option value="44">44</option>
+                                        <option value="45">45</option>
+                                        <option value="46">46</option>
+                                        <option value="47">47</option>
+                                        <option value="48">48</option>
+                                        <option value="49">49</option>
+                                        <option value="50">50</option>
+                                        <option value="51">51</option>
+                                        <option value="52">52</option>
+                                        <option value="53">53</option>
+                                        <option value="54">54</option>
+                                        <option value="55">55</option>
+                                        <option value="56">56</option>
+                                        <option value="57">57</option>
+                                        <option value="58">58</option>
+                                        <option value="59">59</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">结束时间</label>
+                                <div class="input-group">
+                                    <select id="endHour" class="form-select">
+                                        <option value="09">09</option>
+                                        <option value="10">10</option>
+                                        <option value="11">11</option>
+                                        <option value="12" selected>12</option>
+                                        <option value="13">13</option>
+                                        <option value="14">14</option>
+                                        <option value="15">15</option>
+                                        <option value="16">16</option>
+                                        <option value="17">17</option>
+                                        <option value="18">18</option>
+                                    </select>
+                                    <span class="input-group-text">:</span>
+                                    <select id="endMinute" class="form-select">
+                                        <option value="00" selected>00</option>
+                                        <option value="01">01</option>
+                                        <option value="02">02</option>
+                                        <option value="03">03</option>
+                                        <option value="04">04</option>
+                                        <option value="05">05</option>
+                                        <option value="06">06</option>
+                                        <option value="07">07</option>
+                                        <option value="08">08</option>
+                                        <option value="09">09</option>
+                                        <option value="10">10</option>
+                                        <option value="11">11</option>
+                                        <option value="12">12</option>
+                                        <option value="13">13</option>
+                                        <option value="14">14</option>
+                                        <option value="15">15</option>
+                                        <option value="16">16</option>
+                                        <option value="17">17</option>
+                                        <option value="18">18</option>
+                                        <option value="19">19</option>
+                                        <option value="20">20</option>
+                                        <option value="21">21</option>
+                                        <option value="22">22</option>
+                                        <option value="23">23</option>
+                                        <option value="24">24</option>
+                                        <option value="25">25</option>
+                                        <option value="26">26</option>
+                                        <option value="27">27</option>
+                                        <option value="28">28</option>
+                                        <option value="29">29</option>
+                                        <option value="30">30</option>
+                                        <option value="31">31</option>
+                                        <option value="32">32</option>
+                                        <option value="33">33</option>
+                                        <option value="34">34</option>
+                                        <option value="35">35</option>
+                                        <option value="36">36</option>
+                                        <option value="37">37</option>
+                                        <option value="38">38</option>
+                                        <option value="39">39</option>
+                                        <option value="40">40</option>
+                                        <option value="41">41</option>
+                                        <option value="42">42</option>
+                                        <option value="43">43</option>
+                                        <option value="44">44</option>
+                                        <option value="45">45</option>
+                                        <option value="46">46</option>
+                                        <option value="47">47</option>
+                                        <option value="48">48</option>
+                                        <option value="49">49</option>
+                                        <option value="50">50</option>
+                                        <option value="51">51</option>
+                                        <option value="52">52</option>
+                                        <option value="53">53</option>
+                                        <option value="54">54</option>
+                                        <option value="55">55</option>
+                                        <option value="56">56</option>
+                                        <option value="57">57</option>
+                                        <option value="58">58</option>
+                                        <option value="59">59</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-warning">添加禁用</button>
+                            </div>
+                        </div>
+                        <input type="hidden" name="time_slot" id="disabledDateTimeSlot">
+                    </form>
+
+                    <h6>已禁用的日期列表</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>时段</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="disabledDateTableBody">
+                                <tr>
+                                    <td colspan="3" class="text-center py-3">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 禁用日期模态框处理
+        const disabledDateModal = document.getElementById('disabledDateModal');
+        disabledDateModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const venueId = button.getAttribute('data-venue-id');
+            const venueName = button.getAttribute('data-venue-name');
+
+            document.getElementById('disabledDateVenueId').value = venueId;
+            document.getElementById('disabledDateVenueName').textContent = venueName;
+
+            const activeTab = document.querySelector('.nav-link.active').getAttribute('data-bs-target').replace('#tab-', '');
+            document.getElementById('disabledDateActiveTab').value = activeTab;
+
+            // 清空禁用日期列表
+            const tableBody = document.getElementById('disabledDateTableBody');
+            tableBody.innerHTML = '<tr><td colspan="3" class="text-center py-3">加载中...</td></tr>';
+
+            // 清空时段输入框并设置默认值
+            generateTimeSlot();
+
+            // 加载已禁用的日期列表
+            loadDisabledDates(venueId);
+        });
+
+        function generateTimeSlot() {
+            const startHour = document.getElementById('startHour').value;
+            const startMinute = document.getElementById('startMinute').value;
+            const endHour = document.getElementById('endHour').value;
+            const endMinute = document.getElementById('endMinute').value;
+            const timeSlot = startHour + ':' + startMinute + '-' + endHour + ':' + endMinute;
+            document.getElementById('disabledDateTimeSlot').value = timeSlot;
+        }
+
+        document.getElementById('disabledDateForm').addEventListener('submit', function (e) {
+            generateTimeSlot();
+            const timeSlot = document.getElementById('disabledDateTimeSlot').value;
+            if (!timeSlot) {
+                e.preventDefault();
+                alert('请选择时段');
+                return false;
+            }
+        });
+
+        function loadDisabledDates(venueId) {
+            const tableBody = document.getElementById('disabledDateTableBody');
+            tableBody.innerHTML = '<tr><td colspan="3" class="text-center py-3">加载中...</td></tr>';
+
+            const url = '/admin/get-disabled-dates/' + venueId;
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.disabled_dates && data.disabled_dates.length > 0) {
+                        tableBody.innerHTML = data.disabled_dates.map(item => `
+                            <tr>
+                                <td>${item.disabled_date}</td>
+                                <td>${item.time_slot}</td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('admin.manage_disabled_date') }}" style="display:inline;">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="venue_id" value="${venueId}">
+                                        <input type="hidden" name="disabled_id" value="${item.id}">
+                                        <input type="hidden" name="active_tab" value="venue">
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('确定要删除这条禁用记录吗？');">删除</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        tableBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">暂无禁用的日期</td></tr>';
+                    }
+                })
+                .catch(error => {
+                    console.error('加载禁用日期失败:', error);
+                    tableBody.innerHTML = '<tr><td colspan="3" class="text-center text-danger py-3">加载失败，请重试</td></tr>';
+                });
+        }
+    </script>
+
     <!-- 档案查询申请详情模态框 -->
     <div class="modal fade" id="archiveRequestModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -1318,7 +1648,9 @@
                             <div class="detail-label">状态</div>
                             <div class="detail-value" id="ar-status"></div>
                         </div>
-                        <div class="col-12"><hr class="my-2"></div>
+                        <div class="col-12">
+                            <hr class="my-2">
+                        </div>
                         <div class="col-6">
                             <div class="detail-label">姓名</div>
                             <div class="detail-value fw-bold" id="ar-name"></div>
@@ -1356,15 +1688,14 @@
                             <label class="form-label text-primary fw-bold">
                                 请填写处理备注：
                             </label>
-                            <textarea name="remark" id="arRemarkText" class="form-control border-primary"
-                                rows="3" placeholder="请输入处理结果或备注信息"></textarea>
+                            <textarea name="remark" id="arRemarkText" class="form-control border-primary" rows="3"
+                                placeholder="请输入处理结果或备注信息"></textarea>
                         </div>
                     </form>
                 </div>
 
                 <div class="modal-footer bg-light">
-                    <div id="ar-btn-pending"
-                        style="display: flex; gap: 10px; width: 100%; justify-content: flex-end;">
+                    <div id="ar-btn-pending" style="display: flex; gap: 10px; width: 100%; justify-content: flex-end;">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
                         <button type="button" class="btn btn-danger" id="ar-btn-reject-trigger"
                             onclick="showArchiveRejectInput()">拒绝</button>
@@ -1398,7 +1729,7 @@
                 .then(response => response.json())
                 .then(data => {
                     const tbody = document.getElementById('archiveRequestTableBody');
-                    
+
                     if (data.archive_requests && data.archive_requests.length > 0) {
                         tbody.innerHTML = data.archive_requests.map(req => `
                             <tr>
@@ -1410,8 +1741,8 @@
                                 <td class="text-primary">${req.request_email}</td>
                                 <td>
                                     <span class="badge 
-                                        ${req.status === '待处理' ? 'bg-warning text-dark' : 
-                                          req.status === '已处理' ? 'bg-success' : 'bg-danger'}">
+                                        ${req.status === '待处理' ? 'bg-warning text-dark' :
+                                req.status === '已处理' ? 'bg-success' : 'bg-danger'}">
                                         ${req.status}
                                     </span>
                                 </td>
@@ -1430,14 +1761,14 @@
                 })
                 .catch(error => {
                     console.error('加载档案申请失败:', error);
-                    document.getElementById('archiveRequestTableBody').innerHTML = 
+                    document.getElementById('archiveRequestTableBody').innerHTML =
                         '<tr><td colspan="8" class="text-center text-danger py-4">加载失败，请重试</td></tr>';
                 });
         }
 
         function renderArchivePagination(pagination) {
             const nav = document.getElementById('archivePagination');
-            
+
             if (pagination.pages <= 1) {
                 nav.innerHTML = '';
                 return;
@@ -1528,10 +1859,10 @@
             form.submit();
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const archiveTab = document.querySelector('[data-bs-target="#tab-archive"]');
             if (archiveTab) {
-                archiveTab.addEventListener('shown.bs.tab', function() {
+                archiveTab.addEventListener('shown.bs.tab', function () {
                     loadArchiveRequests(1);
                 });
             }

@@ -163,6 +163,20 @@
             }, 1000);
 
             document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+            const form = document.querySelector('form');
+            const submitBtn = document.querySelector('button[type="submit"]');
+            if (form && submitBtn) {
+                form.addEventListener('submit', function(e) {
+                    if (submitBtn.dataset.submitted === 'true') {
+                        e.preventDefault();
+                        return false;
+                    }
+                    submitBtn.dataset.submitted = 'true';
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 提交中...';
+                });
+            }
         };
     </script>
 </body>

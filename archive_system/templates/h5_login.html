@@ -193,6 +193,21 @@
             }
         });
 
+        // 防重复提交
+        const loginForm = document.querySelector('form');
+        const submitBtn = document.getElementById('submitBtn');
+        if (loginForm && submitBtn) {
+            loginForm.addEventListener('submit', function(e) {
+                if (submitBtn.dataset.submitted === 'true') {
+                    e.preventDefault();
+                    return false;
+                }
+                submitBtn.dataset.submitted = 'true';
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 登录中...';
+            });
+        }
+
         // ==========================================
         // 以下是你原有的前端校验逻辑 (保持不变)
         // ==========================================

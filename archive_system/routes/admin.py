@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_, case, func
 from ..extensions import db
-from ..models import Admin, Reservation, User, Announcement, SystemConfig, Venue, VenueTimeSlot, Attachment, ArchiveRequest
+from ..models import Admin, Reservation, User, Announcement, SystemConfig, Venue, VenueTimeSlot, Attachment, ArchiveRequest, VenueTimeSlotDisabledDate
 
 logger = logging.getLogger(__name__)
 
@@ -713,3 +713,65 @@ def handle_archive_request(req_id):
     db.session.commit()
     flash(f"申请已{'处理' if action == 'approve' else '拒绝'}")
     return redirect(url_for("admin.dashboard"))
+
+@admin_bp.route("/get-disabled-dates/<int:venue_id>")
+def get_disabled_dates(venue_id):
+    """获取场馆的禁用日期设置"""
+    disabled_dates = VenueTimeSlotDisabledDate.query.filter_by(venue_id=venue_id).all()
+    disabled_list = []
+    for item in disabled_dates:
+        disabled_list.append({
+            "id": item.id,
+            "time_slot": item.time_slot,
+            "disabled_date": item.disabled_date.strftime('%Y-%m-%d')
+        })
+    return {"disabled_dates": disabled_list}
+
+@admin_bp.route("/disabled-date", methods=["POST"])
+def manage_disabled_date():
+    """添加或删除禁用日期"""
+    action = request.form.get("action")
+    venue_id = request.form.get("venue_id", type=int)
+    time_slot = request.form.get("time_slot", "")
+    disabled_date = request.form.get("disabled_date", "")
+    active_tab = request.form.get("active_tab", "venue")
+
+    if not venue_id:
+        flash("场馆ID无效")
+        return redirect(url_for("admin.dashboard", active_tab=active_tab))
+
+    if action == "add":
+        if not time_slot or not disabled_date:
+            flash("请选择时段和日期")
+            return redirect(url_for("admin.dashboard", active_tab=active_tab))
+
+        existing = VenueTimeSlotDisabledDate.query.filter_by(
+            venue_id=venue_id,
+            time_slot=time_slot,
+            disabled_date=disabled_date
+        ).first()
+
+        if existing:
+            flash("该日期时段已被禁用")
+            return redirect(url_for("admin.dashboard", active_tab=active_tab))
+
+        new_disabled = VenueTimeSlotDisabledDate(
+            venue_id=venue_id,
+            time_slot=time_slot,
+            disabled_date=disabled_date
+        )
+        db.session.add(new_disabled)
+        flash("禁用日期添加成功")
+
+    elif action == "delete":
+        disabled_id = request.form.get("disabled_id", type=int)
+        if disabled_id:
+            disabled_record = db.session.get(VenueTimeSlotDisabledDate, disabled_id)
+            if disabled_record:
+                db.session.delete(disabled_record)
+                flash("禁用日期已删除")
+        else:
+            flash("禁用记录ID无效")
+
+    db.session.commit()
+    return redirect(url_for("admin.dashboard", active_tab=active_tab))

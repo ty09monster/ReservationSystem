@@ -8,7 +8,7 @@ from datetime import datetime
 import os
 import uuid
 from ..extensions import db
-from ..models import User, SystemConfig, Announcement, Reservation, Venue, VenueTimeSlot, Attachment, ArchiveRequest
+from ..models import User, SystemConfig, Announcement, Reservation, Venue, VenueTimeSlot, Attachment, ArchiveRequest, VenueTimeSlotDisabledDate
 from ..validators import validate_certificate, validate_phone, validate_visit_date
 from ..decorators import login_required
 
@@ -283,7 +283,22 @@ def _reserve_base(venue_category, res_type):
         if not time_slot_config:
             flash("所选时段未开放，请选择其他时段")
             return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
-        
+
+        # 检查该日期时段是否被禁用（检查时间段是否有重叠）
+        disabled_list = VenueTimeSlotDisabledDate.query.filter_by(
+            venue_id=campus_venue_id,
+            disabled_date=visit_date_obj
+        ).all()
+
+        for disabled in disabled_list:
+            disabled_start = disabled.time_slot.split('-')[0]
+            disabled_end = disabled.time_slot.split('-')[1]
+            visit_start = visit_time.split('-')[0]
+            visit_end = visit_time.split('-')[1]
+            if not (visit_end <= disabled_start or visit_start >= disabled_end):
+                flash("所选日期时段已被管理员禁用，请选择其他时段")
+                return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
+
         # 使用事务确保并发安全
         from sqlalchemy.exc import SQLAlchemyError
         
@@ -497,7 +512,13 @@ def get_available_slots():
             day_of_week=day_of_week,
             is_active=True
         ).all()
-        
+
+        # 获取被禁用的日期时段
+        disabled_slots = VenueTimeSlotDisabledDate.query.filter_by(
+            venue_id=venue_id,
+            disabled_date=visit_date_obj
+        ).all()
+
         # 获取该场馆在该日期的已预约人数（已同意和待审核的）
         reservations = Reservation.query.filter_by(
             venue_id=venue_id,
@@ -517,6 +538,15 @@ def get_available_slots():
         # 生成可用时段和剩余名额
         available_slots = []
         for slot in time_slots:
+            slot_start = slot.time_slot.split('-')[0]
+            slot_end = slot.time_slot.split('-')[1]
+            is_disabled = False
+            for disabled in disabled_slots:
+                disabled_start = disabled.time_slot.split('-')[0]
+                disabled_end = disabled.time_slot.split('-')[1]
+                if not (slot_end <= disabled_start or slot_start >= disabled_end):
+                    is_disabled = True
+                    break
             used_individual = slot_counts.get(slot.time_slot, 0)
             remaining_individual = slot.individual_capacity - used_individual
             available_slots.append({
@@ -524,8 +554,9 @@ def get_available_slots():
                 "individual_capacity": slot.individual_capacity,
                 "used_individual": used_individual,
                 "remaining_individual": remaining_individual,
-                "available_individual": remaining_individual > 0,
-                "available_group": getattr(slot, 'is_group_active', True)
+                "available_individual": remaining_individual > 0 and not is_disabled,
+                "available_group": getattr(slot, 'is_group_active', True) and not is_disabled,
+                "is_disabled": is_disabled
             })
         
         return {"slots": available_slots}

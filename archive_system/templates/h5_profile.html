@@ -73,14 +73,26 @@
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     
     <script>
-        // 页面加载完成后隐藏加载动画
         window.onload = function() {
             setTimeout(function() {
                 document.getElementById('loading').style.display = 'none';
             }, 1000);
-            
-            // 设置当前年份
+
             document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+            const form = document.querySelector('form');
+            const submitBtn = document.querySelector('button[type="submit"]');
+            if (form && submitBtn) {
+                form.addEventListener('submit', function(e) {
+                    if (submitBtn.dataset.submitted === 'true') {
+                        e.preventDefault();
+                        return false;
+                    }
+                    submitBtn.dataset.submitted = 'true';
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 保存中...';
+                });
+            }
         };
     </script>
 </body>

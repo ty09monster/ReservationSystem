@@ -596,6 +596,9 @@
 
             // 绑定事件
             bindEvents();
+
+            // 初始化表单防重复提交
+            initFormGuard();
         };
 
         // 生成日期卡片
@@ -636,27 +639,21 @@
             }
         }
 
-        // 绑定事件
-        function bindEvents() {
+        // 绑定日期卡片事件
+        function bindDateCardEvents() {
             try {
-                // 日期卡片点击事件
                 const dateCards = document.querySelectorAll('.date-card');
                 if (dateCards.length > 0) {
                     dateCards.forEach(card => {
                         card.addEventListener('click', function () {
                             try {
-                                // 移除其他卡片的活跃状态
                                 document.querySelectorAll('.date-card').forEach(c => c.classList.remove('active'));
-                                // 添加当前卡片的活跃状态
                                 this.classList.add('active');
-                                // 更新隐藏字段
                                 const hiddenVisitDate = document.getElementById('hiddenVisitDate');
                                 if (hiddenVisitDate) {
                                     hiddenVisitDate.value = this.dataset.date;
                                 }
-                                // 更新时间段选择（显示剩余名额）
                                 updateTimeSlots();
-                                // 检查是否可以提交
                                 checkFormValidity();
                             } catch (error) {
                                 console.error('Error handling date card click:', error);
@@ -664,52 +661,58 @@
                         });
                     });
                 }
-
-                // 时间段点击事件
-                const timeSlots = document.querySelectorAll('.time-slot');
-                if (timeSlots.length > 0) {
-                    timeSlots.forEach(slot => {
-                        slot.addEventListener('click', function () {
-                            try {
-                                // 检查是否已禁用
-                                if (this.classList.contains('disabled')) {
-                                    return;
-                                }
-                                // 移除所有时间段的活跃状态
-                                document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('active'));
-                                // 添加当前时间段的活跃状态
-                                this.classList.add('active');
-                                // 更新隐藏字段
-                                const hiddenVisitTime = document.getElementById('hiddenVisitTime');
-                                if (hiddenVisitTime) {
-                                    hiddenVisitTime.value = this.dataset.time;
-                                }
-                                // 检查是否可以提交
-                                checkFormValidity();
-                            } catch (error) {
-                                console.error('Error handling time slot click:', error);
-                            }
-                        });
-                    });
-                }
-
-                // 表单提交事件
-                const reservationForm = document.getElementById('reservationForm');
-                if (reservationForm) {
-                    reservationForm.addEventListener('submit', function (e) {
-                        try {
-                            const submitBtn = document.getElementById('submitBtn');
-                            if (submitBtn) {
-                                submitBtn.disabled = true;
-                                submitBtn.textContent = '提交中...';
-                            }
-                        } catch (error) {
-                            console.error('Error handling form submit:', error);
-                        }
-                    });
-                }
             } catch (error) {
-                console.error('Error binding events:', error);
+                console.error('Error binding date card events:', error);
+            }
+        }
+
+        // 使用事件委托绑定时间段点击（只绑定一次）
+        function bindTimeSlotEvents() {
+            const timeSlotsContainer = document.getElementById('timeSlots');
+            if (timeSlotsContainer && !timeSlotsContainer.dataset.delegated) {
+                timeSlotsContainer.dataset.delegated = 'true';
+                timeSlotsContainer.addEventListener('click', function (e) {
+                    const slot = e.target.closest('.time-slot');
+                    if (!slot) return;
+                    try {
+                        if (slot.classList.contains('disabled')) {
+                            return;
+                        }
+                        document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('active'));
+                        slot.classList.add('active');
+                        const hiddenVisitTime = document.getElementById('hiddenVisitTime');
+                        if (hiddenVisitTime) {
+                            hiddenVisitTime.value = slot.dataset.time;
+                        }
+                        checkFormValidity();
+                    } catch (error) {
+                        console.error('Error handling time slot click:', error);
+                    }
+                });
+            }
+        }
+
+        // 绑定事件（在页面加载时调用一次）
+        function bindEvents() {
+            bindDateCardEvents();
+            bindTimeSlotEvents();
+        }
+
+        // 初始化表单防重复提交（只在页面加载时调用一次）
+        function initFormGuard() {
+            const reservationForm = document.getElementById('reservationForm');
+            const submitBtn = document.getElementById('submitBtn');
+            if (reservationForm && submitBtn && !reservationForm.dataset.guardInit) {
+                reservationForm.dataset.guardInit = 'true';
+                reservationForm.addEventListener('submit', function (e) {
+                    if (submitBtn.dataset.submitted === 'true') {
+                        e.preventDefault();
+                        return false;
+                    }
+                    submitBtn.dataset.submitted = 'true';
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 提交中...';
+                });
             }
         }
 
@@ -760,16 +763,30 @@
                                 
                                 // 团体预约页面只显示时间段，不显示剩余名额
                                 if (isGroupPage) {
-                                    timeSlot.innerHTML = `
-                                        <div>${slot.time_slot}</div>
-                                    `;
+                                    if (slot.is_disabled) {
+                                        timeSlot.innerHTML = `
+                                            <div>${slot.time_slot}</div>
+                                            <div class="text-xs text-danger">无法预约</div>
+                                        `;
+                                    } else {
+                                        timeSlot.innerHTML = `
+                                            <div>${slot.time_slot}</div>
+                                        `;
+                                    }
                                 } else {
-                                    // 个人预约页面显示剩余名额
-                                    const remaining = `${slot.remaining_individual}/${slot.individual_capacity}`;
-                                    timeSlot.innerHTML = `
-                                        <div>${slot.time_slot}</div>
-                                        <div class="text-xs text-muted">剩余: ${remaining}</div>
-                                    `;
+                                    // 个人预约页面显示剩余名额或无法预约
+                                    if (slot.is_disabled) {
+                                        timeSlot.innerHTML = `
+                                            <div>${slot.time_slot}</div>
+                                            <div class="text-xs text-danger">无法预约</div>
+                                        `;
+                                    } else {
+                                        const remaining = `${slot.remaining_individual}/${slot.individual_capacity}`;
+                                        timeSlot.innerHTML = `
+                                            <div>${slot.time_slot}</div>
+                                            <div class="text-xs text-muted">剩余: ${remaining}</div>
+                                        `;
+                                    }
                                 }
 
                                 // 禁用已满的时段
@@ -785,16 +802,10 @@
                             // 无可用时段
                             timeSlotsContainer.innerHTML = '<div class="text-center py-4 text-muted">暂无可用时段</div>';
                         }
-
-                        // 重新绑定事件
-                        bindEvents();
                     })
                     .catch(error => {
                         console.error('Error fetching available slots:', error);
-                        // 加载失败时显示错误提示，而非回退到硬编码时段
                         timeSlotsContainer.innerHTML = '<div class="text-center py-4 text-muted">加载时段失败，请重新选择日期</div>';
-                        // 重新绑定事件
-                        bindEvents();
                     });
             } catch (error) {
                 console.error('Error updating time slots:', error);
