@@ -8,7 +8,7 @@ from datetime import datetime
 import os
 import uuid
 from ..extensions import db
-from ..models import User, SystemConfig, Announcement, Reservation, Venue, VenueTimeSlot, Attachment, ArchiveRequest, VenueTimeSlotDisabledDate
+from ..models import User, SystemConfig, Announcement, Reservation, Venue, VenueTimeSlot, Attachment, ArchiveRequest, VenueTimeSlotDisabledDate, CancelRequest
 from ..validators import validate_certificate, validate_phone, validate_visit_date
 from ..decorators import login_required
 
@@ -456,13 +456,86 @@ def history():
         flash("用户信息不存在，请重新登录")
         session.clear()
         return redirect(url_for("h5.login"))
-    
+
     reservations = (
         Reservation.query.filter_by(user_id=session["user_id"])
         .order_by(Reservation.created_at.desc())
         .all()
     )
+
+    for res in reservations:
+        latest_cancel = None
+        for cr in res.cancel_requests:
+            if not latest_cancel or cr.created_at > latest_cancel.created_at:
+                latest_cancel = cr
+        res.latest_cancel = latest_cancel
+
     return render_template("h5_history.html", reservations=reservations)
+
+@h5_bp.route("/h5/cancel/<int:res_id>", methods=["POST"])
+@login_required
+def cancel_reservation(res_id):
+    """撤销未判定的预约"""
+    reservation = db.session.get(Reservation, res_id)
+    if not reservation:
+        flash("预约不存在")
+        return redirect(url_for("h5.history"))
+
+    if reservation.user_id != session["user_id"]:
+        flash("无权操作此预约")
+        return redirect(url_for("h5.history"))
+
+    if reservation.status != "待审核":
+        flash("只能撤销待审核状态的预约")
+        return redirect(url_for("h5.history"))
+
+    db.session.delete(reservation)
+    db.session.commit()
+    flash("预约已成功撤销")
+    return redirect(url_for("h5.history"))
+
+@h5_bp.route("/h5/cancel-request/<int:res_id>", methods=["GET", "POST"])
+@login_required
+def cancel_request(res_id):
+    """申请撤销已同意的预约"""
+    reservation = db.session.get(Reservation, res_id)
+    if not reservation:
+        flash("预约不存在")
+        return redirect(url_for("h5.history"))
+
+    if reservation.user_id != session["user_id"]:
+        flash("无权操作此预约")
+        return redirect(url_for("h5.history"))
+
+    if reservation.status != "已同意":
+        flash("只能申请撤销已同意状态的预约")
+        return redirect(url_for("h5.history"))
+
+    if request.method == "POST":
+        reason = request.form.get("reason", "")
+
+        today = datetime.now().date()
+        existing_request = CancelRequest.query.filter(
+            CancelRequest.user_id == session["user_id"],
+            CancelRequest.status == "待处理",
+            db.func.date(CancelRequest.created_at) == today
+        ).first()
+
+        if existing_request:
+            flash("您今天已经提交过撤销申请，请等待处理")
+            return redirect(url_for("h5.history"))
+
+        cancel_req = CancelRequest(
+            reservation_id=reservation.id,
+            user_id=session["user_id"],
+            reason=reason
+        )
+        db.session.add(cancel_req)
+        db.session.commit()
+        flash("撤销申请已提交，请等待管理员审核")
+        return redirect(url_for("h5.history"))
+
+    return render_template("h5_cancel_request.html", reservation=reservation)
 
 @h5_bp.route("/h5/profile", methods=["GET", "POST"])
 @login_required

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>申请撤销预约</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/font_who/iconfont.css') }}" rel="stylesheet">
+</head>
+
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="top-nav">
+        <div class="back-btn" onclick="window.history.back()">
+            <i class="icon icon-back"></i>
+        </div>
+        <h1>申请撤销预约</h1>
+        <div class="nav-right"></div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5 class="card-title">预约信息</h5>
+                <p class="card-text">
+                    <strong>场馆：</strong>{{ reservation.venue.name }}<br>
+                    <strong>日期：</strong>{{ reservation.visit_date }}<br>
+                    <strong>时间：</strong>{{ reservation.visit_time }}<br>
+                    {% if reservation.res_type == '团队' %}
+                    <strong>类型：</strong>团队参观<br>
+                    <strong>团体名称：</strong>{{ reservation.group_name }}<br>
+                    <strong>团体人数：</strong>{{ reservation.group_size }}人<br>
+                    {% else %}
+                    <strong>类型：</strong>个人参观<br>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5 class="card-title">撤销原因</h5>
+                <form method="POST" id="cancelForm">
+                    <div class="mb-3">
+                        <textarea name="reason" class="form-control" rows="4"
+                            placeholder="请输入撤销原因（选填）" maxlength="200"></textarea>
+                        <small class="text-muted">最多200字</small>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger" id="submitBtn">
+                            提交撤销申请
+                        </button>
+                        <a href="{{ url_for('h5.history') }}" class="btn btn-outline-secondary">
+                            返回
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="alert alert-warning mt-3">
+            <strong>提示：</strong>提交申请后，管理员将在1-2个工作日内处理。请注意，每天只能提交一次撤销申请。
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <p>&copy; <span id="currentYear"></span> 河南农业大学校史馆预约系统</p>
+    </footer>
+
+    <script>
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        document.getElementById('cancelForm').addEventListener('submit', function (e) {
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn.dataset.submitted === 'true') {
+                e.preventDefault();
+                return false;
+            }
+            submitBtn.dataset.submitted = 'true';
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 提交中...';
+        });
+    </script>
+</body>
+
+</html>

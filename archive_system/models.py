@@ -139,3 +139,19 @@ class ArchiveRequest(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, nullable=False, comment='更新时间')
 
     user = db.relationship("User", backref=db.backref("archive_requests", lazy=True))
+
+class CancelRequest(db.Model):
+    """预约撤销申请表"""
+    __tablename__ = 'cancel_request'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    reservation_id = db.Column(db.Integer, db.ForeignKey("reservation.id"), nullable=False, index=True, comment='预约ID')
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True, comment='用户ID')
+    reason = db.Column(db.Text, comment='撤销原因')
+    status = db.Column(db.String(20), default="待处理", index=True, comment='状态：待处理, 已同意, 已拒绝')
+    admin_remark = db.Column(db.Text, comment='管理员备注')
+    processed_at = db.Column(db.DateTime, comment='处理时间')
+    created_at = db.Column(db.DateTime, default=datetime.now, index=True, comment='申请时间')
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, nullable=False, comment='更新时间')
+
+    reservation = db.relationship("Reservation", backref=db.backref("cancel_requests", lazy=True))
+    user = db.relationship("User", backref=db.backref("cancel_requests", lazy=True))

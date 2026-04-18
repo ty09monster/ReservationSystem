@@ -1,9 +1,10 @@
 import logging
+from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_, case, func
 from ..extensions import db
-from ..models import Admin, Reservation, User, Announcement, SystemConfig, Venue, VenueTimeSlot, Attachment, ArchiveRequest, VenueTimeSlotDisabledDate
+from ..models import Admin, Reservation, User, Announcement, SystemConfig, Venue, VenueTimeSlot, Attachment, ArchiveRequest, VenueTimeSlotDisabledDate, CancelRequest
 
 logger = logging.getLogger(__name__)
 
@@ -14,12 +15,14 @@ MIN_PASSWORD_LENGTH = 8  # 管理员密码最小长度
 @admin_bp.before_request
 def check_admin_status():
     """统一的管理员认证拦截器，所有非白名单路由均需通过此处验证。"""
-    whitelist = {'admin.login', 'admin.logout', 'static'}
+    whitelist = {'admin.login', 'admin.logout', 'static', 'admin.get_cancel_request_detail'}
     if request.endpoint in whitelist:
         return  # 白名单路由直接放行
 
     # 未登录：拦截并重定向到登录页
     if not session.get("admin_logged_in"):
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"error": "请先登录"}), 401
         return redirect(url_for('admin.login'))
 
     # 已登录：校验 security_token，防止密码变更后旧 session 仍有效
@@ -30,11 +33,15 @@ def check_admin_status():
     if not current_admin:
         session.clear()
         flash("您的账号已被删除，会话中断")
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"error": "账号已被删除"}), 401
         return redirect(url_for('admin.login'))
 
     if current_admin.password_hash and current_admin.password_hash[-6:] != security_token:
         session.clear()
         flash("密码已变更，请重新登录")
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"error": "密码已变更"}), 401
         return redirect(url_for('admin.login'))
 
 @admin_bp.route("/login", methods=["GET", "POST"])
@@ -100,6 +107,19 @@ def dashboard():
     if session.get("is_super"):
         admin_list = Admin.query.all()
 
+    cancel_requests = []
+    if active_tab == "cancel":
+        cancel_page = request.args.get('cancel_page', 1, type=int)
+        cancel_query = CancelRequest.query.join(Reservation).join(User).order_by(
+            case(
+                (CancelRequest.status == '待处理', 0),
+                else_=1
+            ),
+            CancelRequest.created_at.desc()
+        )
+        cancel_pagination = cancel_query.paginate(page=cancel_page, per_page=10, error_out=False)
+        cancel_requests = cancel_pagination.items
+
     return render_template(
         "admin_dashboard.html",
         reservations=reservations,
@@ -112,7 +132,8 @@ def dashboard():
         curr_start_date=start_date,
         curr_end_date=end_date,
         admin_list=admin_list,
-        active_tab=active_tab
+        active_tab=active_tab,
+        cancel_requests=cancel_requests if active_tab == "cancel" else []
     )
 
 @admin_bp.route("/audit/<int:res_id>", methods=["POST"])
@@ -193,6 +214,97 @@ def config():
 
     db.session.commit()
     return redirect(url_for("admin.dashboard", active_tab=active_tab))
+
+@admin_bp.route("/handle-cancel-request/<int:req_id>", methods=["POST"])
+def handle_cancel_request(req_id):
+    """处理撤销申请"""
+    action = request.form.get("action")
+    remark = request.form.get("remark", "")
+
+    cancel_req = db.session.get(CancelRequest, req_id)
+    if not cancel_req:
+        flash("撤销申请不存在")
+        return redirect(url_for("admin.dashboard", active_tab="archive"))
+
+    if cancel_req.status != '待处理':
+        flash(f"该申请已被处理 (当前状态: {cancel_req.status})")
+        return redirect(url_for("admin.dashboard", active_tab="archive"))
+
+    reservation = db.session.get(Reservation, cancel_req.reservation_id)
+    if not reservation:
+        flash("关联的预约记录不存在")
+        return redirect(url_for("admin.dashboard", active_tab="archive"))
+
+    if action == 'approve':
+        reservation_id = cancel_req.reservation_id
+        user_id = cancel_req.user_id
+
+        cancel_req.status = "已同意"
+        cancel_req.admin_remark = remark
+        cancel_req.processed_at = datetime.now()
+
+        other_cancel_requests = CancelRequest.query.filter(
+            CancelRequest.reservation_id == reservation_id,
+            CancelRequest.id != req_id
+        ).all()
+        for other_req in other_cancel_requests:
+            other_req.status = "已拒绝"
+            other_req.admin_remark = "因预约已被撤销，该申请被自动拒绝"
+            other_req.processed_at = datetime.now()
+
+        db.session.commit()
+
+        db.session.execute(db.text("DELETE FROM cancel_request WHERE reservation_id = :rid"), {"rid": reservation_id})
+        db.session.execute(db.text("DELETE FROM reservation WHERE id = :rid"), {"rid": reservation_id})
+        db.session.commit()
+
+        logger.info("撤销申请 %s 已同意，预约 %s 已撤销，用户 %s",
+                    req_id, reservation_id, user_id)
+    elif action == 'reject':
+        cancel_req.status = "已拒绝"
+        cancel_req.admin_remark = remark
+        cancel_req.processed_at = datetime.now()
+        logger.info("撤销申请 %s 已拒绝，原因: %s", req_id, remark)
+    else:
+        flash("无效的操作")
+        return redirect(url_for("admin.dashboard", active_tab="archive"))
+
+    db.session.commit()
+    flash(f"撤销申请已{'同意' if action == 'approve' else '拒绝'}")
+    return redirect(url_for("admin.dashboard", active_tab="cancel"))
+
+@admin_bp.route("/cancel-request/<int:req_id>")
+def get_cancel_request_detail(req_id):
+    """获取撤销申请详情API"""
+    if not session.get("admin_logged_in"):
+        return jsonify({"error": "请先登录"}), 401
+
+    cancel_req = db.session.get(CancelRequest, req_id)
+    if not cancel_req:
+        return jsonify({"error": "撤销申请不存在"}), 404
+
+    reservation = db.session.get(Reservation, cancel_req.reservation_id)
+    if not reservation:
+        return jsonify({"error": "关联的预约记录不存在"}), 404
+
+    venue = db.session.get(Venue, reservation.venue_id) if reservation.venue_id else None
+
+    return jsonify({
+        "cancel_request": {
+            "id": cancel_req.id,
+            "created_at": cancel_req.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            "status": cancel_req.status,
+            "reason": cancel_req.reason,
+            "admin_remark": cancel_req.admin_remark,
+            "user_name": cancel_req.user.name,
+            "user_id_type": cancel_req.user.id_type,
+            "user_id_card": cancel_req.user.id_card,
+            "user_phone": cancel_req.user.phone,
+            "venue_name": venue.name if venue else "未知",
+            "visit_date": reservation.visit_date.strftime('%Y-%m-%d') if reservation.visit_date else "",
+            "visit_time": reservation.visit_time
+        }
+    })
 
 @admin_bp.route("/announcement/<int:ann_id>/toggle-pin", methods=["POST"])
 def toggle_announcement_pin(ann_id):

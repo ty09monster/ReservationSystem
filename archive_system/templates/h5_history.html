@@ -52,6 +52,12 @@
 
     <!-- 主内容区域 -->
     <div class="main-content">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="alert alert-info">{{ messages[0] }}</div>
+        {% endif %}
+        {% endwith %}
+
         <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
             <h3 class="mb-0">我的预约</h3>
             <a href="{{ url_for('h5.home') }}" class="btn btn-outline-primary btn-sm">
@@ -60,75 +66,106 @@
         </div>
 
         {% if not reservations %}
-            <div class="card">
-                <p class="text-center text-muted">暂无预约记录</p>
-            </div>
-            {% endif %}
+        <div class="card">
+            <p class="text-center text-muted">暂无预约记录</p>
+        </div>
+        {% endif %}
 
-            {% for res in reservations %}
-            <div class="card mb-3">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between mb-2">
-                        <h4 class="card-title">
-                        {{ res.visit_date }} 
+        {% for res in reservations %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <h4 class="card-title">
+                        {{ res.visit_date }}
                         (
-                            {% if res.visit_time == '线上办理' %}
-                                线上邮件预约
-                            {% else %}
-                                {{ res.venue.name }}
-                            {% endif %}
+                        {% if res.visit_time == '线上办理' %}
+                        线上邮件预约
+                        {% else %}
+                        {{ res.venue.name }}
+                        {% endif %}
                         )
-                        </h4>
-                        {% if res.status == '待审核' %}
-                        <span class="badge bg-warning text-dark">待审核</span>
-                        {% elif res.status == '已同意' %}
-                        <span class="badge bg-success">已同意</span>
-                        {% else %}
-                        <span class="badge bg-danger">已拒绝</span>
-                        {% endif %}
-                    </div>
-                    <p class="card-text small text-muted mb-1">时间：{{ res.visit_time }}</p>
-
-                    {% if res.res_type == '团队' %}
-                    <p class="card-text small text-muted mb-1">类型：团队参观</p>
-                    {% if res.group_name %}
-                    <p class="card-text small text-muted mb-1">团体：{{ res.group_name }}</p>
-                    {% endif %}
-                    {% if res.group_contact %}
-                    <p class="card-text small text-muted mb-1">联系人：{{ res.group_contact }}</p>
-                    {% endif %}
-                    {% if res.group_size %}
-                    <p class="card-text small text-muted mb-1">人数：{{ res.group_size }}人</p>
-                    {% endif %}
+                    </h4>
+                    {% if res.status == '待审核' %}
+                    <span class="badge bg-warning text-dark">待审核</span>
+                    {% elif res.status == '已同意' %}
+                    <span class="badge bg-success">已同意</span>
                     {% else %}
-                    <p class="card-text small text-muted mb-1">类型：个人参观</p>
-                    {% endif %}
-
-                    <p class="card-text small text-muted mb-1 text-collapse privacy-content">
-                        {% if res.reason and res.reason|length > 50 %}
-                        <!-- 字数>50：显示预览（前50字+省略号）+ 隐藏完整文本 + 展开按钮 -->
-                        <span class="preview"
-                            style="display: inline; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            缘由：{{ res.reason[:50] }}
-                        </span>
-                        <span class="more" style="display: none;">缘由：{{ res.reason }}</span>
-                        <button class="toggle-btn" onclick="toggleText(this)">展开</button>
-                        {% else %}
-                        <!-- 字数≤50/空：直接显示完整文本，无按钮 -->
-                        <span style="display: inline;">
-                            缘由：{{ res.reason or '' }}
-                        </span>
-                        {% endif %}
-                    </p>
-
-                    {% if res.status == '已拒绝' %}
-                    <div class="alert alert-danger py-1 px-2 mt-2 small">
-                        拒绝理由：{{ res.reject_reason }}
-                    </div>
+                    <span class="badge bg-danger">已拒绝</span>
                     {% endif %}
                 </div>
+                <p class="card-text small text-muted mb-1">时间：{{ res.visit_time }}</p>
+
+                {% if res.res_type == '团队' %}
+                <p class="card-text small text-muted mb-1">类型：团队参观</p>
+                {% if res.group_name %}
+                <p class="card-text small text-muted mb-1">团体：{{ res.group_name }}</p>
+                {% endif %}
+                {% if res.group_contact %}
+                <p class="card-text small text-muted mb-1">联系人：{{ res.group_contact }}</p>
+                {% endif %}
+                {% if res.group_size %}
+                <p class="card-text small text-muted mb-1">人数：{{ res.group_size }}人</p>
+                {% endif %}
+                {% else %}
+                <p class="card-text small text-muted mb-1">类型：个人参观</p>
+                {% endif %}
+
+                <p class="card-text small text-muted mb-1 text-collapse privacy-content">
+                    {% if res.reason and res.reason|length > 50 %}
+                    <!-- 字数>50：显示预览（前50字+省略号）+ 隐藏完整文本 + 展开按钮 -->
+                    <span class="preview"
+                        style="display: inline; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        缘由：{{ res.reason[:50] }}
+                    </span>
+                    <span class="more" style="display: none;">缘由：{{ res.reason }}</span>
+                    <button class="toggle-btn" onclick="toggleText(this)">展开</button>
+                    {% else %}
+                    <!-- 字数≤50/空：直接显示完整文本，无按钮 -->
+                    <span style="display: inline;">
+                        缘由：{{ res.reason or '' }}
+                    </span>
+                    {% endif %}
+                </p>
+
+                {% if res.status == '已拒绝' %}
+                <div class="alert alert-danger py-1 px-2 mt-2 small">
+                    拒绝理由：{{ res.reject_reason }}
+                </div>
+                {% endif %}
+
+                {% if res.status == '待审核' %}
+                <div class="mt-2">
+                    <form method="POST" action="{{ url_for('h5.cancel_reservation', res_id=res.id) }}"
+                        style="display:inline;" onsubmit="return confirm('确定要撤销此预约吗？');">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">撤销预约</button>
+                    </form>
+                </div>
+                {% elif res.status == '已同意' %}
+                {% set has_pending = false %}
+                {% if res.latest_cancel and res.latest_cancel.status == '待处理' %}
+                {% set has_pending = true %}
+                {% endif %}
+
+                {% if has_pending %}
+                <div class="mt-2">
+                    <span class="badge bg-info">撤销申请待审核</span>
+                </div>
+                {% elif res.latest_cancel and res.latest_cancel.status == '已拒绝' %}
+                <div class="mt-2">
+                    <span class="badge bg-secondary">撤销申请已拒绝</span>
+                    <a href="{{ url_for('h5.cancel_request', res_id=res.id) }}"
+                        class="btn btn-outline-warning btn-sm mt-2">再次申请撤销</a>
+                </div>
+                {% else %}
+                <div class="mt-2">
+                    <a href="{{ url_for('h5.cancel_request', res_id=res.id) }}"
+                        class="btn btn-outline-warning btn-sm">申请撤销</a>
+                </div>
+                {% endif %}
+                {% endif %}
             </div>
-            {% endfor %}
+        </div>
+        {% endfor %}
     </div>
 
     <!-- 页脚 -->

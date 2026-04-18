@@ -50,30 +50,35 @@
             <div class="col-md-2">
                 <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist">
                     <button
-                        class="nav-link {% if active_tab not in ['notice', 'config', 'venue', 'account', 'archive'] %}active{% endif %}"
-                        data-bs-toggle="pill" data-bs-target="#tab-audit">
+                        class="nav-link {% if active_tab not in ['notice', 'config', 'venue', 'account', 'archive', 'cancel'] %}active{% endif %}"
+                        type="button" onclick="window.location.href='{{ url_for('admin.dashboard') }}'">
                         📅 预约审核
                     </button>
-                    <button class="nav-link {% if active_tab == 'notice' %}active{% endif %}" data-bs-toggle="pill"
-                        data-bs-target="#tab-notice">
+                    <button class="nav-link {% if active_tab == 'notice' %}active{% endif %}" type="button"
+                        onclick="window.location.href='{{ url_for('admin.dashboard', active_tab='notice') }}'">
                         📢 公告管理
                     </button>
-                    <button class="nav-link {% if active_tab == 'config' %}active{% endif %}" data-bs-toggle="pill"
-                        data-bs-target="#tab-config">
+                    <button class="nav-link {% if active_tab == 'config' %}active{% endif %}" type="button"
+                        onclick="window.location.href='{{ url_for('admin.dashboard', active_tab='config') }}'">
                         ⚙️ 系统配置
                     </button>
-                    <button class="nav-link {% if active_tab == 'venue' %}active{% endif %}" data-bs-toggle="pill"
-                        data-bs-target="#tab-venue">
+                    <button class="nav-link {% if active_tab == 'venue' %}active{% endif %}" type="button"
+                        onclick="window.location.href='{{ url_for('admin.dashboard', active_tab='venue') }}'">
                         🏛️ 场馆管理
                     </button>
-                    <button class="nav-link {% if active_tab == 'account' %}active{% endif %}" data-bs-toggle="pill"
-                        data-bs-target="#tab-account">
+                    <button class="nav-link {% if active_tab == 'account' %}active{% endif %}" type="button"
+                        onclick="window.location.href='{{ url_for('admin.dashboard', active_tab='account') }}'">
                         👮 账号管理
                     </button>
 
-                    <button class="nav-link {% if active_tab == 'archive' %}active{% endif %}" data-bs-toggle="pill"
-                        data-bs-target="#tab-archive">
+                    <button class="nav-link {% if active_tab == 'archive' %}active{% endif %}" type="button"
+                        onclick="window.location.href='{{ url_for('admin.dashboard', active_tab='archive') }}'">
                         📁 档案申请
+                    </button>
+
+                    <button class="nav-link {% if active_tab == 'cancel' %}active{% endif %}" type="button"
+                        onclick="window.location.href='{{ url_for('admin.dashboard', active_tab='cancel') }}'">
+                        🔙 撤销申请
                     </button>
 
                     <a href="{{ url_for('admin.stats') }}" class="nav-link">
@@ -99,7 +104,7 @@
 
                 <div class="tab-content">
 
-                    <div class="tab-pane fade {% if active_tab not in ['notice', 'config', 'venue', 'account', 'archive'] %}show active{% endif %}"
+                    <div class="tab-pane fade {% if active_tab not in ['notice', 'config', 'venue', 'account', 'archive', 'cancel'] %}show active{% endif %}"
                         id="tab-audit">
                         <h4>预约申请列表</h4>
 
@@ -205,6 +210,9 @@
                                             data-name="{{ res.user.name }}" data-phone="{{ res.user.phone }}"
                                             data-email="{{ res.user.email or '' }}" data-idtype="{{ res.user.id_type }}"
                                             data-idcard="{{ res.user.id_card }}" data-identity="{{ res.identity }}"
+                                            data-restype="{{ res.res_type }}"
+                                            data-groupname="{{ res.group_name or '' }}"
+                                            data-groupsize="{{ res.group_size or '' }}"
                                             data-visitdate="{{ res.visit_date }} {{ res.visit_time }}"
                                             data-venue="{{ res.venue.name }}" data-campus="{{ res.campus }}"
                                             data-reason="{{ res.reason }}" data-status="{{ res.status }}"
@@ -569,6 +577,70 @@
                         </nav>
                     </div>
 
+                    <div class="tab-pane fade {% if active_tab == 'cancel' %}show active{% endif %}" id="tab-cancel">
+                        <h4>撤销申请审核列表</h4>
+
+                        <table class="table table-hover mt-3 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>申请时间</th>
+                                    <th>预约人</th>
+                                    <th>证件类型</th>
+                                    <th>证件号码</th>
+                                    <th>手机号</th>
+                                    <th>预约场馆</th>
+                                    <th>预约日期</th>
+                                    <th>预约时间</th>
+                                    <th>撤销原因</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if cancel_requests %}
+                                {% for req in cancel_requests %}
+                                <tr>
+                                    <td>{{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ req.user.name }}</td>
+                                    <td>{{ req.user.id_type }}</td>
+                                    <td class="font-monospace">{{ req.user.id_card }}</td>
+                                    <td>{{ req.user.phone }}</td>
+                                    <td>{{ req.reservation.venue.name }}</td>
+                                    <td>{{ req.reservation.visit_date }}</td>
+                                    <td>{{ req.reservation.visit_time }}</td>
+                                    <td>{{ req.reason or '-' }}</td>
+                                    <td>
+                                        <span
+                                            class="badge {% if req.status == '待处理' %}bg-warning text-dark{% elif req.status == '已同意' %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ req.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if req.status == '待处理' %}
+                                        <button class="btn btn-primary btn-sm"
+                                            onclick="openCancelRequestModal({{ req.id }})">
+                                            审核
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-secondary btn-sm"
+                                            onclick="openCancelRequestModal({{ req.id }})">
+                                            查看
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="11" class="text-center text-muted py-4">
+                                        暂无撤销申请记录
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+
                     <div class="tab-pane fade {% if active_tab == 'venue' %}show active{% endif %}" id="tab-venue">
                         <h4>场馆管理</h4>
 
@@ -848,6 +920,21 @@
                         <div class="reason-box" id="m-reason"></div>
                     </div>
 
+                    <!-- 团体信息 -->
+                    <div class="mb-3" id="m-group-info" style="display:none;">
+                        <div class="detail-label">团体信息</div>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="detail-label">团体名称</div>
+                                <div id="m-group-name"></div>
+                            </div>
+                            <div class="col-6">
+                                <div class="detail-label">团体人数</div>
+                                <div id="m-group-size"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- 附件信息 -->
                     <div class="mb-3">
                         <div class="detail-label">附件</div>
@@ -964,6 +1051,15 @@
             document.getElementById('m-venue').innerText = data.venue;
             document.getElementById('m-campus').innerText = data.campus || '未指定';
             document.getElementById('m-reason').innerText = data.reason;
+
+            const groupInfoDiv = document.getElementById('m-group-info');
+            if (data.restype === '团队') {
+                groupInfoDiv.style.display = 'block';
+                document.getElementById('m-group-name').innerText = data.groupname || '未填写';
+                document.getElementById('m-group-size').innerText = data.groupsize || '未填写';
+            } else {
+                groupInfoDiv.style.display = 'none';
+            }
 
             const form = document.getElementById('auditForm');
             form.action = "/admin/audit/" + data.id;
@@ -1867,7 +1963,177 @@
                 });
             }
         });
+
+        let cancelRequestModal;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const modalEl = document.getElementById('cancelRequestModal');
+            if (modalEl) {
+                cancelRequestModal = new bootstrap.Modal(modalEl);
+            }
+        });
+
+        function openCancelRequestModal(reqId) {
+            fetch('/admin/cancel-request/' + reqId, {
+                credentials: 'include'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                        return;
+                    }
+                    const req = data.cancel_request;
+                    document.getElementById('cr-time').innerText = req.created_at;
+                    document.getElementById('cr-name').innerText = req.user_name;
+                    document.getElementById('cr-idtype').innerText = req.user_id_type;
+                    document.getElementById('cr-idcard').innerText = req.user_id_card;
+                    document.getElementById('cr-phone').innerText = req.user_phone;
+                    document.getElementById('cr-venue').innerText = req.venue_name;
+                    document.getElementById('cr-visit-date').innerText = req.visit_date;
+                    document.getElementById('cr-visit-time').innerText = req.visit_time;
+                    document.getElementById('cr-reason').innerText = req.reason || '未填写';
+
+                    const statusEl = document.getElementById('cr-status');
+                    if (req.status === '待处理') {
+                        statusEl.innerHTML = '<span class="badge bg-warning text-dark">待处理</span>';
+                    } else if (req.status === '已同意') {
+                        statusEl.innerHTML = '<span class="badge bg-success">已同意</span>';
+                    } else {
+                        statusEl.innerHTML = '<span class="badge bg-danger">已拒绝</span>';
+                    }
+
+                    const form = document.getElementById('cancelRequestForm');
+                    form.action = '/admin/handle-cancel-request/' + reqId;
+
+                    const pendingGroup = document.getElementById('cr-btn-pending');
+                    const doneGroup = document.getElementById('cr-btn-done');
+
+                    if (req.status === '待处理') {
+                        pendingGroup.style.display = 'flex';
+                        doneGroup.style.display = 'none';
+                    } else {
+                        pendingGroup.style.display = 'none';
+                        doneGroup.style.display = 'block';
+                    }
+                    if (cancelRequestModal) {
+                        cancelRequestModal.show();
+                    } else {
+                        alert('模态框初始化失败，请刷新页面重试');
+                    }
+                })
+                .catch(error => {
+                    console.error('加载撤销申请详情失败:', error);
+                    alert('加载失败，请重试\n' + error.message);
+                });
+        }
+
+        function submitCancelRequest(actionType) {
+            const actionInput = document.getElementById('cr-action');
+            actionInput.value = actionType;
+
+            const confirmed = confirm(actionType === 'approve' ? '确定要同意此撤销申请吗？\n同意后该预约将被删除。' : '确定要拒绝此撤销申请吗？');
+            if (!confirmed) return;
+
+            const form = document.getElementById('cancelRequestForm');
+            form.submit();
+        }
     </script>
+
+    <!-- 撤销申请详情模态框 -->
+    <div class="modal fade" id="cancelRequestModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">撤销申请详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="detail-label">申请时间</div>
+                            <div class="detail-value" id="cr-time"></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="detail-label">状态</div>
+                            <div class="detail-value" id="cr-status"></div>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6>预约人信息</h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="detail-label">姓名</div>
+                            <div class="detail-value" id="cr-name"></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="detail-label">证件类型</div>
+                            <div class="detail-value" id="cr-idtype"></div>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-6">
+                            <div class="detail-label">证件号码</div>
+                            <div class="detail-value font-monospace" id="cr-idcard"></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="detail-label">手机号</div>
+                            <div class="detail-value" id="cr-phone"></div>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6>预约信息</h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="detail-label">场馆</div>
+                            <div class="detail-value" id="cr-venue"></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="detail-label">预约日期</div>
+                            <div class="detail-value" id="cr-visit-date"></div>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-6">
+                            <div class="detail-label">预约时间</div>
+                            <div class="detail-value" id="cr-visit-time"></div>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6>撤销信息</h6>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="detail-label">撤销原因</div>
+                            <div class="detail-value" id="cr-reason"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div id="cr-btn-pending" style="display:flex; gap:10px;">
+                        <button type="button" class="btn btn-success" id="cr-btn-approve"
+                            onclick="submitCancelRequest('approve')">
+                            同意撤销
+                        </button>
+                        <button type="button" class="btn btn-danger" onclick="submitCancelRequest('reject')">
+                            拒绝
+                        </button>
+                    </div>
+                    <div id="cr-btn-done" style="display:none;">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form id="cancelRequestForm" method="POST">
+        <input type="hidden" name="action" id="cr-action" value="">
+    </form>
 </body>
 
 </html>
