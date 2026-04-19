@@ -165,7 +165,7 @@ def audit(res_id):
 def config():
 
     config = SystemConfig.query.first()
-    active_tab = request.form.get("active_tab", "venue")
+    active_tab = request.form.get("active_tab", "config")
 
     if "toggle_system" in request.form:
         config.is_open = not config.is_open
@@ -182,7 +182,7 @@ def config():
         # 检查内容长度，限制在5000字符以内
         if len(content) > 5000:
             flash("公告内容不能超过5000字符")
-            return redirect(url_for("admin.dashboard"))
+            return redirect(url_for("admin.dashboard", active_tab="notice"))
         new_notice = Announcement(title=title, content=content)
         db.session.add(new_notice)
 
@@ -315,7 +315,7 @@ def toggle_announcement_pin(ann_id):
         flash(f"公告{'已顶置' if announcement.is_pinned else '已取消顶置'}")
     else:
         flash("公告不存在")
-    return redirect(url_for("admin.dashboard"))
+    return redirect(url_for("admin.dashboard", active_tab="notice"))
 
 @admin_bp.route("/announcement/<int:ann_id>/toggle-hide", methods=["POST"])
 def toggle_announcement_hide(ann_id):
@@ -326,7 +326,7 @@ def toggle_announcement_hide(ann_id):
         flash(f"公告{'已隐藏' if announcement.is_hidden else '已显示'}")
     else:
         flash("公告不存在")
-    return redirect(url_for("admin.dashboard"))
+    return redirect(url_for("admin.dashboard", active_tab="notice"))
 
 @admin_bp.route("/announcement/<int:ann_id>/delete", methods=["POST"])
 def delete_announcement(ann_id):
@@ -337,7 +337,7 @@ def delete_announcement(ann_id):
         flash("公告已删除")
     else:
         flash("公告不存在")
-    return redirect(url_for("admin.dashboard"))
+    return redirect(url_for("admin.dashboard", active_tab="notice"))
 
 @admin_bp.route("/announcement/<int:ann_id>/edit", methods=["POST"])
 def edit_announcement(ann_id):
@@ -347,14 +347,14 @@ def edit_announcement(ann_id):
         content = request.form.get("content")
         if len(content) > 5000:
             flash("公告内容不能超过5000字符")
-            return redirect(url_for("admin.dashboard"))
+            return redirect(url_for("admin.dashboard", active_tab="notice"))
         announcement.title = title
         announcement.content = content
         db.session.commit()
         flash("公告已更新")
     else:
         flash("公告不存在")
-    return redirect(url_for("admin.dashboard"))
+    return redirect(url_for("admin.dashboard", active_tab="notice"))
 
 @admin_bp.route("/account", methods=["POST"])
 def account():
@@ -364,7 +364,7 @@ def account():
         new_pass = request.form.get("new_password", "")
         if len(new_pass) < MIN_PASSWORD_LENGTH:
             flash(f"密码长度不能少于 {MIN_PASSWORD_LENGTH} 位")
-            return redirect(url_for("admin.dashboard"))
+            return redirect(url_for("admin.dashboard", active_tab="account"))
         admin_id = session.get("admin_id")
         current_admin = db.session.get(Admin, admin_id)
         if not current_admin:
@@ -379,14 +379,14 @@ def account():
 
     if not session.get("is_super"):
         flash("无权操作")
-        return redirect(url_for("admin.dashboard"))
+        return redirect(url_for("admin.dashboard", active_tab="account"))
 
     if action == "create_admin":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         if len(password) < MIN_PASSWORD_LENGTH:
             flash(f"密码长度不能少于 {MIN_PASSWORD_LENGTH} 位")
-            return redirect(url_for("admin.dashboard"))
+            return redirect(url_for("admin.dashboard", active_tab="account"))
         if Admin.query.filter_by(username=username).first():
             flash("该用户名已存在")
         else:
@@ -414,14 +414,14 @@ def account():
         new_pass = request.form.get("new_password", "")
         if len(new_pass) < MIN_PASSWORD_LENGTH:
             flash(f"密码长度不能少于 {MIN_PASSWORD_LENGTH} 位")
-            return redirect(url_for("admin.dashboard"))
+            return redirect(url_for("admin.dashboard", active_tab="account"))
         target = db.session.get(Admin, admin_id)
         if target:
             target.password_hash = generate_password_hash(new_pass)
             db.session.commit()
             flash(f"管理员 {target.username} 的密码已重置")
 
-    return redirect(url_for("admin.dashboard"))
+    return redirect(url_for("admin.dashboard", active_tab="account"))
 
 @admin_bp.route("/logout")
 def logout():
@@ -824,7 +824,7 @@ def handle_archive_request(req_id):
     
     db.session.commit()
     flash(f"申请已{'处理' if action == 'approve' else '拒绝'}")
-    return redirect(url_for("admin.dashboard"))
+    return redirect(url_for("admin.dashboard", active_tab="archive"))
 
 @admin_bp.route("/get-disabled-dates/<int:venue_id>")
 def get_disabled_dates(venue_id):

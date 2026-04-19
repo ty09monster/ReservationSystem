@@ -137,7 +137,7 @@
                 <div class="mt-2">
                     <form method="POST" action="{{ url_for('h5.cancel_reservation', res_id=res.id) }}"
                         style="display:inline;" onsubmit="return confirm('确定要撤销此预约吗？');">
-                        <button type="submit" class="btn btn-outline-danger btn-sm">撤销预约</button>
+                        <button type="submit" class="btn btn-outline-danger btn-sm border">撤销预约</button>
                     </form>
                 </div>
                 {% elif res.status == '已同意' %}
@@ -154,12 +154,12 @@
                 <div class="mt-2">
                     <span class="badge bg-secondary">撤销申请已拒绝</span>
                     <a href="{{ url_for('h5.cancel_request', res_id=res.id) }}"
-                        class="btn btn-outline-warning btn-sm mt-2">再次申请撤销</a>
+                        class="btn btn-outline-warning btn-sm border mt-2">再次申请撤销</a>
                 </div>
                 {% else %}
                 <div class="mt-2">
                     <a href="{{ url_for('h5.cancel_request', res_id=res.id) }}"
-                        class="btn btn-outline-warning btn-sm">申请撤销</a>
+                        class="btn btn-outline-warning btn-sm border">申请撤销</a>
                 </div>
                 {% endif %}
                 {% endif %}

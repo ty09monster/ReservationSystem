@@ -257,6 +257,7 @@
                             <div class="card-body">
                                 <form method="POST" action="{{ url_for('admin.config') }}">
                                     <input type="hidden" name="publish_notice" value="1">
+                                    <input type="hidden" name="active_tab" value="notice">
                                     <div class="mb-2">
                                         <input type="text" name="title" class="form-control" placeholder="公告标题"
                                             required>
@@ -401,6 +402,7 @@
                                 系统总开关
                                 <form method="POST" action="{{ url_for('admin.config') }}">
                                     <input type="hidden" name="toggle_system" value="1">
+                                    <input type="hidden" name="active_tab" value="config">
                                     {% if config.is_open %}
                                     <button class="btn btn-danger btn-sm">关闭预约系统</button>
                                     {% else %}
@@ -425,6 +427,7 @@
                             <div class="card-body">
                                 <form method="POST" action="{{ url_for('admin.config') }}">
                                     <input type="hidden" name="update_policy" value="1">
+                                    <input type="hidden" name="active_tab" value="config">
                                     <div class="mb-3">
                                         <label class="form-label text-muted small">
                                             支持 HTML 格式（例如 &lt;br&gt; 换行）
@@ -448,6 +451,7 @@
                                 <form method="POST" action="{{ url_for('admin.account') }}"
                                     class="row g-2 align-items-center">
                                     <input type="hidden" name="action" value="change_own_password">
+                                    <input type="hidden" name="active_tab" value="account">
                                     <div class="col-auto">
                                         <input type="password" name="new_password" class="form-control"
                                             placeholder="输入新密码" required>
@@ -767,6 +771,7 @@
                     <form method="POST" action="{{ url_for('admin.config') }}">
                         <input type="hidden" name="update_venue" value="1">
                         <input type="hidden" name="venue_id" id="edit-venue-id">
+                        <input type="hidden" name="active_tab" value="venue">
                         <div class="mb-3">
                             <label class="form-label">场馆名称</label>
                             <input type="text" name="venue_name" id="edit-venue-name" class="form-control"
@@ -995,6 +1000,7 @@
                 <form method="POST" action="{{ url_for('admin.account') }}">
                     <div class="modal-body">
                         <input type="hidden" name="action" value="create_admin">
+                        <input type="hidden" name="active_tab" value="account">
                         <div class="mb-3">
                             <label>用户名</label>
                             <input type="text" name="username" class="form-control" required>
@@ -1065,8 +1071,14 @@
             form.action = "/admin/audit/" + data.id;
 
             // 获取附件信息
-            fetch(`/admin/get-attachments/${data.id}`)
-                .then(response => response.json())
+            fetch(`/admin/get-attachments/${data.id}`, { credentials: 'same-origin' })
+                .then(response => {
+                    if (response.redirected) {
+                        window.location.href = '/admin/login';
+                        return;
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     const attachmentsContainer = document.getElementById('m-attachments');
                     if (data.attachments && data.attachments.length > 0) {
@@ -1239,7 +1251,11 @@
             document.getElementById('timeSlotVenueName').textContent = venueName;
 
             // 获取当前活动标签页
-            const activeTab = document.querySelector('.nav-link.active').getAttribute('data-bs-target').replace('#tab-', '');
+            let activeTab = 'venue';
+            const activeNavLink = document.querySelector('.nav-pills .nav-link.active');
+            if (activeNavLink && activeNavLink.getAttribute('data-bs-target')) {
+                activeTab = activeNavLink.getAttribute('data-bs-target').replace('#tab-', '');
+            }
             document.getElementById('activeTabInput').value = activeTab;
 
             // 清空表格
@@ -1247,8 +1263,14 @@
             tableBody.innerHTML = '<tr><td colspan="9" class="text-center py-4">加载中...</td></tr>';
 
             // 调用API获取现有的时段设置
-            fetch(`{{ url_for('admin.get_time_slots', venue_id=0) }}`.replace('/0', `/${venueId}`))
-                .then(response => response.json())
+            fetch(`{{ url_for('admin.get_time_slots', venue_id=0) }}`.replace('/0', `/${venueId}`), { credentials: 'same-origin' })
+                .then(response => {
+                    if (response.redirected) {
+                        window.location.href = '/admin/login';
+                        return;
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     // 清空表格
                     tableBody.innerHTML = '';
@@ -1653,7 +1675,11 @@
             document.getElementById('disabledDateVenueId').value = venueId;
             document.getElementById('disabledDateVenueName').textContent = venueName;
 
-            const activeTab = document.querySelector('.nav-link.active').getAttribute('data-bs-target').replace('#tab-', '');
+            let activeTab = 'venue';
+            const activeNavLink = document.querySelector('.nav-pills .nav-link.active');
+            if (activeNavLink && activeNavLink.getAttribute('data-bs-target')) {
+                activeTab = activeNavLink.getAttribute('data-bs-target').replace('#tab-', '');
+            }
             document.getElementById('disabledDateActiveTab').value = activeTab;
 
             // 清空禁用日期列表
@@ -1691,8 +1717,12 @@
             tableBody.innerHTML = '<tr><td colspan="3" class="text-center py-3">加载中...</td></tr>';
 
             const url = '/admin/get-disabled-dates/' + venueId;
-            fetch(url)
+            fetch(url, { credentials: 'same-origin' })
                 .then(response => {
+                    if (response.redirected) {
+                        window.location.href = '/admin/login';
+                        return;
+                    }
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
                     }
@@ -1778,8 +1808,10 @@
                         <span id="ar-old-remark-text"></span>
                     </div>
 
-                    <form method="POST" id="archiveRequestForm">
+                    <form method="POST" id="archiveRequestForm"
+                        action="{{ url_for('admin.handle_archive_request', req_id=0) }}">
                         <input type="hidden" name="action" id="ar-action">
+                        <input type="hidden" name="active_tab" value="archive">
                         <div class="collapse mb-3" id="arRemarkArea">
                             <label class="form-label text-primary fw-bold">
                                 请填写处理备注：
@@ -1821,8 +1853,14 @@
             let url = `/admin/archive-requests?page=${page}`;
             if (status) url += `&status=${status}`;
 
-            fetch(url)
-                .then(response => response.json())
+            fetch(url, { credentials: 'same-origin' })
+                .then(response => {
+                    if (response.redirected) {
+                        window.location.href = '/admin/login';
+                        return;
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     const tbody = document.getElementById('archiveRequestTableBody');
 
@@ -1956,6 +1994,13 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const activeTab = urlParams.get('active_tab');
+
+            if (activeTab === 'archive') {
+                loadArchiveRequests(1);
+            }
+
             const archiveTab = document.querySelector('[data-bs-target="#tab-archive"]');
             if (archiveTab) {
                 archiveTab.addEventListener('shown.bs.tab', function () {
