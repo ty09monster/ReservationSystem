@@ -120,6 +120,10 @@ def dashboard():
         cancel_pagination = cancel_query.paginate(page=cancel_page, per_page=10, error_out=False)
         cancel_requests = cancel_pagination.items
 
+    pending_reservation_count = Reservation.query.filter_by(status='待审核').count()
+    pending_archive_count = ArchiveRequest.query.filter(ArchiveRequest.status.in_(['待审核', '待处理'])).count()
+    pending_cancel_count = CancelRequest.query.filter_by(status='待处理').count()
+
     return render_template(
         "admin_dashboard.html",
         reservations=reservations,
@@ -133,7 +137,10 @@ def dashboard():
         curr_end_date=end_date,
         admin_list=admin_list,
         active_tab=active_tab,
-        cancel_requests=cancel_requests if active_tab == "cancel" else []
+        cancel_requests=cancel_requests if active_tab == "cancel" else [],
+        pending_reservation_count=pending_reservation_count,
+        pending_archive_count=pending_archive_count,
+        pending_cancel_count=pending_cancel_count
     )
 
 @admin_bp.route("/audit/<int:res_id>", methods=["POST"])

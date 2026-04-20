@@ -53,6 +53,9 @@
                         class="nav-link {% if active_tab not in ['notice', 'config', 'venue', 'account', 'archive', 'cancel'] %}active{% endif %}"
                         type="button" onclick="window.location.href='{{ url_for('admin.dashboard') }}'">
                         📅 预约审核
+                        {% if pending_reservation_count > 0 %}
+                        <span class="badge bg-danger ms-1">{{ pending_reservation_count }}</span>
+                        {% endif %}
                     </button>
                     <button class="nav-link {% if active_tab == 'notice' %}active{% endif %}" type="button"
                         onclick="window.location.href='{{ url_for('admin.dashboard', active_tab='notice') }}'">
@@ -74,11 +77,17 @@
                     <button class="nav-link {% if active_tab == 'archive' %}active{% endif %}" type="button"
                         onclick="window.location.href='{{ url_for('admin.dashboard', active_tab='archive') }}'">
                         📁 档案申请
+                        {% if pending_archive_count > 0 %}
+                        <span class="badge bg-danger ms-1">{{ pending_archive_count }}</span>
+                        {% endif %}
                     </button>
 
                     <button class="nav-link {% if active_tab == 'cancel' %}active{% endif %}" type="button"
                         onclick="window.location.href='{{ url_for('admin.dashboard', active_tab='cancel') }}'">
                         🔙 撤销申请
+                        {% if pending_cancel_count > 0 %}
+                        <span class="badge bg-danger ms-1">{{ pending_cancel_count }}</span>
+                        {% endif %}
                     </button>
 
                     <a href="{{ url_for('admin.stats') }}" class="nav-link">
