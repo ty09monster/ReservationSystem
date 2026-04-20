@@ -247,6 +247,16 @@ def _reserve_base(venue_category, res_type):
             except ValueError:
                 pass  # cutoff_time 格式异常时跳过校验
 
+        # 新增：时间段过期校验——如果预约当天，检查当前时间是否已超过所选时间段的开始时间
+        if visit_date_obj_check == datetime.now().date():
+            try:
+                slot_start_time = datetime.strptime(visit_time.split('-')[0], "%H:%M").time()
+                if datetime.now().time() > slot_start_time:
+                    flash(f"所选时间段 {visit_time} 已过，请选择其他时段")
+                    return render_template(f"h5_reserve_{venue_category}_{res_type}.html", user=user, venues=venues, venue=default_venue)
+            except ValueError:
+                pass  # 时间段格式异常时跳过校验
+
         # 验证团体信息
         if res_type == "团队":
             if not group_name:
@@ -610,16 +620,26 @@ def get_available_slots():
         
         # 生成可用时段和剩余名额
         available_slots = []
+        current_time = datetime.now()
+        current_date = current_time.date()
         for slot in time_slots:
             slot_start = slot.time_slot.split('-')[0]
             slot_end = slot.time_slot.split('-')[1]
             is_disabled = False
+            is_expired = False
             for disabled in disabled_slots:
                 disabled_start = disabled.time_slot.split('-')[0]
                 disabled_end = disabled.time_slot.split('-')[1]
                 if not (slot_end <= disabled_start or slot_start >= disabled_end):
                     is_disabled = True
                     break
+            if visit_date_obj == current_date:
+                try:
+                    slot_start_time = datetime.strptime(slot_start, "%H:%M").time()
+                    if current_time.time() > slot_start_time:
+                        is_expired = True
+                except ValueError:
+                    pass
             used_individual = slot_counts.get(slot.time_slot, 0)
             remaining_individual = slot.individual_capacity - used_individual
             available_slots.append({
@@ -627,9 +647,10 @@ def get_available_slots():
                 "individual_capacity": slot.individual_capacity,
                 "used_individual": used_individual,
                 "remaining_individual": remaining_individual,
-                "available_individual": remaining_individual > 0 and not is_disabled,
-                "available_group": getattr(slot, 'is_group_active', True) and not is_disabled,
-                "is_disabled": is_disabled
+                "available_individual": remaining_individual > 0 and not is_disabled and not is_expired,
+                "available_group": getattr(slot, 'is_group_active', True) and not is_disabled and not is_expired,
+                "is_disabled": is_disabled,
+                "is_expired": is_expired
             })
         
         return {"slots": available_slots}
