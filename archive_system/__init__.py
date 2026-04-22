@@ -20,51 +20,74 @@ def create_app(config_class=Config):
 
     # 避免多进程并发数据库操作 - 只在特定情况下初始化数据库
     # 使用环境变量控制是否初始化数据库，防止Gunicorn多worker同时执行
-    if os.environ.get('FLASK_INITDB') or app.config.get('INIT_DB_ON_STARTUP'):
+    if _is_init_enabled():
         with app.app_context():
-            # 添加锁机制或检查是否已经初始化过
             init_database_with_lock()
 
     return app
 
+def _is_init_enabled():
+    """检查是否应该执行数据库初始化"""
+    env_val = os.environ.get('FLASK_INITDB', '')
+    if env_val.lower() in ('1', 'true', 'yes'):
+        return True
+    if env_val in ('0', 'false', 'no', ''):
+        return False
+    return False
+
+def _get_init_lock_path():
+    """获取初始化锁文件的路径，使用应用专属目录"""
+    app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    lock_dir = os.path.join(app_root, 'data')
+    os.makedirs(lock_dir, exist_ok=True)
+    return os.path.join(lock_dir, 'db_init.lock')
+
 def init_database_with_lock():
-    """使用原子文件创建锁，防止多进程并发初始化。
-    使用 open(..., 'x') 模式原子性地创建文件，避免 TOCTOU 竞争条件。
-    """
-    import tempfile
+    """使用原子文件创建锁，防止多进程并发初始化"""
     import atexit
     import time
+    import sys
 
-    lock_file_path = os.path.join(tempfile.gettempdir(), 'db_init_lock')
+    lock_file_path = _get_init_lock_path()
 
     try:
-        # 原子创建锁文件：若已存在则抛异常，避免竞争条件
         with open(lock_file_path, 'x') as f:
             f.write(str(os.getpid()))
+            f.flush()
+            os.fsync(f.fileno())
 
         def cleanup_lock():
-            if os.path.exists(lock_file_path):
-                os.remove(lock_file_path)
+            try:
+                if os.path.exists(lock_file_path):
+                    os.remove(lock_file_path)
+            except Exception:
+                pass
         atexit.register(cleanup_lock)
 
-        print("正在初始化数据库...")
+        sys.stdout.write("正在初始化数据库...\n")
+        sys.stdout.flush()
         db.create_all()
         init_data()
-        print("数据库初始化完成")
+        sys.stdout.write("数据库初始化完成\n")
+        sys.stdout.flush()
 
     except FileExistsError:
-        # 其他进程已拿到锁，等待其初始化完成
         max_wait = 30
         for _ in range(max_wait):
             if not os.path.exists(lock_file_path):
                 break
             time.sleep(1)
-        print("检测到数据库已初始化，跳过初始化步骤")
+        sys.stdout.write("检测到数据库已初始化，跳过初始化步骤\n")
+        sys.stdout.flush()
 
     except Exception as e:
-        print(f"数据库初始化失败: {e}")
+        sys.stderr.write(f"数据库初始化失败: {e}\n")
+        sys.stderr.flush()
         if os.path.exists(lock_file_path):
-            os.remove(lock_file_path)
+            try:
+                os.remove(lock_file_path)
+            except Exception:
+                pass
         raise
 
 def init_data():
