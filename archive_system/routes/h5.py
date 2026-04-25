@@ -499,6 +499,7 @@ def cancel_reservation(res_id):
         flash("只能撤销待审核状态的预约")
         return redirect(url_for("h5.history"))
 
+    db.session.execute(db.text("DELETE FROM attachment WHERE reservation_id = :rid"), {"rid": res_id})
     db.session.delete(reservation)
     db.session.commit()
     flash("预约已成功撤销")

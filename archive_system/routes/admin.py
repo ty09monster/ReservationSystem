@@ -261,6 +261,7 @@ def handle_cancel_request(req_id):
 
         db.session.commit()
 
+        db.session.execute(db.text("DELETE FROM attachment WHERE reservation_id = :rid"), {"rid": reservation_id})
         db.session.execute(db.text("DELETE FROM cancel_request WHERE reservation_id = :rid"), {"rid": reservation_id})
         db.session.execute(db.text("DELETE FROM reservation WHERE id = :rid"), {"rid": reservation_id})
         db.session.commit()

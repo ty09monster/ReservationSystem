@@ -865,6 +865,9 @@
             }
         }
 
+        // 全局文件存储
+        let selectedFiles = [];
+
         // 选择图片函数，优化微信浏览器体验
         function selectImages() {
             try {
@@ -888,11 +891,16 @@
                     // 监听文件选择事件
                     tempInput.onchange = function (e) {
                         try {
-                            // 将选择的文件传递给原始的input元素
-                            if (fileInput) {
-                                fileInput.files = e.target.files;
-                                // 触发文件选择处理
-                                handleFileSelect(e);
+                            if (e.target.files && e.target.files.length > 0) {
+                                // 累积文件
+                                selectedFiles = [...selectedFiles, ...Array.from(e.target.files)];
+                                // 检查总数
+                                if (selectedFiles.length > 8) {
+                                    alert('最多只能上传8个文件');
+                                    selectedFiles = selectedFiles.slice(0, 8);
+                                }
+                                // 更新表单显示
+                                updateFileList();
                             }
                         } catch (error) {
                             console.error('Error handling file selection in WeChat:', error);
@@ -910,7 +918,102 @@
             }
         }
 
-        // 处理文件选择
+        // 使用DataTransfer更新file input
+        function updateFileInput() {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput && selectedFiles.length > 0) {
+                const dataTransfer = new DataTransfer();
+                selectedFiles.forEach(file => dataTransfer.items.add(file));
+                fileInput.files = dataTransfer.files;
+            } else if (fileInput) {
+                fileInput.files = new DataTransfer().files;
+            }
+        }
+
+        // 更新文件列表显示
+        function updateFileList() {
+            const fileList = document.getElementById('fileList');
+            const maxFiles = 8;
+            const maxFileSize = 15 * 1024 * 1024; // 15MB
+
+            if (!fileList) {
+                console.error('fileList not found');
+                return;
+            }
+
+            // 清空现有文件列表
+            fileList.innerHTML = '';
+
+            // 显示上传的文件
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+
+                // 检查文件大小
+                if (file.size > maxFileSize) {
+                    alert(`文件${file.name}超过15MB限制`);
+                    selectedFiles.splice(i, 1);
+                    updateFileList();
+                    return;
+                }
+
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.dataset.index = i;
+
+                // 创建文件预览
+                const filePreview = document.createElement('div');
+                filePreview.className = 'file-preview';
+
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        try {
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            filePreview.appendChild(img);
+                        } catch (error) {
+                            console.error('Error creating image preview:', error);
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    filePreview.innerHTML = '<i class="icon icon-file"></i>';
+                }
+
+                // 创建文件信息
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'file-info';
+                fileInfo.innerHTML = `
+                    <div class="file-name">${file.name}</div>
+                    <div class="file-size">${(file.size / 1024 / 1024).toFixed(2)}MB</div>
+                `;
+
+                // 创建删除按钮
+                const fileRemove = document.createElement('div');
+                fileRemove.className = 'file-remove';
+                fileRemove.innerHTML = '×';
+                fileRemove.addEventListener('click', function () {
+                    try {
+                        selectedFiles.splice(i, 1);
+                        updateFileList();
+                        updateFileInput();
+                    } catch (error) {
+                        console.error('Error removing file item:', error);
+                    }
+                });
+
+                // 组装文件项
+                fileItem.appendChild(filePreview);
+                fileItem.appendChild(fileInfo);
+                fileItem.appendChild(fileRemove);
+                fileList.appendChild(fileItem);
+            }
+
+            // 更新file input
+            updateFileInput();
+        }
+
+        // 处理文件选择（用于非微信浏览器）
         function handleFileSelect(event) {
             try {
                 if (!event || !event.target || !event.target.files) {
@@ -918,84 +1021,21 @@
                     return;
                 }
 
-                const files = event.target.files;
-                const fileList = document.getElementById('fileList');
+                const files = Array.from(event.target.files);
                 const maxFiles = 8;
                 const maxFileSize = 15 * 1024 * 1024; // 15MB
 
-                if (!fileList) {
-                    console.error('fileList not found');
-                    return;
-                }
+                // 累积文件
+                selectedFiles = [...selectedFiles, ...files];
 
-                // 检查文件数量
-                if (files.length > maxFiles) {
+                // 检查总数
+                if (selectedFiles.length > maxFiles) {
                     alert(`最多只能上传${maxFiles}个文件`);
-                    return;
+                    selectedFiles = selectedFiles.slice(0, maxFiles);
                 }
 
-                // 清空现有文件列表
-                fileList.innerHTML = '';
-
-                // 显示上传的文件
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
-
-                    // 检查文件大小
-                    if (file.size > maxFileSize) {
-                        alert(`文件${file.name}超过15MB限制`);
-                        continue;
-                    }
-
-                    const fileItem = document.createElement('div');
-                    fileItem.className = 'file-item';
-
-                    // 创建文件预览
-                    const filePreview = document.createElement('div');
-                    filePreview.className = 'file-preview';
-
-                    if (file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = function (e) {
-                            try {
-                                const img = document.createElement('img');
-                                img.src = e.target.result;
-                                filePreview.appendChild(img);
-                            } catch (error) {
-                                console.error('Error creating image preview:', error);
-                            }
-                        };
-                        reader.readAsDataURL(file);
-                    } else {
-                        filePreview.innerHTML = '<i class="icon icon-file"></i>';
-                    }
-
-                    // 创建文件信息
-                    const fileInfo = document.createElement('div');
-                    fileInfo.className = 'file-info';
-                    fileInfo.innerHTML = `
-                        <div class="file-name">${file.name}</div>
-                        <div class="file-size">${(file.size / 1024 / 1024).toFixed(2)}MB</div>
-                    `;
-
-                    // 创建删除按钮
-                    const fileRemove = document.createElement('div');
-                    fileRemove.className = 'file-remove';
-                    fileRemove.innerHTML = '×';
-                    fileRemove.addEventListener('click', function () {
-                        try {
-                            fileItem.remove();
-                        } catch (error) {
-                            console.error('Error removing file item:', error);
-                        }
-                    });
-
-                    // 组装文件项
-                    fileItem.appendChild(filePreview);
-                    fileItem.appendChild(fileInfo);
-                    fileItem.appendChild(fileRemove);
-                    fileList.appendChild(fileItem);
-                }
+                // 更新显示
+                updateFileList();
             } catch (error) {
                 console.error('Error handling file select:', error);
             }
