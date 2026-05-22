@@ -52,13 +52,13 @@ pip install --upgrade pip
 ```bash
 # 克隆项目到服务器
 cd /var/www
-sudo git clone https://github.com/yourusername/reservation-system.git
+sudo git clone https://github.com/ty09monster/ReservationSystem
 
 # 切换到项目目录
-cd reservation-system
+cd ReservationSystem
 
 # 更改权限
-sudo chown -R $USER:$USER /var/www/reservation-system
+sudo chown -R $USER:$USER /var/www/ReservationSystem
 ```
 
 ### 2. 安装依赖
@@ -116,10 +116,11 @@ gunicorn -c gunicorn_config.py run:app
 
 ### 7. 配置Nginx
 ```bash
-# 创建Nginx配置文件
-sudo nano /etc/nginx/sites-available/reservation-system
+# 创建Nginx配置文件(需要创建文件夹)
+mkdir -p /etc/nginx/sites-available
+sudo nano /etc/nginx/sites-available/ReservationSystem
 
-# 添加以下内容
+# 添加以下内容(server_name后的内容改为服务器域名)
 server {
     listen 80;
     server_name your-domain.com;
@@ -133,7 +134,7 @@ server {
     }
 
     location /static {
-        alias /var/www/reservation-system/archive_system/static;
+        alias /var/www/ReservationSystem/archive_system/static/;
         expires 30d;
     }
 }
@@ -142,7 +143,7 @@ server {
 Ctrl+O, Enter, Ctrl+X
 
 # 启用站点
-sudo ln -s /etc/nginx/sites-available/reservation-system /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/ReservationSystem /etc/nginx/sites-enabled/
 
 # 测试Nginx配置
 sudo nginx -t
@@ -177,7 +178,7 @@ sudo certbot --nginx -d your-domain.com
 1. 登录微信公众号后台
 2. 进入"公众号设置" → "功能设置"
 3. 在"业务域名"和"JS接口安全域名"中添加您的域名
-4. 下载MP_verify_xxx.txt文件，上传到服务器的`/var/www/reservation-system/archive_system/static`目录
+4. 下载MP_verify_xxx.txt文件，上传到服务器的`/var/www/ReservationSystem/archive_system/static`目录
 
 ### 2. 服务器配置
 1. 进入"开发" → "基本配置"
@@ -192,14 +193,14 @@ sudo certbot --nginx -d your-domain.com
 ```bash
 # 启动Gunicorn服务器
 source ~/Flask/bin/activate
-cd /var/www/reservation-system
+cd /var/www/ReservationSystem
 ./start.sh
 ```
 
 ### 2. 停止服务
 ```bash
 # 停止Gunicorn服务器
-cd /var/www/reservation-system
+cd /var/www/ReservationSystem
 ./stop.sh
 ```
 
