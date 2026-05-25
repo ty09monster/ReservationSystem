@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>档案馆预约 - {% if visit_type == '线上' %}线上查阅{% else %}线下查阅{% endif %}</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/font_who/iconfont.css') }}" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f5f7fa;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            background: white;
+            margin-bottom: 16px;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .visit-type-badge {
+            background: rgba(255, 255, 255, 0.25);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-label .required {
+            color: #F56C6C;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #E4E7ED;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: #4A90E2;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+            outline: none;
+        }
+
+        .form-control:disabled {
+            background-color: #F5F7FA;
+            color: #909399;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .date-section {
+            margin-bottom: 24px;
+        }
+
+        .date-cards {
+            display: flex;
+            overflow-x: auto;
+            padding-bottom: 12px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .date-cards::-webkit-scrollbar {
+            display: none;
+        }
+
+        .date-card {
+            flex: 0 0 auto;
+            width: 100px;
+            margin-right: 12px;
+            padding: 16px 12px;
+            background: white;
+            border: 2px solid #E4E7ED;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .date-card:hover {
+            border-color: #4A90E2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.15);
+        }
+
+        .date-card.active {
+            border-color: #4A90E2;
+            background: rgba(74, 144, 226, 0.05);
+        }
+
+        .date-card .day {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            line-height: 1;
+        }
+
+        .date-card .weekday {
+            font-size: 12px;
+            color: #606266;
+            margin-top: 4px;
+        }
+
+        .date-card .month {
+            font-size: 12px;
+            color: #909399;
+            margin-top: 4px;
+        }
+
+        .time-section {
+            margin-bottom: 24px;
+        }
+
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .time-slot {
+            padding: 12px 16px;
+            background: white;
+            border: 1px solid #E4E7ED;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .time-slot:hover {
+            border-color: #4A90E2;
+        }
+
+        .time-slot.active {
+            border-color: #4A90E2;
+            background: rgba(74, 144, 226, 0.05);
+            color: #4A90E2;
+            font-weight: 500;
+        }
+
+        .upload-container {
+            border: 2px dashed #DCDFE6;
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-container:hover {
+            border-color: #4A90E2;
+        }
+
+        .upload-icon {
+            font-size: 36px;
+            color: #C0C4CC;
+            margin-bottom: 8px;
+        }
+
+        .upload-text {
+            font-size: 14px;
+            color: #909399;
+            margin-bottom: 4px;
+        }
+
+        .upload-hint {
+            font-size: 12px;
+            color: #C0C4CC;
+        }
+
+        .file-list {
+            margin-top: 16px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #F5F7FA;
+            border: 1px solid #E4E7ED;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .file-preview {
+            width: 48px;
+            height: 48px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-right: 12px;
+            background: #f5f5f5;
+            flex-shrink: 0;
+        }
+
+        .file-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-size {
+            font-size: 11px;
+            color: #909399;
+        }
+
+        .file-remove {
+            padding: 8px;
+            color: #F56C6C;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .face-photo-preview {
+            width: 120px;
+            height: 150px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 0 auto 12px;
+            background: #f5f5f5;
+            border: 2px dashed #DCDFE6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .face-photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .face-photo-preview.has-photo {
+            border: 2px solid #67C23A;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+            color: white;
+            margin-top: 20px;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #606266;
+            border: 1px solid #DCDFE6;
+            margin-top: 12px;
+        }
+
+        .btn-secondary:hover {
+            background: #F5F7FA;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .alert-danger {
+            background: #FEF0F0;
+            color: #F56C6C;
+            border: 1px solid #FBC4C4;
+        }
+
+        .alert-success {
+            background: #F0F9EB;
+            color: #67C23A;
+            border: 1px solid #E1F3D8;
+        }
+
+        .alert-info {
+            background: #F4F4F5;
+            color: #909399;
+            border: 1px solid #E9E9EB;
+        }
+
+        .user-info-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -8px;
+        }
+
+        .user-info-item {
+            flex: 0 0 50%;
+            padding: 0 8px;
+            margin-bottom: 12px;
+        }
+
+        .user-info-item.full {
+            flex: 0 0 100%;
+        }
+
+        .user-info-item .info-label {
+            font-size: 12px;
+            color: #909399;
+            margin-bottom: 4px;
+        }
+
+        .user-info-item .info-value {
+            font-size: 15px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .bottom-nav {
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+            padding: 12px 0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .bottom-nav .container {
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #909399;
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .bottom-nav-item.active {
+            color: #4A90E2;
+        }
+
+        .bottom-nav-item i {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px 0;
+            font-size: 12px;
+            color: #909399;
+            margin-bottom: 60px;
+        }
+
+        @media (max-width: 480px) {
+            .time-slots {
+                grid-template-columns: 1fr;
+            }
+
+            .date-card {
+                width: 80px;
+            }
+
+            .date-card .day {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loading" id="loading"></div>
+
+    <nav class="top-nav">
+        <div class="back-btn" onclick="window.history.back()">
+            <i class="icon icon-back"></i>
+        </div>
+        <h1>档案馆预约</h1>
+        <div class="nav-right"></div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container mt-4">
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ 'danger' if '错误' in message else 'success' }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <form method="POST" enctype="multipart/form-data" id="archiveReserveForm">
+                <input type="hidden" name="visit_date" id="hiddenVisitDate">
+                <input type="hidden" name="visit_time" id="hiddenVisitTime">
+                <input type="hidden" name="res_type" value="个人">
+                <input type="hidden" name="visit_type" value="{{ visit_type }}">
+
+                <!-- 个人信息区 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>个人信息</h3>
+                        <span class="visit-type-badge">{{ '线上查阅' if visit_type == '线上' else '线下查阅' }}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="user-info-row">
+                            <div class="user-info-item">
+                                <div class="info-label">姓名</div>
+                                <div class="info-value">{{ user.name }}</div>
+                            </div>
+                            <div class="user-info-item">
+                                <div class="info-label">证件类型</div>
+                                <div class="info-value">{{ user.id_type }}</div>
+                            </div>
+                            <div class="user-info-item">
+                                <div class="info-label">证件号码</div>
+                                <div class="info-value">{{ user.id_card[:3] }}****{{ user.id_card[-4:] }}</div>
+                            </div>
+                            <div class="user-info-item">
+                                <div class="info-label">手机号</div>
+                                <div class="info-value">{{ user.phone[:3] }}****{{ user.phone[-4:] }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if visit_type == '线下' %}
+                <!-- 人脸照片区（仅线下） -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>人脸照片</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="face-photo-preview" id="facePhotoPreview">
+                            <span style="color:#C0C4CC;font-size:14px;">点击上传照片</span>
+                        </div>
+                        <div class="upload-container" onclick="document.getElementById('facePhotoInput').click()">
+                            <div class="upload-icon">📷</div>
+                            <div class="upload-text">点击上传人脸照片</div>
+                            <div class="upload-hint">请上传清晰的正面人脸照片</div>
+                        </div>
+                        <input type="file" id="facePhotoInput" name="face_photo" accept="image/*" style="display:none;" onchange="handleFacePhotoSelect(event)">
+                    </div>
+                </div>
+
+                <!-- 车辆信息区（仅线下，可选） -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>车辆信息（选填）</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">车牌号码</label>
+                            <input type="text" name="license_plate" class="form-control" placeholder="请输入车辆牌号，如豫A12345">
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- 预约信息区 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>预约信息</h3>
+                    </div>
+                    <div class="card-body">
+                        <input type="hidden" name="campus_venue_id" id="campusVenueId" value="{{ default_venue_id }}">
+
+                        <div class="date-section">
+                            <h3 class="section-title">选择日期</h3>
+                            <div class="date-cards" id="dateCards"></div>
+                        </div>
+
+                        <div class="time-section">
+                            <h3 class="section-title">选择时间段</h3>
+                            <div class="time-slots" id="timeSlots">
+                                <div class="text-center py-4 text-muted">请先选择日期</div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label"><span class="required">*</span> 档案名称</label>
+                            <input type="text" name="archive_name" class="form-control" placeholder="请输入需要查阅的档案名称" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label"><span class="required">*</span> 档号</label>
+                            <input type="text" name="archive_number" class="form-control" placeholder="请输入档案编号" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label"><span class="required">*</span> 查阅目的</label>
+                            <textarea name="archive_purpose" class="form-control" rows="3" placeholder="请说明查阅档案的目的" required></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">证明材料</label>
+                            <div class="upload-container" onclick="selectAttachments()">
+                                <div class="upload-icon">📎</div>
+                                <div class="upload-text">点击上传证明材料</div>
+                                <div class="upload-hint">学位证、工作证、单位介绍信等，最多8张，单张不超过15MB</div>
+                            </div>
+                            <input type="file" id="fileInput" name="attachments" multiple accept="image/*" style="display:none;">
+                            <div class="file-list" id="fileList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="submitBtn" disabled>提交申请</button>
+                <a href="{{ url_for('h5.archive_request') }}" class="btn btn-secondary">返回</a>
+            </form>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="{{ url_for('h5.index') }}" class="bottom-nav-item">
+            <i class="icon icon-home"></i>
+            <span>首页</span>
+        </a>
+        <a href="{{ url_for('h5.announcements') }}" class="bottom-nav-item">
+            <i class="icon icon-news"></i>
+            <span>公告</span>
+        </a>
+        <a href="{{ url_for('h5.about') }}" class="bottom-nav-item">
+            <i class="icon icon-about"></i>
+            <span>关于</span>
+        </a>
+        <a href="{{ url_for('h5.home') }}" class="bottom-nav-item active">
+            <i class="icon icon-user"></i>
+            <span>我的</span>
+        </a>
+    </nav>
+
+    <footer class="footer">
+        <p>&copy; <span id="currentYear"></span> 河南农业大学校史馆预约系统</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        window.onload = function () {
+            setTimeout(function () {
+                document.getElementById('loading').style.display = 'none';
+            }, 1000);
+
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+            generateDateCards();
+            bindEvents();
+            initFormGuard();
+        };
+
+        function generateDateCards() {
+            const dateCardsContainer = document.getElementById('dateCards');
+            if (!dateCardsContainer) return;
+
+            const today = new Date();
+            const oneDay = 24 * 60 * 60 * 1000;
+
+            for (let i = 0; i < 14; i++) {
+                const currentDate = new Date(today.getTime() + i * oneDay);
+                const day = currentDate.getDate();
+                const month = currentDate.getMonth() + 1;
+                const weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][currentDate.getDay()];
+                const year = currentDate.getFullYear();
+                const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+                const dateCard = document.createElement('div');
+                dateCard.className = 'date-card';
+                dateCard.dataset.date = dateStr;
+                dateCard.innerHTML = `
+                    <div class="day">${day}</div>
+                    <div class="weekday">${weekday}</div>
+                    <div class="month">${month}月</div>
+                `;
+                dateCardsContainer.appendChild(dateCard);
+            }
+        }
+
+        function bindDateCardEvents() {
+            const dateCards = document.querySelectorAll('.date-card');
+            dateCards.forEach(card => {
+                card.addEventListener('click', function () {
+                    document.querySelectorAll('.date-card').forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    document.getElementById('hiddenVisitDate').value = this.dataset.date;
+                    updateTimeSlots();
+                    checkFormValidity();
+                });
+            });
+        }
+
+        function bindTimeSlotEvents() {
+            const timeSlotsContainer = document.getElementById('timeSlots');
+            if (timeSlotsContainer && !timeSlotsContainer.dataset.delegated) {
+                timeSlotsContainer.dataset.delegated = 'true';
+                timeSlotsContainer.addEventListener('click', function (e) {
+                    const slot = e.target.closest('.time-slot');
+                    if (!slot) return;
+                    if (slot.classList.contains('disabled')) return;
+
+                    document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('active'));
+                    slot.classList.add('active');
+                    document.getElementById('hiddenVisitTime').value = slot.dataset.time;
+                    checkFormValidity();
+                });
+            }
+        }
+
+        function bindEvents() {
+            bindDateCardEvents();
+            bindTimeSlotEvents();
+        }
+
+        function updateTimeSlots() {
+            const campusVenueId = document.getElementById('campusVenueId');
+            const hiddenVisitDate = document.getElementById('hiddenVisitDate');
+            const timeSlotsContainer = document.getElementById('timeSlots');
+
+            if (!campusVenueId || !hiddenVisitDate || !timeSlotsContainer) return;
+
+            const venueId = campusVenueId.value;
+            const visitDate = hiddenVisitDate.value;
+
+            if (!venueId || !visitDate) {
+                timeSlotsContainer.innerHTML = '<div class="text-center py-4 text-muted">请先选择日期</div>';
+                document.getElementById('hiddenVisitTime').value = '';
+                checkFormValidity();
+                return;
+            }
+
+            timeSlotsContainer.innerHTML = '<div class="text-center py-4">加载中...</div>';
+
+            fetch(`/h5/api/available-slots?venue_id=${venueId}&visit_date=${visitDate}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.slots && data.slots.length > 0) {
+                        timeSlotsContainer.innerHTML = '';
+                        document.getElementById('hiddenVisitTime').value = '';
+                        checkFormValidity();
+
+                        data.slots.forEach(slot => {
+                            const timeSlot = document.createElement('div');
+                            const available = slot.available_individual;
+
+                            timeSlot.className = `time-slot ${available ? '' : 'disabled'}`;
+                            timeSlot.dataset.time = slot.time_slot;
+
+                            if (slot.is_disabled) {
+                                timeSlot.innerHTML = `
+                                    <div>${slot.time_slot}</div>
+                                    <div class="text-xs text-danger" style="font-size:11px;">无法预约</div>
+                                `;
+                            } else if (slot.is_expired) {
+                                timeSlot.innerHTML = `
+                                    <div>${slot.time_slot}</div>
+                                    <div class="text-xs text-muted" style="font-size:11px;">已过时</div>
+                                `;
+                            } else {
+                                timeSlot.innerHTML = `
+                                    <div>${slot.time_slot}</div>
+                                `;
+                            }
+
+                            if (!available) {
+                                timeSlot.style.pointerEvents = 'none';
+                                timeSlot.style.opacity = '0.5';
+                                timeSlot.style.backgroundColor = '#f5f5f5';
+                            }
+
+                            timeSlotsContainer.appendChild(timeSlot);
+                        });
+                    } else {
+                        timeSlotsContainer.innerHTML = '<div class="text-center py-4 text-muted">暂无可用时段</div>';
+                        document.getElementById('hiddenVisitTime').value = '';
+                        checkFormValidity();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching available slots:', error);
+                    timeSlotsContainer.innerHTML = '<div class="text-center py-4 text-muted">加载时段失败，请重新选择日期</div>';
+                    document.getElementById('hiddenVisitTime').value = '';
+                    checkFormValidity();
+                });
+        }
+
+        function checkFormValidity() {
+            const hiddenVisitDate = document.getElementById('hiddenVisitDate');
+            const hiddenVisitTime = document.getElementById('hiddenVisitTime');
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (hiddenVisitDate && hiddenVisitTime && submitBtn) {
+                submitBtn.disabled = !(hiddenVisitDate.value && hiddenVisitTime.value);
+            }
+        }
+
+        function initFormGuard() {
+            const form = document.getElementById('archiveReserveForm');
+            const submitBtn = document.getElementById('submitBtn');
+            if (form && submitBtn && !form.dataset.guardInit) {
+                form.dataset.guardInit = 'true';
+                form.addEventListener('submit', function (e) {
+                    if (submitBtn.dataset.submitted === 'true') {
+                        e.preventDefault();
+                        return false;
+                    }
+                    submitBtn.dataset.submitted = 'true';
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 提交中...';
+                });
+            }
+        }
+
+        function handleFacePhotoSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.size > 15 * 1024 * 1024) {
+                alert('照片不能超过15MB');
+                event.target.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const preview = document.getElementById('facePhotoPreview');
+                preview.classList.add('has-photo');
+                preview.innerHTML = `<img src="${e.target.result}" alt="人脸照片">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        let selectedFiles = [];
+
+        function selectAttachments() {
+            const fileInput = document.getElementById('fileInput');
+            const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+
+            if (isWeChat) {
+                const tempInput = document.createElement('input');
+                tempInput.type = 'file';
+                tempInput.name = 'attachments';
+                tempInput.multiple = true;
+                tempInput.accept = 'image/*';
+                tempInput.onchange = function (e) {
+                    if (e.target.files && e.target.files.length > 0) {
+                        selectedFiles = [...selectedFiles, ...Array.from(e.target.files)];
+                        if (selectedFiles.length > 8) {
+                            alert('最多只能上传8个文件');
+                            selectedFiles = selectedFiles.slice(0, 8);
+                        }
+                        updateFileList();
+                    }
+                };
+                tempInput.click();
+            } else {
+                fileInput.click();
+            }
+        }
+
+        function updateFileInput() {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput && selectedFiles.length > 0) {
+                const dataTransfer = new DataTransfer();
+                selectedFiles.forEach(file => dataTransfer.items.add(file));
+                fileInput.files = dataTransfer.files;
+            } else if (fileInput) {
+                fileInput.files = new DataTransfer().files;
+            }
+        }
+
+        function updateFileList() {
+            const fileList = document.getElementById('fileList');
+            const maxFileSize = 15 * 1024 * 1024;
+
+            if (!fileList) return;
+            fileList.innerHTML = '';
+
+            selectedFiles.forEach((file, i) => {
+                if (file.size > maxFileSize) {
+                    alert(`文件${file.name}超过15MB限制`);
+                    selectedFiles.splice(i, 1);
+                    updateFileList();
+                    return;
+                }
+
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+
+                const filePreview = document.createElement('div');
+                filePreview.className = 'file-preview';
+
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        filePreview.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    filePreview.innerHTML = '<span style="font-size:24px;">📄</span>';
+                }
+
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'file-info';
+                fileInfo.innerHTML = `
+                    <div class="file-name">${file.name}</div>
+                    <div class="file-size">${(file.size / 1024 / 1024).toFixed(2)}MB</div>
+                `;
+
+                const fileRemove = document.createElement('div');
+                fileRemove.className = 'file-remove';
+                fileRemove.innerHTML = '×';
+                fileRemove.addEventListener('click', function () {
+                    selectedFiles.splice(i, 1);
+                    updateFileList();
+                    updateFileInput();
+                });
+
+                fileItem.appendChild(filePreview);
+                fileItem.appendChild(fileInfo);
+                fileItem.appendChild(fileRemove);
+                fileList.appendChild(fileItem);
+            });
+
+            updateFileInput();
+        }
+
+        function handleFileSelect(event) {
+            if (!event || !event.target || !event.target.files) return;
+            const files = Array.from(event.target.files);
+            selectedFiles = [...selectedFiles, ...files];
+            if (selectedFiles.length > 8) {
+                alert('最多只能上传8个文件');
+                selectedFiles = selectedFiles.slice(0, 8);
+            }
+            updateFileList();
+        }
+
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) {
+            fileInput.addEventListener('change', handleFileSelect);
+        }
+    </script>
+</body>
+
+</html>

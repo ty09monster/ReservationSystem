@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>查询档案 - 校史馆预约系统</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/font_who/iconfont.css') }}" rel="stylesheet">
+    <style>
+        .archive-select-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+
+        .archive-select-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .archive-select-header .icon-wrapper {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 24px rgba(74, 144, 226, 0.3);
+        }
+
+        .archive-select-header .icon-wrapper i {
+            font-size: 40px;
+            color: white;
+        }
+
+        .archive-select-header h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .archive-select-header p {
+            font-size: 14px;
+            color: #909399;
+            margin: 0;
+        }
+
+        .archive-option-card {
+            display: block;
+            background: white;
+            border-radius: 16px;
+            padding: 28px 24px;
+            margin-bottom: 20px;
+            text-decoration: none;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .archive-option-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1);
+            text-decoration: none;
+        }
+
+        .archive-option-card.online:hover {
+            border-color: #4A90E2;
+            background: linear-gradient(135deg, #F0F7FF 0%, #E8F1FD 100%);
+        }
+
+        .archive-option-card.offline:hover {
+            border-color: #67C23A;
+            background: linear-gradient(135deg, #F0F9EB 0%, #E8F5E0 100%);
+        }
+
+        .archive-option-card .card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .archive-option-card.online .card-icon {
+            background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+        }
+
+        .archive-option-card.offline .card-icon {
+            background: linear-gradient(135deg, #67C23A 0%, #529B2E 100%);
+        }
+
+        .archive-option-card .card-icon i {
+            font-size: 28px;
+            color: white;
+        }
+
+        .archive-option-card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .archive-option-card p {
+            font-size: 13px;
+            color: #909399;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .archive-option-card .card-arrow {
+            position: absolute;
+            right: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            color: #C0C4CC;
+            transition: all 0.3s ease;
+        }
+
+        .archive-option-card:hover .card-arrow {
+            transform: translateY(-50%) translateX(4px);
+            color: #606266;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loading" id="loading"></div>
+
+    <nav class="top-nav">
+        <div class="back-btn" onclick="window.history.back()">
+            <i class="icon icon-back"></i>
+        </div>
+        <h1>查询档案</h1>
+        <div class="nav-right"></div>
+    </nav>
+
+    <div class="main-content">
+        <div class="archive-select-container">
+            <div class="archive-select-header">
+                <div class="icon-wrapper">
+                    <i class="icon icon-about"></i>
+                </div>
+                <h2>选择查阅方式</h2>
+                <p>请选择您需要的档案查阅方式</p>
+            </div>
+
+            <a href="{{ url_for('h5.archive_reserve', visit_type='线上') }}" class="archive-option-card online">
+                <div class="card-icon">
+                    <i class="icon icon-home"></i>
+                </div>
+                <h3>线上查阅</h3>
+                <p>在线提交档案查阅申请，通过线上方式获取档案信息</p>
+                <span class="card-arrow">›</span>
+            </a>
+
+            <a href="{{ url_for('h5.archive_reserve', visit_type='线下') }}" class="archive-option-card offline">
+                <div class="card-icon">
+                    <i class="icon icon-user"></i>
+                </div>
+                <h3>线下查阅</h3>
+                <p>预约到馆查阅档案，选择时间前往档案馆现场查阅</p>
+                <span class="card-arrow">›</span>
+            </a>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="{{ url_for('h5.index') }}" class="bottom-nav-item">
+            <i class="icon icon-home"></i>
+            <span>首页</span>
+        </a>
+        <a href="{{ url_for('h5.announcements') }}" class="bottom-nav-item">
+            <i class="icon icon-news"></i>
+            <span>公告</span>
+        </a>
+        <a href="{{ url_for('h5.about') }}" class="bottom-nav-item">
+            <i class="icon icon-about"></i>
+            <span>关于</span>
+        </a>
+        <a href="{{ url_for('h5.home') }}" class="bottom-nav-item">
+            <i class="icon icon-user"></i>
+            <span>我的</span>
+        </a>
+    </nav>
+
+    <footer class="footer">
+        <p>&copy; <span id="currentYear"></span> 河南农业大学校史馆预约系统 版权所有</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        window.onload = function () {
+            setTimeout(function () {
+                document.getElementById('loading').style.display = 'none';
+            }, 1000);
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+        };
+    </script>
+</body>
+
+</html>

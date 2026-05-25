@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ area_label }} - 数据统计</title>
+<title>教师审批端 - 数据统计</title>
 <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
@@ -13,7 +13,6 @@ body{background:#f5f6fa;min-height:100vh}
 .sidebar .nav-link{color:#b0bec5;padding:10px 20px;font-size:0.88rem;border-left:3px solid transparent;transition:all 0.2s;white-space:nowrap;text-decoration:none;display:block}
 .sidebar .nav-link:hover{color:#fff;background:rgba(255,255,255,0.05);border-left-color:#ffc107}
 .sidebar .nav-link.active{color:#fff;background:rgba(255,255,255,0.1);border-left-color:#4fc3f7;font-weight:600}
-.sidebar .section-label{color:#607d8b;font-size:0.7rem;text-transform:uppercase;padding:15px 20px 5px;letter-spacing:1px}
 .content{flex:1;overflow-y:auto;padding:24px;max-height:calc(100vh - 56px)}
 .stat-card{border:none;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);transition:transform 0.2s}
 .stat-card:hover{transform:translateY(-2px)}
@@ -28,52 +27,50 @@ canvas{max-height:320px}
 </head>
 <body>
 <nav class="navbar navbar-dark bg-dark px-3">
-<a class="navbar-brand" href="#">{{ area_label }} - 数据统计</a>
+<a class="navbar-brand" href="#">{% if area_label %}{{ area_label }}{% endif %}教师审批端 - 数据统计</a>
 <div class="d-flex align-items-center gap-3">
-<span class="text-white-50 small">{{ session.get('admin_username', '') or '管理员' }}</span>
-<a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-light btn-sm">返回管理</a>
-<a href="{{ url_for('admin.logout') }}" class="btn btn-outline-light btn-sm">退出</a>
+<span class="text-white-50 small">{{ session.get('teacher_name', '') or session.get('teacher_username', '') or session.get('archive_name', '') or session.get('archive_username', '') }}</span>
+<a href="{{ url_for(bp_name + '.dashboard') }}" class="btn btn-outline-light btn-sm">返回审批管理</a>
+<a href="{{ url_for(bp_name + '.logout') }}" class="btn btn-outline-light btn-sm">退出</a>
 </div>
 </nav>
 <div class="main-container">
 <div class="sidebar">
-<div class="section-label">导航</div>
-<a class="nav-link" href="{{ url_for('admin.dashboard') }}">管理后台</a>
+<div class="section-label" style="color:#607d8b;font-size:0.7rem;text-transform:uppercase;padding:15px 20px 5px;letter-spacing:1px">导航</div>
+<a class="nav-link" href="{{ url_for(bp_name + '.dashboard') }}">审批管理</a>
 <a class="nav-link active">数据统计</a>
-<a class="nav-link" href="{{ url_for('admin.logout') }}">退出登录</a>
+<a class="nav-link" href="{{ url_for(bp_name + '.logout') }}">退出登录</a>
 </div>
 <div class="content">
 {% with messages = get_flashed_messages() %}{% if messages %}<div class="alert alert-info alert-dismissible fade show">{{ messages[0] }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endif %}{% endwith %}
-<h5 class="mb-3">数据概览</h5>
+<h5 class="mb-3">预约统计概览（我的审批数据）</h5>
 <div class="filter-row">
 <div class="row g-2 align-items-end">
 <div class="col-auto"><label class="form-label small mb-1">时间范围</label><select id="stats-time-range" class="form-select form-select-sm" onchange="updateAllCharts()"><option value="today">今日</option><option value="week">本周</option><option value="month" selected>本月</option><option value="year">本年</option></select></div>
 <div class="col-auto"><label class="form-label small mb-1">自定义</label><input type="date" id="stats-custom-start" class="form-control form-control-sm"></div>
 <div class="col-auto"><label class="form-label small mb-1">至</label><input type="date" id="stats-custom-end" class="form-control form-control-sm"></div>
 <div class="col-auto"><button class="btn btn-primary btn-sm" onclick="updateAllCharts()">查询</button></div>
-<div class="col-auto"><button class="btn btn-success btn-sm" onclick="exportStatsExcel()">导出统计</button></div>
 </div>
 </div>
 <div class="row g-3 mb-4" id="statsCards">
-<div class="col-xl-3 col-md-6"><div class="card stat-card border-primary border-start border-4"><div class="card-body"><div class="stat-label">总预约量</div><div class="stat-value text-primary" id="card-total">-</div></div></div></div>
-<div class="col-xl-3 col-md-6"><div class="card stat-card border-success border-start border-4"><div class="card-body"><div class="stat-label">已同意预约</div><div class="stat-value text-success" id="card-approved">-</div></div></div></div>
-<div class="col-xl-3 col-md-6"><div class="card stat-card border-info border-start border-4"><div class="card-body"><div class="stat-label">总客流量</div><div class="stat-value text-info" id="card-visitors">-</div></div></div></div>
-<div class="col-xl-3 col-md-6"><div class="card stat-card border-warning border-start border-4"><div class="card-body"><div class="stat-label">平均利用率</div><div class="stat-value text-warning" id="card-util">-</div></div></div></div>
+<div class="col-xl-2 col-md-4 col-6"><div class="card stat-card border-primary border-start border-4"><div class="card-body"><div class="stat-label">总预约量</div><div class="stat-value text-primary" id="card-total">-</div></div></div></div>
+<div class="col-xl-2 col-md-4 col-6"><div class="card stat-card border-warning border-start border-4"><div class="card-body"><div class="stat-label">待审批</div><div class="stat-value text-warning" id="card-pending">-</div></div></div></div>
+<div class="col-xl-2 col-md-4 col-6"><div class="card stat-card border-success border-start border-4"><div class="card-body"><div class="stat-label">已同意</div><div class="stat-value text-success" id="card-approved">-</div></div></div></div>
+<div class="col-xl-2 col-md-4 col-6"><div class="card stat-card border-danger border-start border-4"><div class="card-body"><div class="stat-label">已拒绝</div><div class="stat-value text-danger" id="card-rejected">-</div></div></div></div>
+<div class="col-xl-2 col-md-4 col-6"><div class="card stat-card border-dark border-start border-4"><div class="card-body"><div class="stat-label">已核销</div><div class="stat-value text-dark" id="card-verified">-</div></div></div></div>
+<div class="col-xl-2 col-md-4 col-6"><div class="card stat-card border-info border-start border-4"><div class="card-body"><div class="stat-label">已完成</div><div class="stat-value text-info" id="card-completed">-</div></div></div></div>
 </div>
 <div class="row g-3">
 <div class="col-lg-6"><div class="chart-card"><h6>预约量趋势</h6><select id="trend-time-range" class="form-select form-select-sm mb-2 w-auto" onchange="updateTrendChart()"><option value="day">按日</option><option value="week">按周</option><option value="month" selected>按月</option></select><canvas id="trendChart"></canvas></div></div>
-<div class="col-lg-6"><div class="chart-card"><h6>预约状态分布</h6><canvas id="statusChart"></canvas></div></div>
-<div class="col-lg-6"><div class="chart-card"><h6>场馆对比</h6><canvas id="venueChart"></canvas></div></div>
-<div class="col-lg-6"><div class="chart-card"><h6>个人/团体比例</h6><canvas id="typeChart"></canvas></div></div>
-<div class="col-lg-6"><div class="chart-card"><h6>高峰时段分析</h6><canvas id="peakChart"></canvas></div></div>
-<div class="col-lg-6"><div class="chart-card"><h6>时段利用率</h6><canvas id="utilChart"></canvas></div></div>
+<div class="col-lg-6"><div class="chart-card"><h6>审批状态分布</h6><canvas id="statusChart"></canvas></div></div>
+<div class="col-lg-6"><div class="chart-card"><h6>个人/单位预约比例</h6><canvas id="typeChart"></canvas></div></div>
 </div>
 </div>
 </div>
 <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 <script>
+let bpPrefix = '{{ bp_prefix or "/teacher" }}';
 let charts = {};
-const categories = {{ categories|tojson }};
 
 function getStatsParams() {
     const period = document.getElementById('stats-time-range').value;
@@ -85,21 +82,17 @@ function getStatsParams() {
 
 function updateAllCharts() {
     const params = getStatsParams();
-    fetch('/admin/api/stats?' + params).then(r => r.json()).then(d => {
+    fetch(bpPrefix + '/api/stats?' + params).then(r => r.json()).then(d => {
         document.getElementById('card-total').innerText = d.total_count;
+        document.getElementById('card-pending').innerText = d.pending_count;
         document.getElementById('card-approved').innerText = d.approved_count;
-        document.getElementById('card-visitors').innerText = '--';
-    });
-    fetch('/admin/stats/total').then(r => r.json()).then(d => {
-        document.getElementById('card-visitors').innerText = d.total_visitors;
-        document.getElementById('card-util').innerText = d.avg_utilization + '%';
+        document.getElementById('card-rejected').innerText = d.rejected_count;
+        document.getElementById('card-verified').innerText = d.verified_count;
+        document.getElementById('card-completed').innerText = d.completed_count;
     });
     updateTrendChart();
     updateStatusChart();
-    updateVenueChart();
     updateTypeChart();
-    updatePeakChart();
-    updateUtilChart();
 }
 
 function createOrUpdateChart(id, type, labels, values, label, bgColors) {
@@ -113,37 +106,21 @@ function createOrUpdateChart(id, type, labels, values, label, bgColors) {
 
 function updateTrendChart() {
     const tr = document.getElementById('trend-time-range').value;
-    fetch('/admin/stats/reservation-trend?time_range=' + tr).then(r => r.json()).then(d => {
+    fetch(bpPrefix + '/stats/reservation-trend?time_range=' + tr).then(r => r.json()).then(d => {
         createOrUpdateChart('trendChart', 'line', d.labels, d.values, '预约量');
     });
 }
+
 function updateStatusChart() {
-    fetch('/admin/stats/reservation-status').then(r => r.json()).then(d => {
-        createOrUpdateChart('statusChart', 'pie', d.labels, d.values, '状态分布');
+    fetch(bpPrefix + '/stats/reservation-status').then(r => r.json()).then(d => {
+        createOrUpdateChart('statusChart', 'doughnut', d.labels, d.values, '审批状态');
     });
 }
-function updateVenueChart() {
-    fetch('/admin/stats/venue-comparison').then(r => r.json()).then(d => {
-        createOrUpdateChart('venueChart', 'bar', d.labels, d.values, '预约量');
-    });
-}
+
 function updateTypeChart() {
-    fetch('/admin/stats/reservation-type').then(r => r.json()).then(d => {
-        createOrUpdateChart('typeChart', 'doughnut', d.labels, d.values, '预约类型');
+    fetch(bpPrefix + '/stats/reservation-type').then(r => r.json()).then(d => {
+        createOrUpdateChart('typeChart', 'pie', d.labels, d.values, '预约类型');
     });
-}
-function updatePeakChart() {
-    fetch('/admin/stats/peak-hours').then(r => r.json()).then(d => {
-        createOrUpdateChart('peakChart', 'bar', d.labels, d.values, '客流量');
-    });
-}
-function updateUtilChart() {
-    fetch('/admin/stats/time-utilization').then(r => r.json()).then(d => {
-        createOrUpdateChart('utilChart', 'bar', d.labels, d.values, '利用率(%)');
-    });
-}
-function exportStatsExcel() {
-    alert('导出功能开发中');
 }
 
 updateAllCharts();

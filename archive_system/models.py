@@ -10,6 +10,15 @@ class SystemConfig(db.Model):
     visit_times = db.Column(db.String(500), default="09:00-11:00,14:00-16:00", comment='参观时间段')
     daily_limit = db.Column(db.Integer, default=50, comment='每日限额')
     privacy_policy = db.Column(db.Text, default="<p>欢迎使用预约系统，请遵守相关规定...</p>", comment='隐私政策')
+    archive_types = db.Column(db.Text, comment='档案类型列表，逗号分隔')
+    guide_list = db.Column(db.Text, comment='讲解员列表，JSON数组格式')
+
+    def get_guide_list(self):
+        import json
+        try:
+            return json.loads(self.guide_list) if self.guide_list else []
+        except (json.JSONDecodeError, TypeError):
+            return []
 
 class User(db.Model):
     """用户表"""
@@ -20,6 +29,7 @@ class User(db.Model):
     name = db.Column(db.String(50), nullable=False, comment='姓名')
     phone = db.Column(db.String(20), nullable=False, comment='手机号')
     email = db.Column(db.String(120), comment='邮箱地址')
+    is_blacklisted = db.Column(db.Boolean, default=False, comment='是否在黑名单中')
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, comment='创建时间')
 
 class Admin(db.Model):
@@ -29,7 +39,10 @@ class Admin(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False, index=True, comment='用户名')
     password_hash = db.Column(db.String(255), nullable=False, comment='密码哈希')
     is_super = db.Column(db.Boolean, default=False, comment='是否超级管理员')
+    role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=True, comment='角色ID')
     created_at = db.Column(db.DateTime, default=datetime.now, comment='创建时间')
+
+    role = db.relationship('Role', backref=db.backref('admins', lazy=True))
 
 class Announcement(db.Model):
     """公告表"""
@@ -72,22 +85,41 @@ class Reservation(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True, comment='用户ID')
     venue_id = db.Column(db.Integer, db.ForeignKey("venue.id"), nullable=False, index=True, comment='场馆ID')
-    visit_date = db.Column(db.Date, index=True, comment='参观日期')  # 修改为Date类型
+    visit_date = db.Column(db.Date, index=True, comment='参观日期')
     visit_time = db.Column(db.String(50), comment='参观时间')
     reason = db.Column(db.Text, comment='预约原因')
-    res_type = db.Column(db.String(10), default="个人", comment='预约类型：个人/团队')
-    group_name = db.Column(db.String(100), comment='团体名称')
-    group_contact = db.Column(db.String(50), comment='团体联系人')
+    archive_name = db.Column(db.String(200), comment='档案名称')
+    archive_number = db.Column(db.String(100), comment='档号')
+    archive_purpose = db.Column(db.Text, comment='查阅目的')
+    res_type = db.Column(db.String(10), default="个人", comment='预约类型：个人/单位')
+    visit_type = db.Column(db.String(20), default="线下", comment='查阅类型：线上/线下')
+    group_name = db.Column(db.String(100), comment='预约单位')
+    group_contact = db.Column(db.String(50), comment='单位联系人')
     group_size = db.Column(db.Integer, default=1, comment='团体人数')
+    visitor_count = db.Column(db.Integer, default=1, comment='参观人数')
+    license_plate = db.Column(db.String(50), comment='车辆牌号')
+    need_guide = db.Column(db.Boolean, default=False, comment='是否需要讲解')
+    visiting_unit = db.Column(db.String(100), comment='参观单位')
+    contact_phone = db.Column(db.String(20), comment='联系电话')
     identity = db.Column(db.String(50), comment='身份')
     campus = db.Column(db.String(100), comment='校区')
-    status = db.Column(db.String(20), default="待审核", index=True, comment='状态：待审核, 已同意, 已拒绝')
-    reject_reason = db.Column(db.Text, comment='拒绝原因')
+    status = db.Column(db.String(20), default="待部门领导指定审批人", index=True, comment='状态：待部门领导指定审批人, 待审核, 已同意, 已拒绝, 已核销, 已完成, 已取消')
+    reject_reason = db.Column(db.Text, comment='拒绝原因/审批意见')
+    verified_at = db.Column(db.DateTime, comment='核销时间')
+    verified_by = db.Column(db.Integer, db.ForeignKey("admin.id"), nullable=True, comment='核销人ID')
+    approval_teacher_id = db.Column(db.Integer, db.ForeignKey("approval_staff.id"), nullable=True, comment='指定审批教师ID')
+    leader_id = db.Column(db.Integer, db.ForeignKey("approval_staff.id"), nullable=True, comment='处理部门领导ID')
+    leader_opinion = db.Column(db.Text, comment='部门领导审批意见')
+    verify_note = db.Column(db.Text, comment='核销备注')
+    assigned_at = db.Column(db.DateTime, comment='指定审批教师时间')
+    guide_info = db.Column(db.String(100), comment='讲解员信息')
     created_at = db.Column(db.DateTime, default=datetime.now, index=True, comment='创建时间')
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, nullable=False, comment='更新时间')
 
     user = db.relationship("User", backref=db.backref("reservations", lazy=True))
     venue = db.relationship("Venue", backref=db.backref("reservations", lazy=True))
+    approval_teacher = db.relationship("ApprovalStaff", foreign_keys=[approval_teacher_id], backref=db.backref("assigned_reservations", lazy=True))
+    leader = db.relationship("ApprovalStaff", foreign_keys=[leader_id], backref=db.backref("handled_reservations", lazy=True))
 
 class VenueTimeSlot(db.Model):
     """场馆时段表"""
@@ -155,3 +187,71 @@ class CancelRequest(db.Model):
 
     reservation = db.relationship("Reservation", backref=db.backref("cancel_requests", lazy=True))
     user = db.relationship("User", backref=db.backref("cancel_requests", lazy=True))
+
+class Role(db.Model):
+    """角色表"""
+    __tablename__ = 'role'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(50), unique=True, nullable=False, comment='角色名称')
+    permissions = db.Column(db.Text, default='[]', comment='权限列表，JSON数组格式')
+    created_at = db.Column(db.DateTime, default=datetime.now, comment='创建时间')
+
+    def get_permissions(self):
+        import json
+        try:
+            return json.loads(self.permissions) if self.permissions else []
+        except (json.JSONDecodeError, TypeError):
+            return []
+
+    def has_permission(self, perm_key):
+        perms = self.get_permissions()
+        return perm_key in perms
+
+class ApprovalStaff(db.Model):
+    """审批人员表（审批教师/部门领导）"""
+    __tablename__ = 'approval_staff'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    username = db.Column(db.String(50), unique=True, nullable=False, index=True, comment='登录用户名')
+    password_hash = db.Column(db.String(255), nullable=False, comment='密码哈希')
+    name = db.Column(db.String(50), nullable=False, comment='姓名')
+    staff_id = db.Column(db.String(50), comment='工号')
+    department = db.Column(db.String(100), comment='所属部门')
+    phone = db.Column(db.String(20), comment='联系电话')
+    assigned_venue_ids = db.Column(db.Text, default='[]', comment='负责场馆ID列表，JSON数组格式')
+    staff_type = db.Column(db.String(20), default='approval', index=True, comment='人员类型：approval=审批教师, leader=部门领导')
+    is_active = db.Column(db.Boolean, default=True, comment='是否启用')
+    created_at = db.Column(db.DateTime, default=datetime.now, comment='创建时间')
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, comment='更新时间')
+
+    def get_assigned_venue_ids(self):
+        import json
+        try:
+            return json.loads(self.assigned_venue_ids) if self.assigned_venue_ids else []
+        except (json.JSONDecodeError, TypeError):
+            return []
+
+
+class SystemLog(db.Model):
+    """系统日志表"""
+    __tablename__ = 'system_log'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    log_type = db.Column(db.String(30), nullable=False, index=True, comment='日志类型：operation=操作日志, login=登录日志, error=错误日志, access=通行权限下发日志')
+    operator = db.Column(db.String(50), comment='操作人')
+    operator_ip = db.Column(db.String(50), comment='操作IP')
+    module = db.Column(db.String(50), comment='操作模块')
+    action = db.Column(db.String(100), comment='操作动作')
+    detail = db.Column(db.Text, comment='详细内容')
+    result = db.Column(db.String(20), default='成功', comment='操作结果：成功/失败')
+    created_at = db.Column(db.DateTime, default=datetime.now, index=True, comment='创建时间')
+
+class Guide(db.Model):
+    """讲解员表"""
+    __tablename__ = 'guide'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(50), nullable=False, comment='姓名')
+    staff_id = db.Column(db.String(50), comment='工号')
+    phone = db.Column(db.String(20), comment='联系电话')
+    expertise = db.Column(db.String(200), comment='擅长讲解内容')
+    status = db.Column(db.String(20), default='在岗', comment='状态：在岗/离岗')
+    created_at = db.Column(db.DateTime, default=datetime.now, comment='创建时间')
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, comment='更新时间')

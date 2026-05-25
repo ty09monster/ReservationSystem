@@ -82,29 +82,29 @@
 
 
         <!-- 功能按钮 -->
-        <div class="row g-4">
-            <div class="col-md-6">
+        <div class="row g-3">
+            <div class="col-md-4 col-6">
                 <a href="{{ url_for('h5.profile') }}"
-                    class="btn btn-primary btn-lg p-4 shadow-sm w-100">
+                    class="btn btn-primary btn-lg p-3 shadow-sm w-100 h-100 d-flex align-items-center justify-content-center">
                     <div class="text-center">
-                        <h5 class="mb-1">修改个人信息</h5>
+                        <h6 class="mb-1">修改个人信息</h6>
                         <small class="text-white-80">编辑姓名和手机号</small>
                     </div>
                 </a>
             </div>
-            <div class="col-md-6">
-                <a href="{{ url_for('h5.history') }}" class="btn btn-outline-secondary btn-lg p-4 shadow-sm w-100">
+            <div class="col-md-4 col-6">
+                <a href="{{ url_for('h5.history') }}" class="btn btn-outline-secondary btn-lg p-3 shadow-sm w-100 h-100 d-flex align-items-center justify-content-center">
                     <div class="text-center">
-                        <h5 class="mb-1">查看预约记录</h5>
-                        <small class="text-muted">查看历史预约和状态</small>
+                        <h6 class="mb-1">校史馆预约记录</h6>
+                        <small class="text-muted">查看校史馆预约状态</small>
                     </div>
                 </a>
             </div>
-            <div class="col-md-6">
-                <a href="{{ url_for('h5.archive_request') }}" class="btn btn-info btn-lg p-4 shadow-sm w-100">
+            <div class="col-md-4 col-6">
+                <a href="{{ url_for('h5.archive_history') }}" class="btn btn-outline-info btn-lg p-3 shadow-sm w-100 h-100 d-flex align-items-center justify-content-center">
                     <div class="text-center">
-                        <h5 class="mb-1">查询档案信息</h5>
-                        <small class="text-white-80">提交档案查询申请</small>
+                        <h6 class="mb-1">档案馆预约记录</h6>
+                        <small class="text-muted">查看档案馆预约状态</small>
                     </div>
                 </a>
             </div>

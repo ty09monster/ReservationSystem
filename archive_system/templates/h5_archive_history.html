@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>预约记录</title>
+    <title>档案馆预约记录</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/font_who/iconfont.css') }}" rel="stylesheet">
@@ -54,7 +54,7 @@
             color: #333;
         }
 
-        .reservation-card .card-summary .venue-name {
+        .reservation-card .card-summary .archive-info {
             font-size: 14px;
             color: #666;
             margin-top: 4px;
@@ -116,7 +116,7 @@
         <div class="back-btn" onclick="window.history.back()">
             <i class="icon icon-back"></i>
         </div>
-        <h1>预约记录</h1>
+        <h1>档案馆预约记录</h1>
         <div class="nav-right"></div>
     </nav>
 
@@ -135,16 +135,25 @@
         </div>
 
         <div class="filter-bar">
-            <form method="GET" action="{{ url_for('h5.history') }}" class="row g-2 align-items-end">
+            <form method="GET" action="{{ url_for('h5.archive_history') }}" class="row g-2 align-items-end">
                 <div class="col-4">
-                    <label class="form-label small text-muted mb-1">预约状态</label>
+                    <label class="form-label small text-muted mb-1">审核状态</label>
                     <select name="status" class="form-select form-select-sm">
                         <option value="">全部</option>
+                        <option value="待部门领导指定审批人" {% if curr_status=='待部门领导指定审批人' %}selected{% endif %}>待部门领导指定审批人</option>
                         <option value="待审核" {% if curr_status=='待审核' %}selected{% endif %}>待审核</option>
                         <option value="已同意" {% if curr_status=='已同意' %}selected{% endif %}>已同意</option>
                         <option value="已拒绝" {% if curr_status=='已拒绝' %}selected{% endif %}>已拒绝</option>
                         <option value="已核销" {% if curr_status=='已核销' %}selected{% endif %}>已核销</option>
                         <option value="已取消" {% if curr_status=='已取消' %}selected{% endif %}>已取消</option>
+                    </select>
+                </div>
+                <div class="col-4">
+                    <label class="form-label small text-muted mb-1">查阅方式</label>
+                    <select name="type" class="form-select form-select-sm">
+                        <option value="">全部</option>
+                        <option value="线上" {% if curr_type=='线上' %}selected{% endif %}>线上查阅</option>
+                        <option value="线下" {% if curr_type=='线下' %}selected{% endif %}>线下查阅</option>
                     </select>
                 </div>
                 <div class="col-4">
@@ -155,27 +164,18 @@
                     <label class="form-label small text-muted mb-1">结束日期</label>
                     <input type="date" name="end_date" class="form-control form-control-sm" value="{{ curr_end_date }}">
                 </div>
-                <div class="col-4">
-                    <label class="form-label small text-muted mb-1">参观场馆</label>
-                    <select name="venue_name" class="form-select form-select-sm">
-                        <option value="">全部</option>
-                        {% for vn in venue_names %}
-                        <option value="{{ vn }}" {% if curr_venue_name==vn %}selected{% endif %}>{{ vn }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
                 <div class="col-4 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary btn-sm w-100">查询</button>
                 </div>
                 <div class="col-4 d-flex align-items-end">
-                    <a href="{{ url_for('h5.history') }}" class="btn btn-outline-secondary btn-sm w-100">重置</a>
+                    <a href="{{ url_for('h5.archive_history') }}" class="btn btn-outline-secondary btn-sm w-100">重置</a>
                 </div>
             </form>
         </div>
 
         {% if not reservations %}
         <div class="card" style="border-radius:12px; padding:24px; text-align:center;">
-            <p class="text-muted mb-0">暂无预约记录</p>
+            <p class="text-muted mb-0">暂无档案馆预约记录</p>
         </div>
         {% endif %}
 
@@ -184,24 +184,27 @@
             <div class="card-summary">
                 <div class="info">
                     <div class="date">{{ res.visit_date }}</div>
-                    <div class="venue-name">
-                        {% if res.visit_time == '线上办理' %}
-                        线上邮件预约
+                    <div class="archive-info">
+                        {% if res.visit_type == '线上' %}
+                        <span class="badge bg-primary me-1" style="font-size:11px;">线上</span>
                         {% else %}
-                        {{ res.venue.name }} · {{ res.campus }}
+                        <span class="badge bg-success me-1" style="font-size:11px;">线下</span>
                         {% endif %}
+                        {{ res.archive_name or '档案查阅' }}
                     </div>
-                    <div class="time-info">{{ res.visit_time }} | {{ res.res_type }}预约</div>
+                    <div class="time-info">{{ res.visit_time }} | {{ res.visit_type }}查阅</div>
                 </div>
                 <div>
-                    {% if res.status == '待审核' %}
+                    {% if res.status == '待部门领导指定审批人' %}
+                    <span class="badge bg-secondary">待指定审批人</span>
+                    {% elif res.status == '待审核' %}
                     <span class="badge bg-warning text-dark">待审核</span>
                     {% elif res.status == '已同意' %}
                     <span class="badge bg-success">已同意</span>
                     {% elif res.status == '已核销' %}
                     <span class="badge bg-info">已核销</span>
                     {% elif res.status == '已取消' %}
-                    <span class="badge bg-secondary">已取消</span>
+                    <span class="badge bg-dark">已取消</span>
                     {% else %}
                     <span class="badge bg-danger">已拒绝</span>
                     {% endif %}
@@ -211,8 +214,8 @@
 
             <div class="detail-panel" id="detail-{{ res.id }}">
                 <div class="detail-row">
-                    <span class="detail-label">预约类型</span>
-                    <span class="detail-value">{{ res.res_type }}预约</span>
+                    <span class="detail-label">查阅方式</span>
+                    <span class="detail-value">{{ res.visit_type }}查阅</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">预约人</span>
@@ -227,62 +230,46 @@
                     <span class="detail-value">{{ res.user.phone }}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">参观日期</span>
+                    <span class="detail-label">档案名称</span>
+                    <span class="detail-value">{{ res.archive_name or '-' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">档号</span>
+                    <span class="detail-value">{{ res.archive_number or '-' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">查阅目的</span>
+                    <span class="detail-value">{{ res.archive_purpose or '-' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">预约日期</span>
                     <span class="detail-value">{{ res.visit_date }}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">参观时间</span>
+                    <span class="detail-label">预约时间</span>
                     <span class="detail-value">{{ res.visit_time }}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">参观场馆</span>
-                    <span class="detail-value">{{ res.venue.name }} · {{ res.campus }}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">参观人数</span>
-                    <span class="detail-value">{{ res.visitor_count or res.group_size or 1 }}人</span>
+                    <span class="detail-label">校区</span>
+                    <span class="detail-value">{{ res.campus or res.venue.campus if res.venue else '-' }}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">车辆牌号</span>
                     <span class="detail-value">{{ res.license_plate or '无' }}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">讲解服务</span>
-                    <span class="detail-value">{{ '需要' if res.need_guide else '不需要' }}</span>
-                </div>
-                {% if res.res_type == '单位' %}
-                <div class="detail-row">
-                    <span class="detail-label">预约单位</span>
-                    <span class="detail-value">{{ res.group_name or '' }}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">参观单位</span>
-                    <span class="detail-value">{{ res.visiting_unit or '' }}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">单位联系人</span>
-                    <span class="detail-value">{{ res.group_contact or '' }}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">联系电话</span>
-                    <span class="detail-value">{{ res.contact_phone or '' }}</span>
-                </div>
-                {% endif %}
-                <div class="detail-row">
-                    <span class="detail-label">预约缘由</span>
-                    <span class="detail-value">{{ res.reason or '' }}</span>
-                </div>
-                <div class="detail-row">
                     <span class="detail-label">审批状态</span>
                     <span class="detail-value">
-                        {% if res.status == '待审核' %}
+                        {% if res.status == '待部门领导指定审批人' %}
+                        <span class="text-secondary">待部门领导指定审批人</span>
+                        {% elif res.status == '待审核' %}
                         <span class="text-warning">待审核</span>
                         {% elif res.status == '已同意' %}
                         <span class="text-success">已同意</span>
                         {% elif res.status == '已核销' %}
                         <span class="text-info">已核销</span>
                         {% elif res.status == '已取消' %}
-                        <span class="text-secondary">已取消</span>
+                        <span class="text-dark">已取消</span>
                         {% else %}
                         <span class="text-danger">已拒绝</span>
                         {% endif %}
@@ -310,14 +297,24 @@
                     <span class="detail-value">{{ res.verified_at.strftime('%Y-%m-%d %H:%M') }}</span>
                 </div>
                 {% endif %}
-                {% if res.guide_info %}
+                {% if res.attachments %}
                 <div class="detail-row">
-                    <span class="detail-label">讲解员</span>
-                    <span class="detail-value text-success">{{ res.guide_info }}</span>
+                    <span class="detail-label">证明材料</span>
+                    <span class="detail-value">
+                        <div class="d-flex flex-wrap gap-2 mt-1">
+                            {% for att in res.attachments %}
+                            <a href="{{ url_for('static', filename=att.filepath) }}" target="_blank">
+                                <div style="width:60px;height:60px;border-radius:6px;overflow:hidden;border:1px solid #eee;">
+                                    <img src="{{ url_for('static', filename=att.filepath) }}" style="width:100%;height:100%;object-fit:cover;" alt="{{ att.filename }}">
+                                </div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </span>
                 </div>
                 {% endif %}
 
-                {% if res.status == '待审核' %}
+                {% if res.status == '待部门领导指定审批人' %}
                 <div class="mt-3 text-end">
                     <button type="button" class="btn btn-outline-danger btn-sm cancel-btn"
                         onclick="cancelReservation({{ res.id }}, event)">
@@ -362,7 +359,7 @@
             if (!confirm('确定要取消此预约吗？取消后状态将变为"已取消"，无法恢复。')) return;
 
             const form = document.getElementById('cancelForm');
-            form.action = "{{ url_for('h5.cancel_reservation', res_id=0) }}".replace('0', resId);
+            form.action = "{{ url_for('h5.cancel_archive_reservation', res_id=0) }}".replace('0', resId);
 
             const actionInput = document.createElement('input');
             actionInput.type = 'hidden';

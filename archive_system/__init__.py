@@ -2,7 +2,7 @@ from flask import Flask
 from werkzeug.security import generate_password_hash
 from .config import Config
 from .extensions import db
-from .models import Admin, SystemConfig, Announcement, Venue, VenueTimeSlot, Attachment
+from .models import Admin, SystemConfig, Announcement, Venue, VenueTimeSlot, Attachment, ApprovalStaff
 import os
 
 def create_app(config_class=Config):
@@ -15,8 +15,12 @@ def create_app(config_class=Config):
     # 注册蓝图
     from .routes.h5 import h5_bp
     from .routes.admin import admin_bp
+    from .routes.teacher import teacher_bp
+    from .routes.archive import archive_bp
     app.register_blueprint(h5_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(teacher_bp)
+    app.register_blueprint(archive_bp)
 
     # 避免多进程并发数据库操作 - 只在特定情况下初始化数据库
     # 使用环境变量控制是否初始化数据库，防止Gunicorn多worker同时执行
@@ -170,17 +174,33 @@ def init_data():
         )
         db.session.add_all([biaoben_lzh, biaoben_whl])
 
-        # 档案馆（用于邮件查询）
-        archive_venue = Venue(
+        # 档案馆父场馆
+        archive_parent = Venue(
             name="档案馆", category="档案馆",
-            description="河南农业大学档案馆", campus="龙子湖校区",
-            advance_days=7, cutoff_time="16:00", is_active=True
+            description="河南农业大学档案馆", is_active=True
         )
-        db.session.add(archive_venue)
+        db.session.add(archive_parent)
+        db.session.flush()
+
+        # 档案馆-龙子湖校区
+        archive_lzh = Venue(
+            name="档案馆（龙子湖校区）", category="档案馆",
+            parent_venue_id=archive_parent.id, campus="龙子湖校区",
+            address="龙子湖校区图书馆三楼", advance_days=7, cutoff_time="16:00",
+            is_active=True
+        )
+        # 档案馆-文化路校区
+        archive_whl = Venue(
+            name="档案馆（文化路校区）", category="档案馆",
+            parent_venue_id=archive_parent.id, campus="文化路校区",
+            address="文化路校区行政楼二楼", advance_days=7, cutoff_time="16:00",
+            is_active=True
+        )
+        db.session.add_all([archive_lzh, archive_whl])
         db.session.flush()
 
         # 为所有子场馆创建工作日时段（day_of_week: 0=周日, 1=周一, ..., 5=周五, 6=周六）
-        child_venues = [xiaoshi_lzh, xiaoshi_whl, biaoben_lzh, biaoben_whl]
+        child_venues = [xiaoshi_lzh, xiaoshi_whl, biaoben_lzh, biaoben_whl, archive_lzh, archive_whl]
         time_slots = ["09:00-10:30", "10:30-12:00", "14:00-15:30", "15:30-17:00"]
 
         for venue in child_venues:
@@ -197,6 +217,45 @@ def init_data():
                     db.session.add(slot)
 
         logger.info("已创建默认场馆和时段数据")
+
+    # 创建默认审批人员账号
+    if not ApprovalStaff.query.first():
+        import json
+        archive_venues = Venue.query.filter_by(category="档案馆", parent_venue_id=None).all()
+        archive_child_ids = [v.id for v in Venue.query.filter(Venue.parent_venue_id.in_([av.id for av in archive_venues])).all()] if archive_venues else []
+        xiaoshi_parents = Venue.query.filter(Venue.category.in_(["校史馆", "标本馆"]), Venue.parent_venue_id == None).all()
+        xiaoshi_child_ids = []
+        if xiaoshi_parents:
+            xiaoshi_child_ids = [v.id for v in Venue.query.filter(Venue.parent_venue_id.in_([p.id for p in xiaoshi_parents])).all()]
+
+        default_staffs = [
+            ApprovalStaff(
+                username="admin", password_hash=generate_password_hash("admin"),
+                name="档案馆领导", staff_id="LD001", department="档案馆",
+                phone="13800000001", assigned_venue_ids=json.dumps(archive_child_ids),
+                staff_type="leader", is_active=True
+            ),
+            ApprovalStaff(
+                username="archive", password_hash=generate_password_hash("admin"),
+                name="档案馆教师", staff_id="JS001", department="档案馆",
+                phone="13800000002", assigned_venue_ids=json.dumps(archive_child_ids),
+                staff_type="approval", is_active=True
+            ),
+            ApprovalStaff(
+                username="xiaoshi_leader", password_hash=generate_password_hash("admin"),
+                name="校史馆领导", staff_id="LD002", department="校史馆",
+                phone="13800000003", assigned_venue_ids=json.dumps(xiaoshi_child_ids),
+                staff_type="leader", is_active=True
+            ),
+            ApprovalStaff(
+                username="xiaoshi_teacher", password_hash=generate_password_hash("admin"),
+                name="校史馆教师", staff_id="JS002", department="校史馆",
+                phone="13800000004", assigned_venue_ids=json.dumps(xiaoshi_child_ids),
+                staff_type="approval", is_active=True
+            ),
+        ]
+        db.session.add_all(default_staffs)
+        logger.info("已创建默认审批人员账号")
 
     db.session.commit()
 

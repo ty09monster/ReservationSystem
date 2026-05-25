@@ -10,7 +10,6 @@
     <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/font_who/iconfont.css') }}" rel="stylesheet">
     <style>
-        /* 现代化预约页面样式 */
         * {
             box-sizing: border-box;
         }
@@ -35,12 +34,12 @@
         .card-header {
             background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
             color: white;
-            padding: 20px 16px;
+            padding: 16px 16px 0 16px;
             text-align: center;
         }
 
         .card-header h1 {
-            margin: 0;
+            margin: 0 0 12px 0;
             font-size: 20px;
             font-weight: 600;
         }
@@ -81,7 +80,35 @@
             color: #909399;
         }
 
-        /* 日期选择卡片样式 */
+        .res-type-tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 4px;
+            margin: 0 16px 0 16px;
+        }
+
+        .res-type-tab {
+            flex: 1;
+            padding: 10px 0;
+            text-align: center;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            background: transparent;
+        }
+
+        .res-type-tab.active {
+            background: white;
+            color: #4A90E2;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
         .date-section {
             margin-bottom: 24px;
         }
@@ -148,7 +175,6 @@
             margin-top: 4px;
         }
 
-        /* 时间段选择样式 */
         .time-section {
             margin-bottom: 24px;
         }
@@ -180,7 +206,6 @@
             font-weight: 500;
         }
 
-        /* 校区信息样式 */
         .campus-info {
             margin: 16px 0;
             padding: 12px 16px;
@@ -195,7 +220,6 @@
             color: #606266;
         }
 
-        /* 附件上传样式 */
         .attachment-section {
             margin-bottom: 24px;
         }
@@ -282,7 +306,6 @@
             cursor: pointer;
         }
 
-        /* 按钮样式 */
         .btn {
             display: block;
             width: 100%;
@@ -321,7 +344,6 @@
             background: #F5F7FA;
         }
 
-        /* 错误提示样式 */
         .alert {
             padding: 12px 16px;
             border-radius: 8px;
@@ -341,19 +363,61 @@
             border: 1px solid #E1F3D8;
         }
 
-        /* 团队信息样式 */
-        .group-info {
-            margin-bottom: 20px;
+        .guide-toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .group-info h3 {
-            font-size: 16px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 16px;
+        .guide-toggle {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            cursor: pointer;
         }
 
-        /* 底部导航 */
+        .guide-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .guide-toggle .slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            border-radius: 26px;
+            transition: 0.3s;
+        }
+
+        .guide-toggle .slider:before {
+            content: "";
+            position: absolute;
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .guide-toggle input:checked+.slider {
+            background-color: #4A90E2;
+        }
+
+        .guide-toggle input:checked+.slider:before {
+            transform: translateX(22px);
+        }
+
+        .guide-label {
+            font-size: 14px;
+            color: #606266;
+        }
+
         .bottom-nav {
             background: white;
             box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
@@ -388,7 +452,6 @@
             margin-bottom: 4px;
         }
 
-        /* 页脚 */
         .footer {
             text-align: center;
             padding: 20px 0;
@@ -397,7 +460,14 @@
             margin-bottom: 60px;
         }
 
-        /* 响应式调整 */
+        .group-fields {
+            display: none;
+        }
+
+        .group-fields.visible {
+            display: block;
+        }
+
         @media (max-width: 480px) {
             .time-slots {
                 grid-template-columns: 1fr;
@@ -415,10 +485,8 @@
 </head>
 
 <body>
-    <!-- 加载动画 -->
     <div class="loading" id="loading"></div>
 
-    <!-- 顶部导航栏 -->
     <nav class="top-nav">
         <div class="back-btn" onclick="window.history.back()">
             <i class="icon icon-back"></i>
@@ -427,10 +495,8 @@
         <div class="nav-right"></div>
     </nav>
 
-    <!-- 主内容区域 -->
     <div class="main-content">
         <div class="container mt-4">
-            <!-- 显示错误信息 -->
             {% with messages = get_flashed_messages() %}
             {% if messages %}
             {% for message in messages %}
@@ -442,34 +508,47 @@
             {% endwith %}
 
             <form method="POST" enctype="multipart/form-data" id="reservationForm">
-                <!-- 隐藏字段 -->
                 <input type="hidden" name="visit_date" id="hiddenVisitDate">
                 <input type="hidden" name="visit_time" id="hiddenVisitTime">
+                <input type="hidden" name="res_type" id="hiddenResType" value="个人">
 
                 <div class="card">
                     <div class="card-header">
                         <h1>预约信息</h1>
+                        <div class="res-type-tabs" id="resTypeTabs">
+                            <button type="button" class="res-type-tab active" data-type="个人">个人预约</button>
+                            <button type="button" class="res-type-tab" data-type="单位">单位预约</button>
+                        </div>
                     </div>
                     <div class="card-body">
-                        <!-- 用户信息 -->
                         <div class="form-group">
                             <label class="form-label">预约人</label>
                             <input type="text" class="form-control" value="{{ user.name }}" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">身份证号</label>
+                            <input type="text" class="form-control" value="{{ user.id_card }}" disabled>
                         </div>
                         <div class="form-group">
                             <label class="form-label">手机号</label>
                             <input type="text" class="form-control" value="{{ user.phone }}" disabled>
                         </div>
 
-                        <!-- 校区选择 -->
+                        <div class="form-group">
+                            <label class="form-label">选择场馆</label>
+                            <select class="form-control" onchange="location.href='?type='+this.value">
+                                <option value="校史馆" {% if venue_category == '校史馆' %}selected{% endif %}>校史馆</option>
+                                <option value="标本馆" {% if venue_category == '标本馆' %}selected{% endif %}>标本馆</option>
+                                <option value="档案馆" {% if venue_category == '档案馆' %}selected{% endif %}>档案馆</option>
+                            </select>
+                        </div>
+
                         <div class="form-group">
                             <label class="form-label">校区</label>
                             <select name="campus_venue_id" id="campusSelect" class="form-control" required>
                                 <option value="">请选择校区</option>
-                                {% set page_title = self.page_title() %}
-                                {% set current_venue_name = page_title.split('个人')[0].split('团队')[0].split('团体')[0].strip() %}
                                 {% for parent_venue in venues %}
-                                {% if not parent_venue.parent_venue_id and parent_venue.name == current_venue_name %}
+                                {% if not parent_venue.parent_venue_id and parent_venue.name == venue_category %}
                                 {% for child_venue in venues %}
                                 {% if child_venue.parent_venue_id == parent_venue.id %}
                                 <option value="{{ child_venue.id }}">{{ child_venue.campus }}</option>
@@ -481,57 +560,69 @@
                         </div>
 
                         <script>
-                            // 校区选择变化时更新时段选择
                             document.getElementById('campusSelect').addEventListener('change', function () {
                                 updateTimeSlots();
                             });
                         </script>
 
-                        <!-- 日期选择 -->
                         <div class="date-section">
                             <h3 class="section-title">选择日期</h3>
-                            <div class="date-cards" id="dateCards">
-                                <!-- 日期卡片将通过JavaScript生成 -->
-                            </div>
+                            <div class="date-cards" id="dateCards"></div>
                         </div>
 
-                        <!-- 时间段选择 -->
                         <div class="time-section">
                             <h3 class="section-title">选择时间段</h3>
-
-                            <!-- 时间段容器 -->
                             <div class="time-slots" id="timeSlots">
                                 <div class="text-center py-4 text-muted">请先选择校区和日期</div>
                             </div>
-                            {% if '团队' in self.page_title() %}
-                            <div class="mt-2 text-sm text-muted">
-                                团体预约无人数限制
-                            </div>
-                            {% endif %}
                         </div>
 
-                        <!-- 团体信息 -->
-                        {% block group_section %}
-                        {% endblock %}
-
-                        <!-- 访客身份 -->
                         <div class="form-group">
-                            <label class="form-label">访客身份</label>
-                            <select name="identity" class="form-control" required>
-                                <option value="校内师生">校内师生</option>
-                                <option value="校友">校友</option>
-                                <option value="校外人员">校外人员</option>
-                            </select>
+                            <label class="form-label">参观人数</label>
+                            <input type="number" name="visitor_count" class="form-control" min="1" value="1" required>
                         </div>
 
-                        <!-- 预约缘由 -->
+                        <div class="form-group">
+                            <label class="form-label">车辆牌号（选填）</label>
+                            <input type="text" name="license_plate" class="form-control" placeholder="请输入车辆牌号，如豫A12345">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">是否需要讲解</label>
+                            <div class="guide-toggle-wrapper">
+                                <label class="guide-toggle">
+                                    <input type="checkbox" name="need_guide" value="1">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="guide-label" id="guideLabel">不需要</span>
+                            </div>
+                        </div>
+
+                        <div class="group-fields" id="groupFields">
+                            <div class="form-group">
+                                <label class="form-label">预约单位 <span style="color: #F56C6C;">*</span></label>
+                                <input type="text" name="group_name" class="form-control group-required" placeholder="请输入预约单位名称">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">参观单位 <span style="color: #F56C6C;">*</span></label>
+                                <input type="text" name="visiting_unit" class="form-control group-required" placeholder="请输入参观单位名称">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">单位联系人 <span style="color: #F56C6C;">*</span></label>
+                                <input type="text" name="group_contact" class="form-control group-required" placeholder="请输入联系人姓名">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">联系电话 <span style="color: #F56C6C;">*</span></label>
+                                <input type="text" name="contact_phone" class="form-control group-required" placeholder="请输入联系电话">
+                            </div>
+                        </div>
+
                         <div class="form-group">
                             <label class="form-label">预约缘由</label>
                             <textarea name="reason" class="form-control" rows="3" placeholder="请简要说明参观目的"
                                 required></textarea>
                         </div>
 
-                        <!-- 附件上传 -->
                         <div class="attachment-section">
                             <h3 class="section-title">附件上传（可选）</h3>
                             <div class="upload-container" onclick="selectImages()">
@@ -541,9 +632,7 @@
                             </div>
                             <input type="file" id="fileInput" name="attachments" multiple accept="image/*"
                                 style="display: none;">
-                            <div class="file-list" id="fileList">
-                                <!-- 上传的文件将显示在这里 -->
-                            </div>
+                            <div class="file-list" id="fileList"></div>
                         </div>
                     </div>
                 </div>
@@ -554,7 +643,6 @@
         </div>
     </div>
 
-    <!-- 底部导航 -->
     <nav class="bottom-nav">
         <a href="{{ url_for('h5.index') }}" class="bottom-nav-item">
             <i class="icon icon-home"></i>
@@ -574,52 +662,78 @@
         </a>
     </nav>
 
-    <!-- 页脚 -->
     <footer class="footer">
         <p>&copy; <span id="currentYear"></span> 河南农业大学校史馆预约系统</p>
     </footer>
 
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script>
-        // 页面加载完成后执行
         window.onload = function () {
-            // 隐藏加载动画
             setTimeout(function () {
                 document.getElementById('loading').style.display = 'none';
             }, 1000);
 
-            // 设置当前年份
             document.getElementById('currentYear').textContent = new Date().getFullYear();
 
-            // 生成日期卡片
             generateDateCards();
-
-            // 绑定事件
             bindEvents();
-
-            // 初始化表单防重复提交
             initFormGuard();
+            initResTypeTabs();
+            initGuideToggle();
         };
 
-        // 生成日期卡片
+        function initResTypeTabs() {
+            const tabs = document.querySelectorAll('.res-type-tab');
+            const hiddenResType = document.getElementById('hiddenResType');
+            const groupFields = document.getElementById('groupFields');
+            const groupRequired = document.querySelectorAll('.group-required');
+            const cardHeader = document.querySelector('.card-header h1');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function () {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    const type = this.dataset.type;
+                    hiddenResType.value = type;
+
+                    if (type === '单位') {
+                        groupFields.classList.add('visible');
+                        groupRequired.forEach(el => el.required = true);
+                        if (cardHeader) cardHeader.textContent = '单位预约信息';
+                    } else {
+                        groupFields.classList.remove('visible');
+                        groupRequired.forEach(el => el.required = false);
+                        if (cardHeader) cardHeader.textContent = '个人预约信息';
+                    }
+
+                    updateTimeSlots();
+                });
+            });
+        }
+
+        function initGuideToggle() {
+            const checkbox = document.querySelector('input[name="need_guide"]');
+            const label = document.getElementById('guideLabel');
+            if (checkbox && label) {
+                checkbox.addEventListener('change', function () {
+                    label.textContent = this.checked ? '需要' : '不需要';
+                });
+            }
+        }
+
         function generateDateCards() {
             try {
                 const dateCardsContainer = document.getElementById('dateCards');
-                if (!dateCardsContainer) {
-                    console.error('dateCardsContainer not found');
-                    return;
-                }
+                if (!dateCardsContainer) return;
 
                 const today = new Date();
                 const oneDay = 24 * 60 * 60 * 1000;
 
-                // 生成未来14天的日期卡片
                 for (let i = 0; i < 14; i++) {
                     const currentDate = new Date(today.getTime() + i * oneDay);
                     const day = currentDate.getDate();
                     const month = currentDate.getMonth() + 1;
                     const weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][currentDate.getDay()];
-                    // 修复 #6: 使用本地时间拼接，避免 toISOString() 返回 UTC 导致东八区凌晨日期错误
                     const year = currentDate.getFullYear();
                     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
@@ -639,7 +753,6 @@
             }
         }
 
-        // 绑定日期卡片事件
         function bindDateCardEvents() {
             try {
                 const dateCards = document.querySelectorAll('.date-card');
@@ -666,7 +779,6 @@
             }
         }
 
-        // 使用事件委托绑定时间段点击（只绑定一次）
         function bindTimeSlotEvents() {
             const timeSlotsContainer = document.getElementById('timeSlots');
             if (timeSlotsContainer && !timeSlotsContainer.dataset.delegated) {
@@ -692,13 +804,11 @@
             }
         }
 
-        // 绑定事件（在页面加载时调用一次）
         function bindEvents() {
             bindDateCardEvents();
             bindTimeSlotEvents();
         }
 
-        // 初始化表单防重复提交（只在页面加载时调用一次）
         function initFormGuard() {
             const reservationForm = document.getElementById('reservationForm');
             const submitBtn = document.getElementById('submitBtn');
@@ -716,56 +826,46 @@
             }
         }
 
-        // 更新时间段选择（显示剩余名额）
         function updateTimeSlots() {
             try {
                 const campusSelect = document.getElementById('campusSelect');
                 const hiddenVisitDate = document.getElementById('hiddenVisitDate');
                 const timeSlotsContainer = document.getElementById('timeSlots');
 
-                if (!campusSelect || !hiddenVisitDate || !timeSlotsContainer) {
-                    console.error('Required elements not found');
-                    return;
-                }
+                if (!campusSelect || !hiddenVisitDate || !timeSlotsContainer) return;
 
                 const venueId = campusSelect.value;
                 const visitDate = hiddenVisitDate.value;
 
                 if (!venueId || !visitDate) {
-                    // 未选择校区或日期时显示提示
                     timeSlotsContainer.innerHTML = '<div class="text-center py-4 text-muted">请先选择校区和日期</div>';
-                    // 清空已选时段
                     const hiddenVisitTime = document.getElementById('hiddenVisitTime');
                     if (hiddenVisitTime) hiddenVisitTime.value = '';
                     checkFormValidity();
                     return;
                 }
 
-                // 显示加载状态
                 timeSlotsContainer.innerHTML = '<div class="text-center py-4">加载中...</div>';
 
-                // 调用API获取可用时段
                 fetch(`{{ url_for('h5.get_available_slots') }}?venue_id=${venueId}&visit_date=${visitDate}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.slots && data.slots.length > 0) {
-                            // 清空时间段选择
                             timeSlotsContainer.innerHTML = '';
-                            // 清空已选时段
                             const hiddenVisitTime = document.getElementById('hiddenVisitTime');
                             if (hiddenVisitTime) hiddenVisitTime.value = '';
                             checkFormValidity();
 
-                            // 生成时间段选项
+                            const resType = document.getElementById('hiddenResType').value;
+                            const isGroupPage = resType === '单位';
+
                             data.slots.forEach(slot => {
                                 const timeSlot = document.createElement('div');
-                                const isGroupPage = document.title.includes('团队') || document.title.includes('团体');
                                 const available = isGroupPage ? slot.available_group : slot.available_individual;
 
                                 timeSlot.className = `time-slot ${available ? '' : 'disabled'}`;
                                 timeSlot.dataset.time = slot.time_slot;
-                                
-                                // 团体预约页面只显示时间段，不显示剩余名额
+
                                 if (isGroupPage) {
                                     if (slot.is_disabled) {
                                         timeSlot.innerHTML = `
@@ -773,12 +873,13 @@
                                             <div class="text-xs text-danger">无法预约</div>
                                         `;
                                     } else {
+                                        const remainingGroup = slot.available_group ? '可预约' : '已满';
                                         timeSlot.innerHTML = `
                                             <div>${slot.time_slot}</div>
+                                            <div class="text-xs text-muted">${remainingGroup}</div>
                                         `;
                                     }
                                 } else {
-                                    // 个人预约页面显示剩余名额或无法预约
                                     if (slot.is_disabled) {
                                         timeSlot.innerHTML = `
                                             <div>${slot.time_slot}</div>
@@ -793,7 +894,6 @@
                                     }
                                 }
 
-                                // 禁用已满的时段
                                 if (!available) {
                                     timeSlot.style.pointerEvents = 'none';
                                     timeSlot.style.opacity = '0.5';
@@ -803,9 +903,7 @@
                                 timeSlotsContainer.appendChild(timeSlot);
                             });
                         } else {
-                            // 无可用时段
                             timeSlotsContainer.innerHTML = '<div class="text-center py-4 text-muted">暂无可用时段</div>';
-                            // 清空已选时段
                             const hiddenVisitTime = document.getElementById('hiddenVisitTime');
                             if (hiddenVisitTime) hiddenVisitTime.value = '';
                             document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('active'));
@@ -815,7 +913,6 @@
                     .catch(error => {
                         console.error('Error fetching available slots:', error);
                         timeSlotsContainer.innerHTML = '<div class="text-center py-4 text-muted">加载时段失败，请重新选择日期</div>';
-                        // 清空已选时段
                         const hiddenVisitTime = document.getElementById('hiddenVisitTime');
                         if (hiddenVisitTime) hiddenVisitTime.value = '';
                         document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('active'));
@@ -826,24 +923,6 @@
             }
         }
 
-        // 启用时间段选择
-        function enableTimeSlots() {
-            try {
-                const timeSlots = document.querySelectorAll('.time-slot');
-                if (timeSlots.length > 0) {
-                    timeSlots.forEach(slot => {
-                        if (!slot.classList.contains('disabled')) {
-                            slot.style.pointerEvents = 'auto';
-                            slot.style.opacity = '1';
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error('Error enabling time slots:', error);
-            }
-        }
-
-        // 检查表单有效性
         function checkFormValidity() {
             try {
                 const hiddenVisitDate = document.getElementById('hiddenVisitDate');
@@ -865,41 +944,30 @@
             }
         }
 
-        // 全局文件存储
         let selectedFiles = [];
 
-        // 选择图片函数，优化微信浏览器体验
         function selectImages() {
             try {
                 const fileInput = document.getElementById('fileInput');
-                if (!fileInput) {
-                    console.error('fileInput not found');
-                    return;
-                }
+                if (!fileInput) return;
 
-                // 检查是否在微信浏览器中
                 const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
 
                 if (isWeChat) {
-                    // 在微信浏览器中，创建一个临时的input元素，使用capture属性
                     const tempInput = document.createElement('input');
                     tempInput.type = 'file';
                     tempInput.name = 'attachments';
                     tempInput.multiple = true;
                     tempInput.accept = 'image/*';
 
-                    // 监听文件选择事件
                     tempInput.onchange = function (e) {
                         try {
                             if (e.target.files && e.target.files.length > 0) {
-                                // 累积文件
                                 selectedFiles = [...selectedFiles, ...Array.from(e.target.files)];
-                                // 检查总数
                                 if (selectedFiles.length > 8) {
                                     alert('最多只能上传8个文件');
                                     selectedFiles = selectedFiles.slice(0, 8);
                                 }
-                                // 更新表单显示
                                 updateFileList();
                             }
                         } catch (error) {
@@ -907,10 +975,8 @@
                         }
                     };
 
-                    // 触发点击
                     tempInput.click();
                 } else {
-                    // 在其他浏览器中，直接点击原始input
                     fileInput.click();
                 }
             } catch (error) {
@@ -918,7 +984,6 @@
             }
         }
 
-        // 使用DataTransfer更新file input
         function updateFileInput() {
             const fileInput = document.getElementById('fileInput');
             if (fileInput && selectedFiles.length > 0) {
@@ -930,25 +995,17 @@
             }
         }
 
-        // 更新文件列表显示
         function updateFileList() {
             const fileList = document.getElementById('fileList');
-            const maxFiles = 8;
-            const maxFileSize = 15 * 1024 * 1024; // 15MB
+            const maxFileSize = 15 * 1024 * 1024;
 
-            if (!fileList) {
-                console.error('fileList not found');
-                return;
-            }
+            if (!fileList) return;
 
-            // 清空现有文件列表
             fileList.innerHTML = '';
 
-            // 显示上传的文件
             for (let i = 0; i < selectedFiles.length; i++) {
                 const file = selectedFiles[i];
 
-                // 检查文件大小
                 if (file.size > maxFileSize) {
                     alert(`文件${file.name}超过15MB限制`);
                     selectedFiles.splice(i, 1);
@@ -960,7 +1017,6 @@
                 fileItem.className = 'file-item';
                 fileItem.dataset.index = i;
 
-                // 创建文件预览
                 const filePreview = document.createElement('div');
                 filePreview.className = 'file-preview';
 
@@ -980,7 +1036,6 @@
                     filePreview.innerHTML = '<i class="icon icon-file"></i>';
                 }
 
-                // 创建文件信息
                 const fileInfo = document.createElement('div');
                 fileInfo.className = 'file-info';
                 fileInfo.innerHTML = `
@@ -988,7 +1043,6 @@
                     <div class="file-size">${(file.size / 1024 / 1024).toFixed(2)}MB</div>
                 `;
 
-                // 创建删除按钮
                 const fileRemove = document.createElement('div');
                 fileRemove.className = 'file-remove';
                 fileRemove.innerHTML = '×';
@@ -1002,46 +1056,35 @@
                     }
                 });
 
-                // 组装文件项
                 fileItem.appendChild(filePreview);
                 fileItem.appendChild(fileInfo);
                 fileItem.appendChild(fileRemove);
                 fileList.appendChild(fileItem);
             }
 
-            // 更新file input
             updateFileInput();
         }
 
-        // 处理文件选择（用于非微信浏览器）
         function handleFileSelect(event) {
             try {
-                if (!event || !event.target || !event.target.files) {
-                    console.error('Invalid event or no files selected');
-                    return;
-                }
+                if (!event || !event.target || !event.target.files) return;
 
                 const files = Array.from(event.target.files);
                 const maxFiles = 8;
-                const maxFileSize = 15 * 1024 * 1024; // 15MB
 
-                // 累积文件
                 selectedFiles = [...selectedFiles, ...files];
 
-                // 检查总数
                 if (selectedFiles.length > maxFiles) {
                     alert(`最多只能上传${maxFiles}个文件`);
                     selectedFiles = selectedFiles.slice(0, maxFiles);
                 }
 
-                // 更新显示
                 updateFileList();
             } catch (error) {
                 console.error('Error handling file select:', error);
             }
         }
 
-        // 绑定文件输入事件
         try {
             const fileInput = document.getElementById('fileInput');
             if (fileInput) {

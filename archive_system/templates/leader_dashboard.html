@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>领导审批端 - 预约审批管理</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        body { background: #f5f6fa; }
+        .navbar-brand { font-weight: 700; letter-spacing: 1px; }
+        .stat-card {
+            border: none; border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-card .card-body { padding: 18px 20px; }
+        .stat-card .stat-label { font-size: 0.82rem; color: #888; margin-bottom: 4px; }
+        .stat-card .stat-value { font-size: 1.8rem; font-weight: 700; }
+        .filter-bar {
+            background: #fff; border-radius: 12px; padding: 20px 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04); margin-bottom: 20px;
+        }
+        .table-card {
+            background: #fff; border-radius: 12px; padding: 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04); overflow: hidden;
+        }
+        .table-card .table { margin-bottom: 0; }
+        .table thead th {
+            background: #f8f9fc; border-bottom: 2px solid #eef0f7;
+            font-size: 0.85rem; color: #666; font-weight: 600;
+            padding: 14px 16px; white-space: nowrap;
+        }
+        .table tbody td { padding: 14px 16px; vertical-align: middle; font-size: 0.9rem; }
+        .table tbody tr:hover { background: #f8f9ff; }
+        .status-badge { font-size: 0.8rem; padding: 5px 12px; border-radius: 20px; }
+        .detail-label { font-weight: 600; color: #666; font-size: 0.82rem; margin-bottom: 3px; }
+        .detail-value { margin-bottom: 10px; font-size: 0.95rem; word-break: break-all; }
+        .period-btn { font-size: 0.8rem; padding: 4px 14px; border-radius: 20px; }
+        .period-btn.active { background: #667eea; color: #fff; border-color: #667eea; }
+        .section-title { font-weight: 700; color: #333; margin-bottom: 16px; }
+        .chart-card {
+            background: #fff; border-radius: 12px; padding: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04); margin-bottom: 20px;
+        }
+        .chart-card h6 { font-weight: 700; color: #333; margin-bottom: 16px; }
+        canvas { max-height: 280px; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark px-4">
+        <a class="navbar-brand" href="#">{% if area_label %}{{ area_label }}{% endif %}领导审批端</a>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-white-50 small">{{ session.get('teacher_name', '') or session.get('teacher_username', '') }}</span>
+            <a href="{{ url_for('archive.leader_stats_page') }}" class="btn btn-outline-info btn-sm">数据统计</a>
+            <a href="{{ url_for('archive.logout') }}" class="btn btn-outline-light btn-sm">退出登录</a>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4 py-4">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            {{ messages[0] }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="section-title mb-0">数据概览</h5>
+            <div class="btn-group" id="periodBtns">
+                <button class="btn btn-outline-primary period-btn active" data-period="today">今日</button>
+                <button class="btn btn-outline-primary period-btn" data-period="week">本周</button>
+                <button class="btn btn-outline-primary period-btn" data-period="month">本月</button>
+                <button class="btn btn-outline-primary period-btn" data-period="year">本年</button>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4" id="statsRow">
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card stat-card border-primary border-start border-4">
+                    <div class="card-body">
+                        <div class="stat-label">今日预约总数</div>
+                        <div class="stat-value text-primary" id="stat-total">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card stat-card border-warning border-start border-4">
+                    <div class="card-body">
+                        <div class="stat-label">待指定审批人</div>
+                        <div class="stat-value text-warning" id="stat-pending-assign">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card stat-card border-info border-start border-4">
+                    <div class="card-body">
+                        <div class="stat-label">待审批（已指定）</div>
+                        <div class="stat-value text-info" id="stat-pending-audit">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card stat-card border-success border-start border-4">
+                    <div class="card-body">
+                        <div class="stat-label">已审批</div>
+                        <div class="stat-value text-success" id="stat-approved">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card stat-card border-secondary border-start border-4">
+                    <div class="card-body">
+                        <div class="stat-label">线上预约</div>
+                        <div class="stat-value text-secondary" id="stat-online">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card stat-card border-dark border-start border-4">
+                    <div class="card-body">
+                        <div class="stat-label">线下预约</div>
+                        <div class="stat-value text-dark" id="stat-offline">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h5 class="section-title">审批列表</h5>
+
+        <div class="filter-bar">
+            <div class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label small text-muted mb-1">审批状态</label>
+                    <select id="filterStatus" class="form-select">
+                        <option value="">全部</option>
+                        <option value="pending_assign">待指定审批人</option>
+                        <option value="assigned">已指定</option>
+                        <option value="completed">已完成</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small text-muted mb-1">预约类型</label>
+                    <select id="filterResType" class="form-select">
+                        <option value="">全部</option>
+                        <option value="线上">线上预约</option>
+                        <option value="线下">线下预约</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small text-muted mb-1">申请时间</label>
+                    <select id="filterTimeRange" class="form-select">
+                        <option value="">全部</option>
+                        <option value="week">近一周</option>
+                        <option value="month">近一个月</option>
+                        <option value="quarter">近三个月</option>
+                        <option value="custom">自定义</option>
+                    </select>
+                </div>
+                <div class="col-auto custom-date" style="display:none;">
+                    <label class="form-label small text-muted mb-1">开始日期</label>
+                    <input type="date" id="filterStartDate" class="form-control form-control-sm">
+                </div>
+                <div class="col-auto custom-date" style="display:none;">
+                    <label class="form-label small text-muted mb-1">结束日期</label>
+                    <input type="date" id="filterEndDate" class="form-control form-control-sm">
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small text-muted mb-1">关键词</label>
+                    <input type="text" id="filterKeyword" class="form-control" placeholder="姓名/手机号/单位">
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-primary" onclick="loadReservations(1)">查询</button>
+                    <button class="btn btn-outline-secondary" onclick="resetFilters()">重置</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>申请时间</th>
+                        <th>预约类型</th>
+                        <th>申请人/单位</th>
+                        <th>参观场馆</th>
+                        <th>预约日期</th>
+                        <th>审批状态</th>
+                        <th>审批教师</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="reservationTableBody">
+                    <tr><td colspan="8" class="text-center text-muted py-5">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <nav class="mt-3" id="paginationNav" style="display:none;">
+            <ul class="pagination justify-content-center" id="paginationUl">
+            </ul>
+        </nav>
+    </div>
+
+    <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title">预约详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="detail-label">提交时间</div>
+                            <div class="detail-value" id="d-time"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-label">申请人</div>
+                            <div class="detail-value fw-bold" id="d-name"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-label">手机号</div>
+                            <div class="detail-value" id="d-phone"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-label">证件类型</div>
+                            <div class="detail-value" id="d-idtype"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-label">证件号码</div>
+                            <div class="detail-value font-monospace" id="d-idcard"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-label">邮箱</div>
+                            <div class="detail-value" id="d-email"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-label">预约类型</div>
+                            <div class="detail-value" id="d-restype"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-label">查阅方式</div>
+                            <div class="detail-value" id="d-visittype"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-label">参观人数</div>
+                            <div class="detail-value" id="d-visitorcount"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-label">讲解服务</div>
+                            <div class="detail-value" id="d-needguide"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-label">参观场馆</div>
+                            <div class="detail-value text-primary" id="d-venue"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-label">参观日期</div>
+                            <div class="detail-value" id="d-visitdate"></div>
+                        </div>
+                    </div>
+                    <div id="d-archive-info" style="display:none;" class="mb-2">
+                        <hr><h6 class="text-muted">档案信息</h6>
+                        <div class="row">
+                            <div class="col-md-4"><div class="detail-label">档案名称</div><div class="detail-value" id="d-archive-name"></div></div>
+                            <div class="col-md-4"><div class="detail-label">档号</div><div class="detail-value" id="d-archive-number"></div></div>
+                            <div class="col-md-4"><div class="detail-label">查阅目的</div><div class="detail-value" id="d-archive-purpose"></div></div>
+                        </div>
+                    </div>
+                    <div id="d-group-info" style="display:none;" class="mb-3">
+                        <hr><h6 class="text-muted">单位信息</h6>
+                        <div class="row">
+                            <div class="col-md-4"><div class="detail-label">预约单位</div><div class="detail-value" id="d-group-name"></div></div>
+                            <div class="col-md-4"><div class="detail-label">参观单位</div><div class="detail-value" id="d-visiting-unit"></div></div>
+                            <div class="col-md-4"><div class="detail-label">单位联系人</div><div class="detail-value" id="d-group-contact"></div></div>
+                            <div class="col-md-4"><div class="detail-label">单位人数</div><div class="detail-value" id="d-group-size"></div></div>
+                            <div class="col-md-4"><div class="detail-label">联系电话</div><div class="detail-value" id="d-contact-phone"></div></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="detail-label">申请理由</div>
+                        <div class="reason-box" id="d-reason"></div>
+                    </div>
+                    <div id="d-attachments" class="mb-2">
+                        <div class="detail-label">证明材料/人脸照片</div>
+                        <div class="text-muted small">无附件</div>
+                    </div>
+                    <div id="d-teacher-display" style="display:none;" class="alert alert-info py-2">
+                        <strong>已指定审批教师：</strong><span id="d-teacher-text"></span>
+                    </div>
+                    <div id="d-reject-display" style="display:none;" class="alert alert-danger py-2">
+                        <strong>拒绝原因：</strong><span id="d-reject-text"></span>
+                    </div>
+
+                    <div id="leaderActionArea" style="display:none;">
+                        <hr>
+                        <h6 class="text-muted mb-3">部门领导操作</h6>
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold">指定审批教师</label>
+                                <select id="assignTeacherSelect" class="form-select">
+                                    <option value="">-- 请选择审批教师 --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold">指定意见（选填）</label>
+                                <input type="text" id="assignOpinion" class="form-control" placeholder="可选填意见">
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-primary w-100" onclick="assignTeacher()">指定</button>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button class="btn btn-outline-danger btn-sm" onclick="showLeaderReject()">拒绝此预约</button>
+                            <div id="leaderRejectArea" style="display:none;" class="mt-2">
+                                <textarea id="leaderRejectReason" class="form-control border-danger mb-2" rows="2" placeholder="请填写拒绝原因（必填）"></textarea>
+                                <button class="btn btn-danger btn-sm" onclick="leaderReject()">确认拒绝</button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="hideLeaderReject()">取消</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-warning" id="btnPush" style="display:none;" onclick="pushToTeacher()">重复推送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .reason-box {
+            background-color: #f8f9fa; border: 1px solid #dee2e6;
+            border-radius: 6px; padding: 12px; min-height: 60px;
+            max-height: 150px; overflow-y: auto; font-size: 0.9rem; color: #495057;
+        }
+    </style>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        const bpPrefix = '{{ bp_prefix or "/teacher" }}';
+        const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+        let currentResData = null;
+        let currentPage = 1;
+        let teacherList = [];
+
+        document.getElementById('filterTimeRange').addEventListener('change', function() {
+            const customDates = document.querySelectorAll('.custom-date');
+            if (this.value === 'custom') {
+                customDates.forEach(el => el.style.display = 'block');
+            } else {
+                customDates.forEach(el => el.style.display = 'none');
+            }
+        });
+
+        function loadTeachers() {
+            fetch(bpPrefix + '/leader/api/teachers', { credentials: 'same-origin' })
+                .then(r => r.json())
+                .then(data => { teacherList = data.teachers || []; })
+                .catch(() => { teacherList = []; });
+        }
+
+        function populateTeacherSelect() {
+            const select = document.getElementById('assignTeacherSelect');
+            select.innerHTML = '<option value="">-- 请选择审批教师 --</option>';
+            teacherList.forEach(function(t) {
+                select.innerHTML += '<option value="' + t.id + '">' + t.name + (t.department ? ' (' + t.department + ')' : '') + '</option>';
+            });
+        }
+
+        loadTeachers();
+
+        function loadStats(period) {
+            fetch(bpPrefix + '/leader/api/stats?period=' + period, { credentials: 'same-origin' })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('stat-total').innerText = data.total_count;
+                    document.getElementById('stat-pending-assign').innerText = data.pending_assign_count;
+                    document.getElementById('stat-pending-audit').innerText = data.pending_audit_count;
+                    document.getElementById('stat-approved').innerText = data.approved_count;
+                    document.getElementById('stat-online').innerText = data.online_count;
+                    document.getElementById('stat-offline').innerText = data.offline_count;
+                })
+                .catch(err => console.error('加载统计数据失败', err));
+        }
+
+        function loadReservations(page) {
+            currentPage = page;
+            const params = new URLSearchParams();
+            params.set('page', page);
+            const status = document.getElementById('filterStatus').value;
+            const resType = document.getElementById('filterResType').value;
+            const timeRange = document.getElementById('filterTimeRange').value;
+            const keyword = document.getElementById('filterKeyword').value.trim();
+            if (status) params.set('status', status);
+            if (resType) params.set('res_type', resType);
+            if (timeRange) params.set('time_range', timeRange);
+            if (timeRange === 'custom') {
+                const startDate = document.getElementById('filterStartDate').value;
+                const endDate = document.getElementById('filterEndDate').value;
+                if (startDate) params.set('start_date', startDate);
+                if (endDate) params.set('end_date', endDate);
+            }
+            if (keyword) params.set('keyword', keyword);
+
+            fetch(bpPrefix + '/leader/api/reservations?' + params.toString(), { credentials: 'same-origin' })
+                .then(r => r.json())
+                .then(data => {
+                    const tbody = document.getElementById('reservationTableBody');
+                    if (data.reservations.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-5">没有找到匹配的记录</td></tr>';
+                    } else {
+                        tbody.innerHTML = data.reservations.map(r => {
+                            let statusBadge = '';
+                            if (r.status === '待部门领导指定审批人') {
+                                statusBadge = '<span class="badge bg-warning text-dark status-badge">待指定审批人</span>';
+                            } else if (r.status === '待审核') {
+                                statusBadge = '<span class="badge bg-info status-badge">待审批(已指定)</span>';
+                            } else if (r.status === '已同意') {
+                                statusBadge = '<span class="badge bg-success status-badge">已通过</span>';
+                            } else if (r.status === '已拒绝') {
+                                statusBadge = '<span class="badge bg-danger status-badge">已拒绝</span>';
+                            } else if (r.status === '已核销') {
+                                statusBadge = '<span class="badge bg-dark status-badge">已核销</span>';
+                            } else if (r.status === '已完成') {
+                                statusBadge = '<span class="badge bg-primary status-badge">已完成</span>';
+                            } else {
+                                statusBadge = '<span class="badge bg-secondary status-badge">' + r.status + '</span>';
+                            }
+                            const typeBadge = r.res_type === '单位' ? '<span class="badge bg-info">单位</span>' : '<span class="badge bg-secondary">个人</span>';
+                            const displayName = r.res_type === '单位' && r.group_name ? r.group_name : r.user_name;
+                            return '<tr>' +
+                                '<td>' + r.created_at + '</td>' +
+                                '<td>' + typeBadge + '</td>' +
+                                '<td>' + displayName + '</td>' +
+                                '<td>' + r.venue_name + '</td>' +
+                                '<td>' + r.visit_date + '<br><small class="text-muted">' + r.visit_time + '</small></td>' +
+                                '<td>' + statusBadge + '</td>' +
+                                '<td>' + (r.approval_teacher_name || '<span class="text-muted">未指定</span>') + '</td>' +
+                                '<td><button class="btn btn-outline-primary btn-sm" onclick="openDetailModal(' + r.id + ')">查看详情</button></td>' +
+                                '</tr>';
+                        }).join('');
+                    }
+                    renderPagination(data.pagination);
+                })
+                .catch(err => console.error('加载预约列表失败', err));
+        }
+
+        function renderPagination(pag) {
+            const nav = document.getElementById('paginationNav');
+            const ul = document.getElementById('paginationUl');
+            if (pag.pages <= 1) {
+                nav.style.display = 'none';
+                return;
+            }
+            nav.style.display = 'block';
+            let html = '';
+            if (pag.has_prev) {
+                html += '<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="loadReservations(' + (pag.page - 1) + ')">上一页</a></li>';
+            }
+            html += '<li class="page-item disabled"><span class="page-link">第 ' + pag.page + ' / ' + pag.pages + ' 页</span></li>';
+            if (pag.has_next) {
+                html += '<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="loadReservations(' + (pag.page + 1) + ')">下一页</a></li>';
+            }
+            ul.innerHTML = html;
+        }
+
+        function resetFilters() {
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterResType').value = '';
+            document.getElementById('filterTimeRange').value = '';
+            document.getElementById('filterStartDate').value = '';
+            document.getElementById('filterEndDate').value = '';
+            document.getElementById('filterKeyword').value = '';
+            document.querySelectorAll('.custom-date').forEach(el => el.style.display = 'none');
+            loadReservations(1);
+        }
+
+        function openDetailModal(resId) {
+            fetch(bpPrefix + '/leader/reservation/' + resId, { credentials: 'same-origin' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) { alert(data.error); return; }
+                    currentResData = data;
+
+                    document.getElementById('d-time').innerText = data.created_at;
+                    document.getElementById('d-name').innerText = data.user_name;
+                    document.getElementById('d-phone').innerText = data.user_phone;
+                    document.getElementById('d-email').innerText = data.user_email || '未填写';
+                    document.getElementById('d-idtype').innerText = data.user_id_type;
+                    document.getElementById('d-idcard').innerText = data.user_id_card;
+                    document.getElementById('d-restype').innerText = data.res_type === '单位' ? '单位预约' : '个人预约';
+                    document.getElementById('d-visittype').innerText = data.visit_type || '线下';
+                    document.getElementById('d-visitorcount').innerText = data.visitor_count || '1';
+                    document.getElementById('d-needguide').innerText = data.need_guide ? '需要' : '不需要';
+                    document.getElementById('d-venue').innerText = data.venue_name;
+                    document.getElementById('d-visitdate').innerText = data.visit_date + ' ' + data.visit_time;
+
+                    if (data.archive_name || data.archive_number || data.archive_purpose) {
+                        document.getElementById('d-archive-info').style.display = 'block';
+                        document.getElementById('d-archive-name').innerText = data.archive_name || '-';
+                        document.getElementById('d-archive-number').innerText = data.archive_number || '-';
+                        document.getElementById('d-archive-purpose').innerText = data.archive_purpose || '-';
+                    } else {
+                        document.getElementById('d-archive-info').style.display = 'none';
+                    }
+
+                    if (data.res_type === '单位') {
+                        document.getElementById('d-group-info').style.display = 'block';
+                        document.getElementById('d-group-name').innerText = data.group_name || '-';
+                        document.getElementById('d-visiting-unit').innerText = data.visiting_unit || '-';
+                        document.getElementById('d-group-contact').innerText = data.group_contact || '-';
+                        document.getElementById('d-group-size').innerText = data.group_size || '-';
+                        document.getElementById('d-contact-phone').innerText = data.contact_phone || '-';
+                    } else {
+                        document.getElementById('d-group-info').style.display = 'none';
+                    }
+
+                    document.getElementById('d-reason').innerText = data.reason || '无';
+
+                    const attDiv = document.getElementById('d-attachments');
+                    if (data.attachments && data.attachments.length > 0) {
+                        let html = '<div class="detail-label">证明材料/人脸照片</div><div class="row row-cols-3 g-2">';
+                        data.attachments.forEach(function(att) {
+                            const isImage = att.filename.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i);
+                            if (isImage) {
+                                html += '<div class="col"><a href="/static/' + att.filepath + '" target="_blank"><img src="/static/' + att.filepath + '" class="img-thumbnail" style="max-height:120px;" alt="' + att.filename + '"><br><small class="text-truncate d-block">' + att.filename + '</small></a></div>';
+                            } else {
+                                html += '<div class="col"><a href="/static/' + att.filepath + '" target="_blank" class="d-block p-2 border rounded text-truncate small">' + att.filename + '</a></div>';
+                            }
+                        });
+                        html += '</div>';
+                        attDiv.innerHTML = html;
+                    } else {
+                        attDiv.innerHTML = '<div class="detail-label">证明材料/人脸照片</div><div class="text-muted small">无附件</div>';
+                    }
+
+                    const teacherDisplay = document.getElementById('d-teacher-display');
+                    if (data.approval_teacher_name) {
+                        teacherDisplay.style.display = 'block';
+                        document.getElementById('d-teacher-text').innerText = data.approval_teacher_name;
+                    } else {
+                        teacherDisplay.style.display = 'none';
+                    }
+
+                    const rejectDisplay = document.getElementById('d-reject-display');
+                    if (data.reject_reason) {
+                        rejectDisplay.style.display = 'block';
+                        document.getElementById('d-reject-text').innerText = data.reject_reason;
+                    } else {
+                        rejectDisplay.style.display = 'none';
+                    }
+
+                    const leaderAction = document.getElementById('leaderActionArea');
+                    const btnPush = document.getElementById('btnPush');
+
+                    document.getElementById('leaderRejectArea').style.display = 'none';
+                    document.getElementById('assignOpinion').value = '';
+
+                    if (data.status === '待部门领导指定审批人') {
+                        leaderAction.style.display = 'block';
+                        btnPush.style.display = 'none';
+                        populateTeacherSelect();
+                    } else if (data.status === '待审核' && data.approval_teacher_name) {
+                        leaderAction.style.display = 'none';
+                        btnPush.style.display = 'inline-block';
+                    } else {
+                        leaderAction.style.display = 'none';
+                        btnPush.style.display = 'none';
+                    }
+
+                    detailModal.show();
+                })
+                .catch(function(err) { console.error(err); alert('加载详情失败'); });
+        }
+
+        function assignTeacher() {
+            const teacherId = document.getElementById('assignTeacherSelect').value;
+            if (!teacherId) { alert('请选择审批教师'); return; }
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = bpPrefix + '/leader/assign/' + currentResData.id;
+            form.style.display = 'none';
+
+            const teacherInput = document.createElement('input');
+            teacherInput.type = 'hidden';
+            teacherInput.name = 'teacher_id';
+            teacherInput.value = teacherId;
+            form.appendChild(teacherInput);
+
+            const opinion = document.getElementById('assignOpinion').value.trim();
+            if (opinion) {
+                const opinionInput = document.createElement('input');
+                opinionInput.type = 'hidden';
+                opinionInput.name = 'opinion';
+                opinionInput.value = opinion;
+                form.appendChild(opinionInput);
+            }
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function showLeaderReject() {
+            document.getElementById('leaderRejectArea').style.display = 'block';
+        }
+
+        function hideLeaderReject() {
+            document.getElementById('leaderRejectArea').style.display = 'none';
+            document.getElementById('leaderRejectReason').value = '';
+        }
+
+        function leaderReject() {
+            const reason = document.getElementById('leaderRejectReason').value.trim();
+            if (!reason) { alert('请填写拒绝原因'); return; }
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = bpPrefix + '/leader/reject/' + currentResData.id;
+            form.style.display = 'none';
+
+            const reasonInput = document.createElement('input');
+            reasonInput.type = 'hidden';
+            reasonInput.name = 'reject_reason';
+            reasonInput.value = reason;
+            form.appendChild(reasonInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function pushToTeacher() {
+            if (!confirm('确定要重复推送消息至审批教师吗？')) return;
+            fetch(bpPrefix + '/leader/push/' + currentResData.id, {
+                method: 'POST',
+                credentials: 'same-origin'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('已重复推送消息至审批教师');
+                    detailModal.hide();
+                    loadReservations(currentPage);
+                } else {
+                    alert(data.error || '操作失败');
+                }
+            })
+            .catch(err => { console.error(err); alert('推送失败'); });
+        }
+
+        document.querySelectorAll('#periodBtns .period-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('#periodBtns .period-btn').forEach(function(b) { b.classList.remove('active'); });
+                this.classList.add('active');
+                loadStats(this.dataset.period);
+            });
+        });
+
+        loadStats('today');
+        loadReservations(1);
+    </script>
+</body>
+</html>

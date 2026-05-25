@@ -30,12 +30,12 @@
                     <strong>场馆：</strong>{{ reservation.venue.name }}<br>
                     <strong>日期：</strong>{{ reservation.visit_date }}<br>
                     <strong>时间：</strong>{{ reservation.visit_time }}<br>
-                    {% if reservation.res_type == '团队' %}
-                    <strong>类型：</strong>团队参观<br>
-                    <strong>团体名称：</strong>{{ reservation.group_name }}<br>
-                    <strong>团体人数：</strong>{{ reservation.group_size }}人<br>
+                    {% if reservation.res_type == '单位' %}
+                    <strong>类型：</strong>单位预约<br>
+                    <strong>预约单位：</strong>{{ reservation.group_name }}<br>
+                    <strong>参观人数：</strong>{{ reservation.group_size }}人<br>
                     {% else %}
-                    <strong>类型：</strong>个人参观<br>
+                    <strong>类型：</strong>个人预约<br>
                     {% endif %}
                 </p>
             </div>

@@ -23,20 +23,28 @@
     <link href="{{ url_for('static', filename='css/font_who/iconfont.css') }}" rel="stylesheet">
     <style>
         .feature-icon {
-            width: 48px;    /* 圆形大小，可改（宽高必须相等，否则变椭圆） */
+            width: 48px;
+            /* 圆形大小，可改（宽高必须相等，否则变椭圆） */
             height: 48px;
-            border-radius: 50%;  /* 关键：变圆形 */
-            overflow: hidden;    /* 关键：裁剪超出圆形的图片 */
-            display: flex;       /* 图片水平+垂直居中 */
+            border-radius: 50%;
+            /* 关键：变圆形 */
+            overflow: hidden;
+            /* 关键：裁剪超出圆形的图片 */
+            display: flex;
+            /* 图片水平+垂直居中 */
             align-items: center;
             justify-content: center;
-            background-color: #f5f5f5; /* 可选：容器背景色，图片透明时显示 */
+            background-color: #f5f5f5;
+            /* 可选：容器背景色，图片透明时显示 */
         }
-        .feature-icon img{
+
+        .feature-icon img {
             width: 100%;
             height: 100%;
-            object-fit: cover;  /* 核心：保持图片比例，填满圆形不变形 */
-            object-position: center; /* 图片显示中心区域（默认） */
+            object-fit: cover;
+            /* 核心：保持图片比例，填满圆形不变形 */
+            object-position: center;
+            /* 图片显示中心区域（默认） */
         }
     </style>
 </head>
@@ -61,8 +69,8 @@
             <div class="container">
                 <h2>欢迎访问校史馆预约系统</h2>
                 <p>探索河南农业大学的历史与文化，预约参观校史馆和档案馆</p>
-                <button onclick="scrollToReserve()" class="btn btn-primary">立即预约</button>
-                <a href="{{ url_for('h5.announcements') }}" class="btn btn-secondary">查看公告</a>
+                <a href="{{ url_for('h5.reserve') }}" class="btn btn-primary">立即预约</a>
+                <a href="{{ url_for('h5.archive_request') }}" class="btn btn-secondary">查询档案</a>
             </div>
         </section>
 
@@ -79,8 +87,8 @@
                 </div>
                 <div class="carousel-inner">
                     <div class="carousel-item active">
-                        <img src="{{ url_for('static', filename='images/carousel/banner1.jpg') }}"
-                            class="d-block w-100" alt="河南农业大学校园"
+                        <img src="{{ url_for('static', filename='images/carousel/banner1.jpg') }}" class="d-block w-100"
+                            alt="河南农业大学校园"
                             onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22450%22%3E%3Crect fill=%22%234A90E2%22 width=%22800%22 height=%22450%22/%3E%3Ctext fill=%22white%22 font-size=%2230%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22%3E河南农业大学校园风光%3C/text%3E%3C/svg%3E';">
                         <div class="carousel-caption d-none d-md-block">
                             <h5>河南农业大学校园风光</h5>
@@ -88,8 +96,8 @@
                         </div>
                     </div>
                     <div class="carousel-item">
-                        <img src="{{ url_for('static', filename='images/carousel/banner2.jpg') }}"
-                            class="d-block w-100" alt="校史馆内部"
+                        <img src="{{ url_for('static', filename='images/carousel/banner2.jpg') }}" class="d-block w-100"
+                            alt="校史馆内部"
                             onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22450%22%3E%3Crect fill=%22%23357ABD%22 width=%22800%22 height=%22450%22/%3E%3Ctext fill=%22white%22 font-size=%2230%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22%3E校史馆内部展览%3C/text%3E%3C/svg%3E';">
                         <div class="carousel-caption d-none d-md-block">
                             <h5>校史馆内部展览</h5>
@@ -97,8 +105,8 @@
                         </div>
                     </div>
                     <div class="carousel-item">
-                        <img src="{{ url_for('static', filename='images/carousel/banner3.jpg') }}"
-                            class="d-block w-100" alt="档案馆"
+                        <img src="{{ url_for('static', filename='images/carousel/banner3.jpg') }}" class="d-block w-100"
+                            alt="档案馆"
                             onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22450%22%3E%3Crect fill=%22%232C5F8A%22 width=%22800%22 height=%22450%22/%3E%3Ctext fill=%22white%22 font-size=%2230%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22%3E档案馆珍藏%3C/text%3E%3C/svg%3E';">
                         <div class="carousel-caption d-none d-md-block">
                             <h5>档案馆珍藏</h5>
@@ -141,50 +149,6 @@
             </div>
         </section>
         {% endif %}
-
-        <!-- 预约功能模块 -->
-        <section class="feature-section">
-            <div class="section-header">
-                <h3>预约服务</h3>
-            </div>
-            <div class="feature-grid">
-                <a href="{{ url_for('h5.reserve_xiaoshi_individual') }}" class="feature-item">
-                    <div class="feature-icon">
-                        <!-- <i class="icon icon-calendar"></i> -->
-                        <img src="{{ url_for('static', filename='个人预约.jpg') }}" alt="个人预约图标">
-                    </div>
-                    <h3 class="feature-title">校史馆预约</h3>
-                    <p class="feature-desc">个人参观校史馆</p>
-                </a>
-                <a href="{{ url_for('h5.reserve_biaoben_individual') }}" class="feature-item">
-                    <div class="feature-icon">
-                        <!-- <i class="icon icon-clock"></i> -->
-                        <img src="{{ url_for('static', filename='个人预约.jpg') }}" alt="个人预约图标">
-                    </div>
-                    <h3 class="feature-title">标本馆预约</h3>
-                    <p class="feature-desc">个人参观标本馆</p>
-                </a>
-            </div>
-            <div class="feature-grid">
-                <a href="{{ url_for('h5.reserve_xiaoshi_group') }}" class="feature-item">
-                    <div class="feature-icon">
-                        <!-- <i class="icon icon-history"></i> -->
-                        <img src="{{ url_for('static', filename='团队预约.jpg') }}" alt="团队预约图标">
-                    </div>
-                    <h3 class="feature-title">校史馆团体预约</h3>
-                    <p class="feature-desc">团队参观校史馆</p>
-                </a>
-                <a href="{{ url_for('h5.reserve_biaoben_group') }}" class="feature-item">
-                    <div class="feature-icon">
-                        <!-- <i class="icon icon-info"></i> -->
-                        <img src="{{ url_for('static', filename='团队预约.jpg') }}" alt="团队预约图标">
-                    </div>
-                    <h3 class="feature-title">标本馆团体预约</h3>
-                    <p class="feature-desc">团队参观标本馆</p>
-                </a>
-            </div>
-            
-        </section>
 
         <!-- 校史馆介绍 -->
         <section class="info-section">
@@ -255,21 +219,7 @@
 
         // 设置当前年份
         document.getElementById('currentYear').textContent = new Date().getFullYear();
-
-        // 检测URL参数，自动滚动到预约服务区域
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('scroll_to_reserve')) {
-            setTimeout(scrollToReserve, 500);
-        }
     };
-
-    // 滚动到预约服务区域
-    function scrollToReserve() {
-        const reserveSection = document.querySelector('.feature-section');
-        if (reserveSection) {
-            reserveSection.scrollIntoView({ behavior: 'smooth' });
-        }
-    }
 </script>
 
 </html>

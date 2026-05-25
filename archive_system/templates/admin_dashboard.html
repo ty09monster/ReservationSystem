@@ -1,2193 +1,718 @@
 <!DOCTYPE html>
 <html lang="zh">
-
 <head>
-    <meta charset="UTF-8">
-    <title>管理后台</title>
-    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
-    <style>
-        .reason-box {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            padding: 10px;
-            height: 100px;
-            overflow-y: auto;
-            font-size: 0.9rem;
-            color: #495057;
-            margin-bottom: 15px;
-        }
-
-        .detail-label {
-            font-weight: bold;
-            color: #6c757d;
-            font-size: 0.85rem;
-            margin-bottom: 2px;
-        }
-
-        .detail-value {
-            margin-bottom: 12px;
-            font-size: 1rem;
-            word-break: break-all;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ area_label }} - 管理后台</title>
+<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+<style>
+body{background:#f5f6fa;min-height:100vh}.navbar-brand{font-weight:700;letter-spacing:1px}
+.main-container{display:flex;min-height:calc(100vh - 56px)}
+.sidebar{width:220px;min-width:220px;background:linear-gradient(180deg,#2c3e50 0%,#1a252f 100%);padding:10px 0;overflow-y:auto}
+.sidebar .nav-link{color:#b0bec5;padding:10px 20px;font-size:0.88rem;border-left:3px solid transparent;transition:all 0.2s;white-space:nowrap}
+.sidebar .nav-link:hover{color:#fff;background:rgba(255,255,255,0.05);border-left-color:#ffc107}
+.sidebar .nav-link.active{color:#fff;background:rgba(255,255,255,0.1);border-left-color:#4fc3f7;font-weight:600}
+.sidebar .nav-link .badge{font-size:0.7rem}
+.sidebar .section-label{color:#607d8b;font-size:0.7rem;text-transform:uppercase;padding:15px 20px 5px;letter-spacing:1px}
+.content{flex:1;overflow-y:auto;padding:24px;max-height:calc(100vh - 56px)}
+.card-custom{background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.04)}
+.card-custom .card-header{background:#f8f9fc;border-bottom:2px solid #eef0f7;font-weight:700;padding:14px 20px;border-radius:12px 12px 0 0}
+.card-custom .card-body{padding:20px}
+.table thead th{background:#f8f9fc;border-bottom:2px solid #eef0f7;font-size:0.82rem;color:#666;font-weight:600;white-space:nowrap}
+.filter-row{background:#fff;border-radius:10px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 6px rgba(0,0,0,0.04)}
+.status-badge{font-size:0.76rem;padding:4px 10px;border-radius:20px}
+.tab-content-section{display:none}.tab-content-section.active{display:block}
+.guide-status-on{background:#d4edda;color:#155724;padding:3px 12px;border-radius:12px;font-size:0.8rem}
+.guide-status-off{background:#f8d7da;color:#721c24;padding:3px 12px;border-radius:12px;font-size:0.8rem}
+.area-switch{display:flex;background:rgba(255,255,255,0.1);border-radius:8px;padding:3px;margin:8px 14px 14px}
+.area-switch a{flex:1;text-align:center;padding:6px 0;font-size:0.78rem;border-radius:6px;color:#b0bec5;text-decoration:none;transition:all 0.2s}
+.area-switch a.active{background:#4fc3f7;color:#1a252f;font-weight:700}
+.permission-check-list{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+@media(max-width:768px){.sidebar{width:60px;min-width:60px}.sidebar .nav-link{padding:10px 8px;text-align:center;font-size:0}.sidebar .nav-link .badge{display:none}.sidebar .section-label{display:none}}
+</style>
 </head>
-
 <body>
-    <nav class="navbar navbar-dark bg-dark px-4">
-        <a class="navbar-brand" href="#">档案馆预约管理系统</a>
-        <span class="navbar-text text-white">
-            {% if session['is_super'] %}
-            🚀 超级管理员
-            {% else %}
-            👤 普通管理员
-            {% endif %}
-        </span>
-    </nav>
+<nav class="navbar navbar-dark bg-dark px-3">
+<a class="navbar-brand" href="#">{{ area_label }}</a>
+<div class="d-flex align-items-center gap-3">
+<span class="text-white-50 small">{{ session.get('admin_username', '') or '管理员' }}</span>
+<a href="{{ url_for('admin.logout') }}" class="btn btn-outline-light btn-sm">退出</a>
+<a href="{{ url_for('teacher.dashboard') }}" class="btn btn-outline-info btn-sm">教师审批端</a>
+</div>
+</nav>
+<div class="main-container">
+<div class="sidebar">
+<div class="area-switch">
+<a href="{{ url_for('admin.switch_area', area='xiaoshi') }}" class="{% if management_area == 'xiaoshi' %}active{% endif %}">校史馆</a>
+<a href="{{ url_for('admin.switch_area', area='archive') }}" class="{% if management_area == 'archive' %}active{% endif %}">档案馆</a>
+</div>
+<div class="section-label">预约管理</div>
+<a class="nav-link {% if not active_tab or active_tab == 'reservation' %}active{% endif %}" href="?active_tab=reservation">预约记录</a>
+<a class="nav-link {% if active_tab == 'users' %}active{% endif %}" href="?active_tab=users">预约人员{% if blacklisted_users_count > 0 %}<span class="badge bg-danger ms-1">{{ blacklisted_users_count }}</span>{% endif %}</a>
+<div class="section-label">人员管理</div>
+<a class="nav-link {% if active_tab == 'approval_staff' %}active{% endif %}" href="?active_tab=approval_staff">审批教师</a>
+{% if management_area != 'archive' %}<a class="nav-link {% if active_tab == 'guides' %}active{% endif %}" href="?active_tab=guides">讲解员管理</a>{% endif %}
+<div class="section-label">内容管理</div>
+<a class="nav-link {% if active_tab == 'notice' %}active{% endif %}" href="?active_tab=notice">公告管理</a>
+<a class="nav-link {% if active_tab == 'venue' %}active{% endif %}" href="?active_tab=venue">场馆管理</a>
+{% if session.get('is_super') %}
+<div class="section-label">系统管理</div>
+<a class="nav-link {% if active_tab == 'account' %}active{% endif %}" href="?active_tab=account">账号管理</a>
+<a class="nav-link {% if active_tab == 'roles' %}active{% endif %}" href="?active_tab=roles">角色权限</a>
+<a class="nav-link {% if active_tab == 'settings' %}active{% endif %}" href="?active_tab=settings">系统设置</a>
+<a class="nav-link {% if active_tab == 'logs' %}active{% endif %}" href="?active_tab=logs">日志管理</a>
+{% endif %}
+<a class="nav-link" href="{{ url_for('admin.stats') }}">数据统计</a>
+<a class="nav-link text-danger" href="{{ url_for('admin.logout') }}">退出登录</a>
+</div>
+<div class="content">
+{% with messages = get_flashed_messages() %}{% if messages %}<div class="alert alert-info alert-dismissible fade show" role="alert">{{ messages[0] }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endif %}{% endwith %}
 
-    <div class="container-fluid mt-4">
-        <div class="row">
-            <div class="col-md-2">
-                <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist">
-                    <button
-                        class="nav-link {% if active_tab not in ['notice', 'config', 'venue', 'account', 'archive', 'cancel'] %}active{% endif %}"
-                        type="button" onclick="window.location.href='{{ url_for('admin.dashboard') }}'">
-                        📅 预约审核
-                        {% if pending_reservation_count > 0 %}
-                        <span class="badge bg-danger ms-1">{{ pending_reservation_count }}</span>
-                        {% endif %}
-                    </button>
-                    <button class="nav-link {% if active_tab == 'notice' %}active{% endif %}" type="button"
-                        onclick="window.location.href='{{ url_for('admin.dashboard', active_tab='notice') }}'">
-                        📢 公告管理
-                    </button>
-                    <button class="nav-link {% if active_tab == 'config' %}active{% endif %}" type="button"
-                        onclick="window.location.href='{{ url_for('admin.dashboard', active_tab='config') }}'">
-                        ⚙️ 系统配置
-                    </button>
-                    <button class="nav-link {% if active_tab == 'venue' %}active{% endif %}" type="button"
-                        onclick="window.location.href='{{ url_for('admin.dashboard', active_tab='venue') }}'">
-                        🏛️ 场馆管理
-                    </button>
-                    <button class="nav-link {% if active_tab == 'account' %}active{% endif %}" type="button"
-                        onclick="window.location.href='{{ url_for('admin.dashboard', active_tab='account') }}'">
-                        👮 账号管理
-                    </button>
+<div class="tab-content-section {% if not active_tab or active_tab == 'reservation' %}active{% endif %}" id="tab-reservation">
+<h5 class="mb-3">预约记录</h5>
+<div class="filter-row"><div class="row g-2 align-items-end">
+<div class="col-auto"><select id="res-status-filter" class="form-select form-select-sm"><option value="">全部状态</option><option value="待审核">待审核</option><option value="已同意">已同意</option><option value="已拒绝">已拒绝</option><option value="已核销">已核销</option><option value="已取消">已取消</option></select></div>
+<div class="col-auto"><select id="res-type-filter" class="form-select form-select-sm"><option value="">全部类型</option><option value="个人">个人</option><option value="单位">单位</option></select></div>
+<div class="col-auto"><select id="res-venue-filter" class="form-select form-select-sm"><option value="">全部场馆</option>{% for v in venues %}<option value="{{ v.id }}">{{ v.name }}</option>{% endfor %}</select></div>
+<div class="col-auto"><input type="date" id="res-start-date" class="form-control form-control-sm" placeholder="参观日期从"></div>
+<div class="col-auto"><input type="date" id="res-end-date" class="form-control form-control-sm" placeholder="至"></div>
+<div class="col-auto"><input type="text" id="res-keyword" class="form-control form-control-sm" placeholder="姓名/手机号/身份证"></div>
+<div class="col-auto"><button class="btn btn-primary btn-sm" onclick="loadReservations()">查询</button></div>
+<div class="col-auto"><button class="btn btn-success btn-sm" onclick="exportReservations()">导出Excel</button></div>
+</div></div>
+<div class="card-custom"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>申请时间</th><th>类型</th><th>姓名</th><th>证件号</th><th>团体/单位</th><th>场馆</th><th>参观日期</th><th>人数</th><th>状态</th><th>讲解员</th><th>操作</th></tr></thead><tbody id="reservations-tbody"></tbody></table></div></div>
+<nav class="mt-3" id="reservations-pagination"></nav>
+</div>
 
-                    <button class="nav-link {% if active_tab == 'archive' %}active{% endif %}" type="button"
-                        onclick="window.location.href='{{ url_for('admin.dashboard', active_tab='archive') }}'">
-                        📁 档案申请
-                        {% if pending_archive_count > 0 %}
-                        <span class="badge bg-danger ms-1">{{ pending_archive_count }}</span>
-                        {% endif %}
-                    </button>
+<div class="tab-content-section {% if active_tab == 'users' %}active{% endif %}" id="tab-users">
+<h5 class="mb-3">预约人员管理</h5>
+<div class="filter-row"><div class="row g-2 align-items-end">
+<div class="col-auto"><select id="users-blacklist-filter" class="form-select form-select-sm"><option value="">全部用户</option><option value="0">正常用户</option><option value="1">黑名单</option></select></div>
+<div class="col-auto"><input type="text" id="users-keyword" class="form-control form-control-sm" placeholder="姓名/身份证号/手机号"></div>
+<div class="col-auto"><button class="btn btn-primary btn-sm" onclick="loadUsers()">查询</button></div>
+<div class="col-auto"><button class="btn btn-success btn-sm" onclick="exportUsers()">导出Excel</button></div>
+</div></div>
+<div class="card-custom"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>姓名</th><th>证件类型</th><th>证件号码</th><th>手机号</th><th>预约次数</th><th>黑名单</th><th>注册时间</th><th>操作</th></tr></thead><tbody id="users-tbody"></tbody></table></div></div>
+<nav class="mt-3" id="users-pagination"></nav>
+</div>
 
-                    <button class="nav-link {% if active_tab == 'cancel' %}active{% endif %}" type="button"
-                        onclick="window.location.href='{{ url_for('admin.dashboard', active_tab='cancel') }}'">
-                        🔙 撤销申请
-                        {% if pending_cancel_count > 0 %}
-                        <span class="badge bg-danger ms-1">{{ pending_cancel_count }}</span>
-                        {% endif %}
-                    </button>
+<div class="tab-content-section {% if active_tab == 'approval_staff' %}active{% endif %}" id="tab-approval_staff">
+<h5 class="mb-3">审批教师管理 <button class="btn btn-primary btn-sm" onclick="openApprovalStaffModal()">+ 添加教师</button></h5>
+<div class="card-custom"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>用户名</th><th>姓名</th><th>工号</th><th>部门</th><th>电话</th><th>负责场馆</th><th>状态</th><th>操作</th></tr></thead><tbody>
+{% for staff in approval_staff_list %}
+<tr><td>{{ staff.username }}</td><td>{{ staff.name }}</td><td>{{ staff.staff_id or '-' }}</td><td>{{ staff.department or '-' }}</td><td>{{ staff.phone or '-' }}</td>
+<td>{% for vid in staff.get_assigned_venue_ids() %}{% for v in venues %}{% if v.id == vid %}<span class="badge bg-light text-dark me-1">{{ v.name }}</span>{% endif %}{% endfor %}{% endfor %}{% if not staff.get_assigned_venue_ids() %}-{% endif %}</td>
+<td>{% if staff.is_active %}<span class="badge bg-success">启用</span>{% else %}<span class="badge bg-secondary">停用</span>{% endif %}</td>
+<td><button class="btn btn-outline-primary btn-sm" onclick="editApprovalStaff({{ staff.id }},'{{ staff.username }}','{{ staff.name }}','{{ staff.staff_id or '' }}','{{ staff.department or '' }}','{{ staff.phone or '' }}',{{ staff.get_assigned_venue_ids()|tojson }},{{ 'true' if staff.is_active else 'false' }})">编辑</button>
+<button class="btn btn-outline-danger btn-sm" onclick="deleteApprovalStaff({{ staff.id }})">删除</button></td></tr>
+{% endfor %}{% if not approval_staff_list %}<tr><td colspan="8" class="text-center text-muted py-3">暂无审批人员</td></tr>{% endif %}
+</tbody></table></div></div>
+</div>
 
-                    <a href="{{ url_for('admin.stats') }}" class="nav-link">
-                        📊 数据统计
-                    </a>
+{% if management_area != 'archive' %}
+<div class="tab-content-section {% if active_tab == 'guides' %}active{% endif %}" id="tab-guides">
+<h5 class="mb-3">讲解员管理 <button class="btn btn-primary btn-sm" onclick="openGuideModal()">+ 添加</button></h5>
+<div class="card-custom"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>姓名</th><th>工号</th><th>电话</th><th>擅长内容</th><th>状态</th><th>操作</th></tr></thead><tbody>
+{% for g in guide_list %}
+<tr><td>{{ g.name }}</td><td>{{ g.staff_id or '-' }}</td><td>{{ g.phone or '-' }}</td><td>{{ g.expertise or '-' }}</td>
+<td><span class="{% if g.status == '在岗' %}guide-status-on{% else %}guide-status-off{% endif %}">{{ g.status }}</span></td>
+<td><button class="btn btn-outline-primary btn-sm" onclick="editGuide({{ g.id }},'{{ g.name }}','{{ g.staff_id or '' }}','{{ g.phone or '' }}','{{ g.expertise or '' }}','{{ g.status }}')">编辑</button>
+<form method="POST" action="{{ url_for('admin.guide_management') }}" style="display:inline"><input type="hidden" name="action" value="toggle_status"><input type="hidden" name="id" value="{{ g.id }}"><input type="hidden" name="active_tab" value="guides"><button class="btn btn-outline-warning btn-sm">{% if g.status == '在岗' %}设为离岗{% else %}设为在岗{% endif %}</button></form>
+<button class="btn btn-outline-danger btn-sm" onclick="deleteGuide({{ g.id }})">删除</button></td></tr>
+{% endfor %}{% if not guide_list %}<tr><td colspan="6" class="text-center text-muted py-3">暂无讲解员</td></tr>{% endif %}
+</tbody></table></div></div>
+</div>
+{% endif %}
 
-                    <a href="{{ url_for('admin.logout') }}" class="nav-link text-danger mt-4">
-                        🚪 退出登录
-                    </a>
-                </div>
-            </div>
+<div class="tab-content-section {% if active_tab == 'notice' %}active{% endif %}" id="tab-notice">
+<h5 class="mb-3">公告管理</h5>
+<div class="card-custom mb-4"><div class="card-header">发布新公告</div><div class="card-body">
+<form method="POST" action="{{ url_for('admin.config') }}"><input type="hidden" name="publish_notice" value="1"><input type="hidden" name="active_tab" value="notice">
+<div class="mb-2"><input type="text" name="title" class="form-control" placeholder="公告标题" required maxlength="100"></div>
+<div class="mb-2"><textarea name="content" class="form-control" rows="3" placeholder="公告内容（最多5000字符）" maxlength="5000"></textarea></div>
+<button type="submit" class="btn btn-primary btn-sm">发布公告</button></form></div></div>
+<div class="card-custom"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>标题</th><th>顶置</th><th>隐藏</th><th>预览</th><th>时间</th><th>操作</th></tr></thead><tbody>
+{% for a in announcements %}
+<tr><td>{{ a.title }}</td><td>{% if a.is_pinned %}<span class="badge bg-warning text-dark">已顶置</span>{% else %}-{% endif %}</td>
+<td>{% if a.is_hidden %}<span class="badge bg-secondary">已隐藏</span>{% else %}-{% endif %}</td>
+<td class="small text-muted">{{ a.content[:80] }}{% if a.content|length > 80 %}...{% endif %}</td>
+<td class="small">{{ a.created_at.strftime('%m-%d %H:%M') }}</td>
+<td><form method="POST" action="{{ url_for('admin.toggle_announcement_pin', ann_id=a.id) }}" style="display:inline"><button class="btn btn-outline-warning btn-sm">{% if a.is_pinned %}取消顶置{% else %}顶置{% endif %}</button></form>
+<form method="POST" action="{{ url_for('admin.toggle_announcement_hide', ann_id=a.id) }}" style="display:inline"><button class="btn btn-outline-secondary btn-sm">{% if a.is_hidden %}显示{% else %}隐藏{% endif %}</button></form>
+<button class="btn btn-outline-primary btn-sm" onclick="editAnnouncement({{ a.id }},'{{ a.title|e }}','{{ a.content|e }}')">编辑</button>
+<form method="POST" action="{{ url_for('admin.delete_announcement', ann_id=a.id) }}" style="display:inline" onsubmit="return confirm('确定删除？')"><button class="btn btn-outline-danger btn-sm">删除</button></form></td></tr>
+{% endfor %}{% if not announcements %}<tr><td colspan="6" class="text-center text-muted py-3">暂无公告</td></tr>{% endif %}
+</tbody></table></div></div>
+</div>
 
-            <div class="col-md-10">
-                {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                <div class="alert alert-info alert-dismissible fade show" role="alert">
-                    {{ messages[0] }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
-                    </button>
-                </div>
-                {% endif %}
-                {% endwith %}
+<div class="tab-content-section {% if active_tab == 'venue' %}active{% endif %}" id="tab-venue">
+<h5 class="mb-3">场馆管理 <button class="btn btn-primary btn-sm" onclick="openAddVenueModal()">+ 添加场馆</button></h5>
+<div class="card-custom"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>名称</th><th>分类</th><th>校区</th><th>地址</th><th>预约天数</th><th>截止</th><th>启用</th><th>操作</th></tr></thead><tbody>
+{% for v in venues %}
+<tr><td>{{ v.name }}</td><td>{{ v.category }}</td><td>{{ v.campus or '-' }}</td><td>{{ (v.address or '-')[:20] }}</td>
+<td>{{ v.advance_days }}天</td><td>{{ v.cutoff_time }}</td><td>{% if v.is_active %}<span class="badge bg-success">是</span>{% else %}<span class="badge bg-secondary">否</span>{% endif %}</td>
+<td><button class="btn btn-outline-primary btn-sm" onclick="editVenue({{ v.id }},'{{ v.name|e }}','{{ v.category }}','{{ v.campus or '' }}','{{ v.address or '' }}','{{ v.description or '' }}',{{ v.advance_days }},'{{ v.cutoff_time }}',{{ 'true' if v.is_active else 'false' }},'{{ v.open_hours or '' }}',{{ v.parent_venue_id or 'null' }})">编辑</button>
+<button class="btn btn-outline-warning btn-sm" onclick="openTimeSlotModal({{ v.id }})">时段</button>
+<button class="btn btn-outline-secondary btn-sm" onclick="openDisabledDateModal({{ v.id }})">禁用日期</button>
+<button class="btn btn-outline-danger btn-sm" onclick="deleteVenue({{ v.id }})">删除</button></td></tr>
+{% endfor %}{% if not venues %}<tr><td colspan="8" class="text-center text-muted py-3">暂无场馆</td></tr>{% endif %}
+</tbody></table></div></div>
+</div>
+{% if session.get('is_super') %}
+<div class="tab-content-section {% if active_tab == 'account' %}active{% endif %}" id="tab-account">
+<h5 class="mb-3">账号管理</h5>
+<div class="card-custom mb-4"><div class="card-header">修改个人密码</div><div class="card-body">
+<form method="POST" action="{{ url_for('admin.account') }}" class="row g-2 align-items-end">
+<input type="hidden" name="action" value="change_own_password"><input type="hidden" name="active_tab" value="account">
+<div class="col-auto"><input type="password" name="new_password" class="form-control form-control-sm" placeholder="新密码（≥8位）" required minlength="8"></div>
+<div class="col-auto"><button class="btn btn-primary btn-sm">修改密码</button></div></form></div></div>
+<div class="card-custom mb-4"><div class="card-header">新增管理员</div><div class="card-body">
+<form method="POST" action="{{ url_for('admin.account') }}" class="row g-2 align-items-end">
+<input type="hidden" name="action" value="create_admin"><input type="hidden" name="active_tab" value="account">
+<div class="col-auto"><input type="text" name="username" class="form-control form-control-sm" placeholder="用户名" required></div>
+<div class="col-auto"><input type="password" name="password" class="form-control form-control-sm" placeholder="密码（≥8位）" required minlength="8"></div>
+<div class="col-auto"><select name="role_id" class="form-select form-select-sm"><option value="">无角色</option>{% for r in roles %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}</select></div>
+<div class="col-auto"><button class="btn btn-success btn-sm">创建管理员</button></div></form></div></div>
+<div class="card-custom"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>用户名</th><th>角色</th><th>超级管理员</th><th>创建时间</th><th>操作</th></tr></thead><tbody>
+{% for a in admin_list %}
+<tr><td>{{ a.username }}</td><td>{{ a.role.name if a.role else '-' }}</td><td>{% if a.is_super %}<span class="badge bg-danger">是</span>{% else %}<span class="badge bg-secondary">否</span>{% endif %}</td>
+<td class="small">{{ a.created_at.strftime('%Y-%m-%d %H:%M') if a.created_at else '-' }}</td>
+<td>{% if not a.is_super %}<button class="btn btn-outline-primary btn-sm" onclick="editAdmin({{ a.id }},{{ a.role_id or 'null' }})">编辑角色</button>
+<button class="btn btn-outline-danger btn-sm" onclick="deleteAdmin({{ a.id }})">删除</button>{% endif %}
+<button class="btn btn-outline-warning btn-sm" onclick="resetPassword({{ a.id }})">重置密码</button></td></tr>
+{% endfor %}
+</tbody></table></div></div></div>
 
-                <div class="tab-content">
+<div class="tab-content-section {% if active_tab == 'roles' %}active{% endif %}" id="tab-roles">
+<h5 class="mb-3">角色权限管理 <button class="btn btn-primary btn-sm ms-2" onclick="openRoleModal()">+ 添加角色</button></h5>
+<div class="card-custom"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>角色名称</th><th>权限</th><th>管理员数</th><th>操作</th></tr></thead><tbody>
+{% for role in roles %}
+<tr><td><strong>{{ role.name }}</strong></td><td>{% for p in role.get_permissions() %}<span class="badge bg-info me-1">{{ p }}</span>{% endfor %}{% if not role.get_permissions() %}<span class="text-muted">无权限</span>{% endif %}</td>
+<td>{{ role.admins|length }}</td>
+<td><button class="btn btn-outline-primary btn-sm" onclick="editRole({{ role.id }},'{{ role.name }}',{{ role.get_permissions()|tojson }})">编辑</button>
+<button class="btn btn-outline-danger btn-sm" onclick="deleteRole({{ role.id }})">删除</button></td></tr>
+{% endfor %}{% if not roles %}<tr><td colspan="4" class="text-center text-muted py-3">暂无自定义角色</td></tr>{% endif %}
+</tbody></table></div></div></div>
 
-                    <div class="tab-pane fade {% if active_tab not in ['notice', 'config', 'venue', 'account', 'archive', 'cancel'] %}show active{% endif %}"
-                        id="tab-audit">
-                        <h4>预约申请列表</h4>
+<div class="tab-content-section {% if active_tab == 'settings' %}active{% endif %}" id="tab-settings">
+<h5 class="mb-3">基本参数设置</h5>
+<div class="row g-3">
+<div class="col-md-6"><div class="card-custom"><div class="card-header">预约时间段</div><div class="card-body">
+<form method="POST" action="{{ url_for('admin.system_settings') }}">
+<input type="hidden" name="action" value="update_time_slots">
+<input type="hidden" name="active_tab" value="settings">
+<div class="mb-2"><label class="form-label small">可预约时段（逗号分隔，如：09:00-11:00,14:00-16:00）</label>
+<input type="text" name="visit_times" value="{{ config.visit_times if config else '09:00-11:00,14:00-16:00' }}" class="form-control form-control-sm"></div>
+<button type="submit" class="btn btn-primary btn-sm">保存</button></form></div></div></div>
+<div class="col-md-6"><div class="card-custom"><div class="card-header">档案类型设置</div><div class="card-body">
+<form method="POST" action="{{ url_for('admin.system_settings') }}">
+<input type="hidden" name="action" value="update_archive_types">
+<input type="hidden" name="active_tab" value="settings">
+<div class="mb-2"><label class="form-label small">档案类型列表（逗号分隔，如：学籍档案,人事档案,财务档案,基建档案）</label>
+<input type="text" name="archive_types" value="{{ config.archive_types if config and config.archive_types else '' }}" class="form-control form-control-sm"></div>
+<button type="submit" class="btn btn-primary btn-sm">保存</button></form></div></div></div>
+<div class="col-md-6"><div class="card-custom"><div class="card-header">可参观校区</div><div class="card-body">
+<form method="POST" action="{{ url_for('admin.system_settings') }}">
+<input type="hidden" name="action" value="update_campuses">
+<input type="hidden" name="active_tab" value="settings">
+<div class="mb-2"><label class="form-label small">校区列表（逗号分隔）</label>
+<input type="text" name="campuses" value="{{ config.campuses if config else '主校区,新校区' }}" class="form-control form-control-sm"></div>
+<button type="submit" class="btn btn-primary btn-sm">保存</button></form></div></div></div>
+<div class="col-md-6"><div class="card-custom"><div class="card-header">每日限额</div><div class="card-body">
+<form method="POST" action="{{ url_for('admin.system_settings') }}">
+<input type="hidden" name="action" value="update_daily_limit">
+<input type="hidden" name="active_tab" value="settings">
+<div class="mb-2"><label class="form-label small">每日预约限额</label>
+<input type="number" name="daily_limit" value="{{ config.daily_limit if config else 50 }}" class="form-control form-control-sm"></div>
+<button type="submit" class="btn btn-primary btn-sm">保存</button></form></div></div></div>
+</div>
+</div>
 
-                        <div class="card bg-light mb-3 mt-3">
-                            <div class="card-body py-3">
-                                <form method="GET" action="{{ url_for('admin.dashboard') }}"
-                                    class="row g-2 align-items-center">
-                                    <div class="col-auto">
-                                        <select name="status" class="form-select">
-                                            <option value="">全部状态</option>
-                                            <option value="待审核" {% if curr_status=='待审核' %}selected{% endif %}>
-                                                待审核
-                                            </option>
-                                            <option value="已同意" {% if curr_status=='已同意' %}selected{% endif %}>
-                                                已同意
-                                            </option>
-                                            <option value="已拒绝" {% if curr_status=='已拒绝' %}selected{% endif %}>
-                                                已拒绝
-                                            </option>
-                                        </select>
-                                    </div>
-                                    <div class="col-auto">
-                                        <input type="text" name="keyword" class="form-control" placeholder="搜索姓名或手机号"
-                                            value="{{ curr_keyword }}">
-                                    </div>
-                                    <div class="col-auto">
-                                        <label class="form-label small text-muted mb-0">开始日期</label>
-                                        <input type="date" name="start_date" class="form-control"
-                                            value="{{ curr_start_date }}">
-                                    </div>
-                                    <div class="col-auto">
-                                        <label class="form-label small text-muted mb-0">结束日期</label>
-                                        <input type="date" name="end_date" class="form-control"
-                                            value="{{ curr_end_date }}">
-                                    </div>
-                                    <div class="col-auto">
-                                        <button type="submit" class="btn btn-primary">
-                                            🔍 查询
-                                        </button>
-                                        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
-                                            重置
-                                        </a>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-
-                        <table class="table table-hover mt-3 align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>提交时间</th>
-                                    <th>姓名</th>
-                                    <th>身份</th>
-                                    <th>参观日期/时间</th>
-                                    <th>场馆</th>
-                                    <th>状态</th>
-                                    <th>操作</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% if reservations|length == 0 %}
-                                <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">
-                                        没有找到匹配的记录
-                                    </td>
-                                </tr>
-                                {% else %}
-                                {% for res in reservations %}
-                                <tr>
-                                    <td>{{ res.created_at.strftime('%m-%d %H:%M') }}</td>
-                                    <td>{{ res.user.name }}</td>
-                                    <td>
-                                        <span class="badge bg-secondary">
-                                            {{ res.identity }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {{ res.visit_date }}<br>
-                                        <small class="text-muted">
-                                            {{ res.visit_time }}
-                                        </small>
-                                    </td>
-                                    <td>{{ res.venue.name }}</td>
-                                    <td>
-                                        {% if res.status == '待审核' %}
-                                        <span class="badge bg-warning text-dark">
-                                            待审核
-                                        </span>
-                                        {% elif res.status == '已同意' %}
-                                        <span class="badge bg-success">
-                                            已同意
-                                        </span>
-                                        {% else %}
-                                        <span class="badge bg-danger">
-                                            已拒绝
-                                        </span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-primary btn-sm" onclick="openAuditModal(this)"
-                                            data-id="{{ res.id }}"
-                                            data-time="{{ res.created_at.strftime('%Y-%m-%d %H:%M') }}"
-                                            data-name="{{ res.user.name }}" data-phone="{{ res.user.phone }}"
-                                            data-email="{{ res.user.email or '' }}" data-idtype="{{ res.user.id_type }}"
-                                            data-idcard="{{ res.user.id_card }}" data-identity="{{ res.identity }}"
-                                            data-restype="{{ res.res_type }}"
-                                            data-groupname="{{ res.group_name or '' }}"
-                                            data-groupsize="{{ res.group_size or '' }}"
-                                            data-visitdate="{{ res.visit_date }} {{ res.visit_time }}"
-                                            data-venue="{{ res.venue.name }}" data-campus="{{ res.campus }}"
-                                            data-reason="{{ res.reason }}" data-status="{{ res.status }}"
-                                            data-rejectreason="{{ res.reject_reason or '' }}">
-                                            查看详情
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                                {% endif %}
-                            </tbody>
-                        </table>
-
-                        {% if pagination.pages > 1 %}
-                        <nav aria-label="Page navigation" class="mt-4">
-                            <ul class="pagination justify-content-center">
-                                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                                    <a class="page-link"
-                                        href="{{ url_for('admin.dashboard', page=pagination.prev_num, keyword=curr_keyword, status=curr_status, start_date=curr_start_date, end_date=curr_end_date) }}">
-                                        上一页
-                                    </a>
-                                </li>
-                                <li class="page-item disabled">
-                                    <span class="page-link">
-                                        第 {{ pagination.page }} / {{ pagination.pages }} 页
-                                    </span>
-                                </li>
-                                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                                    <a class="page-link"
-                                        href="{{ url_for('admin.dashboard', page=pagination.next_num, keyword=curr_keyword, status=curr_status, start_date=curr_start_date, end_date=curr_end_date) }}">
-                                        下一页
-                                    </a>
-                                </li>
-                            </ul>
-                        </nav>
-                        {% endif %}
-                    </div>
-
-                    <div class="tab-pane fade {% if active_tab == 'notice' %}show active{% endif %}" id="tab-notice">
-                        <div class="card mb-4">
-                            <div class="card-header">发布新公告</div>
-                            <div class="card-body">
-                                <form method="POST" action="{{ url_for('admin.config') }}">
-                                    <input type="hidden" name="publish_notice" value="1">
-                                    <input type="hidden" name="active_tab" value="notice">
-                                    <div class="mb-2">
-                                        <input type="text" name="title" class="form-control" placeholder="公告标题"
-                                            required>
-                                    </div>
-                                    <div class="mb-2">
-                                        <label class="form-label text-muted small">
-                                            支持 HTML 格式，内容长度限制 5000 字符
-                                        </label>
-                                        <textarea name="content" class="form-control" placeholder="公告内容" rows="4"
-                                            required maxlength="5000"></textarea>
-                                        <div class="text-muted small mt-1">
-                                            <span id="content-length">0</span>/5000
-                                        </div>
-                                    </div>
-                                    <script>
-                                        document.querySelector('textarea[name="content"]').addEventListener('input', function () {
-                                            document.getElementById('content-length').textContent = this.value.length;
-                                        });
-                                    </script>
-                                    <button type="submit" class="btn btn-primary">发布</button>
-                                </form>
-                            </div>
-                        </div>
-                        <h5>历史公告</h5>
-                        <div class="list-group">
-                            {% for notice in announcements %}
-                            <div class="list-group-item">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6 class="mb-0">
-                                        {{ notice.title }}
-                                        {% if notice.is_pinned %}
-                                        <span class="badge bg-warning ms-2">顶置</span>
-                                        {% endif %}
-                                        {% if notice.is_hidden %}
-                                        <span class="badge bg-danger ms-2">已隐藏</span>
-                                        {% endif %}
-                                    </h6>
-                                    <span class="text-muted small">
-                                        {{ notice.created_at.strftime('%Y-%m-%d %H:%M') }}
-                                    </span>
-                                </div>
-                                <div class="mb-3 text-muted small">
-                                    {{ notice.content[:100] }}{% if notice.content|length > 100 %}...{% endif %}
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <!-- 顶置/取消顶置按钮 -->
-                                    <form method="POST"
-                                        action="{{ url_for('admin.toggle_announcement_pin', ann_id=notice.id) }}"
-                                        class="d-inline">
-                                        <button type="submit"
-                                            class="btn btn-sm {% if notice.is_pinned %}btn-secondary{% else %}btn-warning{% endif %}">
-                                            {% if notice.is_pinned %}取消顶置{% else %}顶置{% endif %}
-                                        </button>
-                                    </form>
-                                    <!-- 隐藏/显示按钮 -->
-                                    <form method="POST"
-                                        action="{{ url_for('admin.toggle_announcement_hide', ann_id=notice.id) }}"
-                                        class="d-inline">
-                                        <button type="submit"
-                                            class="btn btn-sm {% if notice.is_hidden %}btn-success{% else %}btn-danger{% endif %}">
-                                            {% if notice.is_hidden %}显示{% else %}隐藏{% endif %}
-                                        </button>
-                                    </form>
-                                    <!-- 编辑按钮 -->
-                                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
-                                        data-bs-target="#editAnnouncementModal" data-id="{{ notice.id }}"
-                                        data-title="{{ notice.title }}" data-content="{{ notice.content }}">
-                                        编辑
-                                    </button>
-                                    <!-- 删除按钮 -->
-                                    <form method="POST"
-                                        action="{{ url_for('admin.delete_announcement', ann_id=notice.id) }}"
-                                        class="d-inline" onsubmit="return confirm('确定要删除这条公告吗？');">
-                                        <button type="submit" class="btn btn-sm btn-danger">删除</button>
-                                    </form>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-
-                        <!-- 编辑公告模态框 -->
-                        <div class="modal fade" id="editAnnouncementModal" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">编辑公告</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                            aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <form method="POST" id="editAnnouncementForm">
-                                            <input type="hidden" name="id" id="edit-id">
-                                            <div class="mb-2">
-                                                <input type="text" name="title" id="edit-title" class="form-control"
-                                                    placeholder="公告标题" required>
-                                            </div>
-                                            <div class="mb-2">
-                                                <label class="form-label text-muted small">
-                                                    支持 HTML 格式，内容长度限制 5000 字符
-                                                </label>
-                                                <textarea name="content" id="edit-content" class="form-control"
-                                                    placeholder="公告内容" rows="4" required maxlength="5000"></textarea>
-                                                <div class="text-muted small mt-1">
-                                                    <span id="edit-content-length">0</span>/5000
-                                                </div>
-                                            </div>
-                                            <button type="submit" class="btn btn-primary">保存修改</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <script>
-                            // 编辑公告模态框处理
-                            const editModal = document.getElementById('editAnnouncementModal');
-                            editModal.addEventListener('show.bs.modal', function (event) {
-                                const button = event.relatedTarget;
-                                const id = button.getAttribute('data-id');
-                                const title = button.getAttribute('data-title');
-                                const content = button.getAttribute('data-content');
-
-                                const form = document.getElementById('editAnnouncementForm');
-                                form.action = `{{ url_for('admin.edit_announcement', ann_id=0) }}`.replace('/0/', `/${id}/`);
-
-                                document.getElementById('edit-id').value = id;
-                                document.getElementById('edit-title').value = title;
-                                document.getElementById('edit-content').value = content;
-                                document.getElementById('edit-content-length').textContent = content.length;
-                            });
-
-                            // 编辑内容长度计数
-                            document.getElementById('edit-content').addEventListener('input', function () {
-                                document.getElementById('edit-content-length').textContent = this.value.length;
-                            });
-                        </script>
-                    </div>
-
-                    <div class="tab-pane fade {% if active_tab == 'config' %}show active{% endif %}" id="tab-config">
-                        <div class="card mb-4">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                系统总开关
-                                <form method="POST" action="{{ url_for('admin.config') }}">
-                                    <input type="hidden" name="toggle_system" value="1">
-                                    <input type="hidden" name="active_tab" value="config">
-                                    {% if config.is_open %}
-                                    <button class="btn btn-danger btn-sm">关闭预约系统</button>
-                                    {% else %}
-                                    <button class="btn btn-success btn-sm">开启预约系统</button>
-                                    {% endif %}
-                                </form>
-                            </div>
-                            <div class="card-body">
-                                当前状态：
-                                {% if config.is_open %}
-                                <span class="text-success fw-bold">开放中</span>
-                                {% else %}
-                                <span class="text-danger fw-bold">已关闭维护</span>
-                                {% endif %}
-                            </div>
-                        </div>
+<div class="tab-content-section {% if active_tab == 'logs' %}active{% endif %}" id="tab-logs">
+<h5 class="mb-3">日志管理</h5>
+<div class="filter-row"><div class="row g-2 align-items-end">
+<div class="col-auto"><select id="log-type-filter" class="form-select form-select-sm"><option value="">全部日志</option><option value="login">登录日志</option><option value="operation">操作日志</option><option value="error">错误日志</option><option value="access">通行权限下发日志</option></select></div>
+<div class="col-auto"><input type="text" id="log-keyword" class="form-control form-control-sm" placeholder="搜索操作人/动作/模块"></div>
+<div class="col-auto"><input type="date" id="log-start-date" class="form-control form-control-sm"></div>
+<div class="col-auto"><input type="date" id="log-end-date" class="form-control form-control-sm"></div>
+<div class="col-auto"><button class="btn btn-primary btn-sm" onclick="loadLogs()">查询</button></div>
+<div class="col-auto"><button class="btn btn-success btn-sm" onclick="exportLogs()">导出Excel</button></div>
+<div class="col-auto"><button class="btn btn-outline-warning btn-sm" onclick="clearOldLogs()">清理旧日志</button></div>
+</div></div>
+<div class="card-custom"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>时间</th><th>类型</th><th>操作人</th><th>IP</th><th>模块</th><th>动作</th><th>详情</th><th>结果</th></tr></thead><tbody id="logs-tbody"></tbody></table></div></div>
+<nav class="mt-3" id="logs-pagination"></nav>
+</div>
 
 
+{% endif %}
 
-                        <div class="card">
-                            <div class="card-header">隐私声明配置</div>
-                            <div class="card-body">
-                                <form method="POST" action="{{ url_for('admin.config') }}">
-                                    <input type="hidden" name="update_policy" value="1">
-                                    <input type="hidden" name="active_tab" value="config">
-                                    <div class="mb-3">
-                                        <label class="form-label text-muted small">
-                                            支持 HTML 格式（例如 &lt;br&gt; 换行）
-                                        </label>
-                                        <textarea name="privacy_policy" class="form-control"
-                                            rows="8">{{ config.privacy_policy }}</textarea>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">
-                                        更新隐私声明
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div class="tab-pane fade {% if active_tab == 'account' %}show active{% endif %}" id="tab-account">
+<div class="modal fade" id="venueEditModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title">编辑场馆</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body"><form method="POST" action="{{ url_for('admin.config') }}" id="venueForm"><input type="hidden" name="update_venue" value="1"><input type="hidden" name="active_tab" value="venue"><input type="hidden" name="venue_id" id="venueEditId"><input type="hidden" name="venue_parent_id" id="venueEditParentId">
+<div class="row g-2"><div class="col-md-6"><label class="form-label small">场馆名称</label><input type="text" name="venue_name" id="venueEditName" class="form-control form-control-sm" required></div><div class="col-md-6"><label class="form-label small">分类</label><select name="venue_category" id="venueEditCategory" class="form-select form-select-sm"><option value="校史馆">校史馆</option><option value="标本馆">标本馆</option><option value="档案馆">档案馆</option></select></div><div class="col-md-6"><label class="form-label small">校区</label><input type="text" name="venue_campus" id="venueEditCampus" class="form-control form-control-sm"></div><div class="col-md-6"><label class="form-label small">地址</label><input type="text" name="venue_address" id="venueEditAddress" class="form-control form-control-sm"></div><div class="col-md-4"><label class="form-label small">预约天数</label><input type="number" name="venue_advance_days" id="venueEditAdvanceDays" class="form-control form-control-sm" value="7"></div><div class="col-md-4"><label class="form-label small">截止时间</label><input type="text" name="venue_cutoff_time" id="venueEditCutoffTime" class="form-control form-control-sm" value="16:00"></div><div class="col-md-4"><label class="form-label small">开放时间</label><input type="text" name="venue_open_hours" id="venueEditOpenHours" class="form-control form-control-sm"></div><div class="col-12"><label class="form-label small">描述</label><textarea name="venue_description" id="venueEditDescription" class="form-control form-control-sm" rows="2"></textarea></div><div class="col-12"><div class="form-check"><input type="checkbox" name="venue_is_active" id="venueEditIsActive" class="form-check-input"><label class="form-check-label small">启用场馆</label></div></div></div></form></div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary" onclick="document.getElementById('venueForm').submit()">保存</button></div>
+</div></div></div>
 
-                        <div class="card mb-4">
-                            <div class="card-header bg-warning text-dark">修改我的密码</div>
-                            <div class="card-body">
-                                <form method="POST" action="{{ url_for('admin.account') }}"
-                                    class="row g-2 align-items-center">
-                                    <input type="hidden" name="action" value="change_own_password">
-                                    <input type="hidden" name="active_tab" value="account">
-                                    <div class="col-auto">
-                                        <input type="password" name="new_password" class="form-control"
-                                            placeholder="输入新密码" required>
-                                    </div>
-                                    <div class="col-auto">
-                                        <button type="submit" class="btn btn-dark">确认修改</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
+<div class="modal fade" id="addVenueModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title">添加场馆</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body"><form method="POST" action="{{ url_for('admin.config') }}" id="addVenueForm"><input type="hidden" name="add_venue" value="1"><input type="hidden" name="active_tab" value="venue">
+<div class="row g-2"><div class="col-md-6"><label class="form-label small">场馆名称</label><input type="text" name="venue_name" class="form-control form-control-sm" required></div><div class="col-md-6"><label class="form-label small">分类</label><select name="venue_category" class="form-select form-select-sm"><option value="校史馆">校史馆</option><option value="标本馆">标本馆</option><option value="档案馆">档案馆</option></select></div><div class="col-12"><div class="form-check"><input type="checkbox" name="venue_is_parent" value="1" id="addVenueIsParent" class="form-check-input" onchange="document.getElementById('addVenueChildFields').style.display=this.checked?'none':'block'"><label class="form-check-label small">创建为父场馆（分类节点）</label></div></div><div id="addVenueChildFields"><div class="col-md-6"><label class="form-label small">校区</label><input type="text" name="venue_campus" class="form-control form-control-sm"></div><div class="col-md-6"><label class="form-label small">地址</label><input type="text" name="venue_address" class="form-control form-control-sm"></div><div class="col-md-4"><label class="form-label small">预约天数</label><input type="number" name="venue_advance_days" class="form-control form-control-sm" value="7"></div><div class="col-md-4"><label class="form-label small">截止时间</label><input type="text" name="venue_cutoff_time" class="form-control form-control-sm" value="16:00"></div><div class="col-md-4"><label class="form-label small">开放时间</label><input type="text" name="venue_open_hours" class="form-control form-control-sm"></div><div class="col-12"><label class="form-label small">描述</label><textarea name="venue_description" class="form-control form-control-sm" rows="2"></textarea></div></div></div></form></div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary" onclick="document.getElementById('addVenueForm').submit()">添加</button></div>
+</div></div></div>
 
-                        {% if session['is_super'] %}
-                        <div class="card">
-                            <div
-                                class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                                管理员列表
-                                <button class="btn btn-light btn-sm" data-bs-toggle="modal"
-                                    data-bs-target="#addAdminModal">
-                                    + 新增管理员
-                                </button>
-                            </div>
-                            <div class="card-body">
-                                <table class="table table-striped align-middle">
-                                    <thead>
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>用户名</th>
-                                            <th>角色</th>
-                                            <th>操作</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for admin in admin_list %}
-                                        <tr>
-                                            <td>{{ admin.id }}</td>
-                                            <td>{{ admin.username }}</td>
-                                            <td>
-                                                {% if admin.is_super %}
-                                                <span class="badge bg-danger">超级管理员</span>
-                                                {% else %}
-                                                <span class="badge bg-info text-dark">普通管理员</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if not admin.is_super %}
-                                                <div class="d-flex gap-2">
-                                                    <form method="POST" action="{{ url_for('admin.account') }}"
-                                                        style="display:inline-flex; gap:5px;">
-                                                        <input type="hidden" name="action" value="reset_password">
-                                                        <input type="hidden" name="admin_id" value="{{ admin.id }}">
-                                                        <input type="text" name="new_password"
-                                                            class="form-control form-control-sm" placeholder="新密码"
-                                                            style="width:100px;" required>
-                                                        <button class="btn btn-sm btn-outline-warning">
-                                                            重置
-                                                        </button>
-                                                    </form>
+<div class="modal fade" id="timeSlotModal" tabindex="-1"><div class="modal-dialog modal-xl"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title">时段设置</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body"><form method="POST" action="{{ url_for('admin.time_slot_config') }}" id="timeSlotForm"><input type="hidden" name="venue_id" id="timeSlotVenueId"><input type="hidden" name="active_tab" value="venue"><div id="timeSlotTableContainer"></div></form></div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary" onclick="document.getElementById('timeSlotForm').submit()">保存时段</button></div>
+</div></div></div>
 
-                                                    <form method="POST" action="{{ url_for('admin.account') }}"
-                                                        onsubmit="return confirm('确定删除该管理员？');">
-                                                        <input type="hidden" name="action" value="delete_admin">
-                                                        <input type="hidden" name="admin_id" value="{{ admin.id }}">
-                                                        <button class="btn btn-sm btn-outline-danger">
-                                                            删除
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                                {% else %}
-                                                <small class="text-muted">不可操作</small>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
+<div class="modal fade" id="disabledDateModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title">禁用日期管理</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body"><form method="POST" action="{{ url_for('admin.manage_disabled_date') }}" class="row g-2 align-items-end mb-3"><input type="hidden" name="action" value="add"><input type="hidden" name="venue_id" id="ddVenueId"><input type="hidden" name="active_tab" value="venue"><div class="col-auto"><input type="text" name="time_slot" class="form-control form-control-sm" placeholder="时段" required></div><div class="col-auto"><input type="date" name="disabled_date" class="form-control form-control-sm" required></div><div class="col-auto"><button class="btn btn-primary btn-sm">添加禁用日期</button></div></form><div id="disabledDateList"></div></div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button></div>
+</div></div></div>
 
-                    <div class="tab-pane fade {% if active_tab == 'archive' %}show active{% endif %}" id="tab-archive">
-                        <h4>档案查询申请列表</h4>
+<div class="modal fade" id="roleModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title" id="roleModalTitle">添加角色</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body"><form method="POST" action="{{ url_for('admin.role_management') }}" id="roleForm"><input type="hidden" name="action" id="roleAction" value="create"><input type="hidden" name="role_id" id="roleEditId"><div class="mb-3"><label class="form-label">角色名称</label><input type="text" name="name" id="roleName" class="form-control" required></div><div class="mb-2 fw-bold small text-muted">权限分配：</div><div class="permission-check-list" id="rolePermsList"></div></form></div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary" onclick="document.getElementById('roleForm').submit()">保存</button></div>
+</div></div></div>
 
-                        <div class="card bg-light mb-3 mt-3">
-                            <div class="card-body py-3">
-                                <div class="row g-2 align-items-center">
-                                    <div class="col-auto">
-                                        <select id="archiveStatusFilter" class="form-select">
-                                            <option value="">全部状态</option>
-                                            <option value="待处理">待处理</option>
-                                            <option value="已处理">已处理</option>
-                                            <option value="已拒绝">已拒绝</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-auto">
-                                        <button type="button" class="btn btn-primary" onclick="loadArchiveRequests()">
-                                            🔍 查询
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+<div class="modal fade" id="approvalStaffModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title" id="asModalTitle">添加审批人员</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body"><form method="POST" action="{{ url_for('admin.approval_staff_management') }}" id="approvalStaffForm"><input type="hidden" name="action" id="asAction" value="create"><input type="hidden" name="id" id="asEditId">
+<div class="row g-2"><div class="col-md-6"><label class="form-label small">用户名 <span class="text-danger">*</span></label><input type="text" name="username" id="asUsername" class="form-control form-control-sm" required></div>
+<div class="col-md-6" id="asPasswordCol"><label class="form-label small">密码 <span class="text-danger">*</span></label><input type="password" name="password" id="asPassword" class="form-control form-control-sm" minlength="8"></div></div>
+<div class="row g-2 mt-1"><div class="col-md-6"><label class="form-label small">姓名 <span class="text-danger">*</span></label><input type="text" name="name" id="asName" class="form-control form-control-sm" required></div>
+<div class="col-md-6"><label class="form-label small">工号</label><input type="text" name="staff_id" id="asStaffId" class="form-control form-control-sm"></div></div>
+<div class="row g-2 mt-1"><div class="col-md-6"><label class="form-label small">所属部门</label><input type="text" name="department" id="asDepartment" class="form-control form-control-sm"></div>
+<div class="col-md-6"><label class="form-label small">联系电话</label><input type="text" name="phone" id="asPhone" class="form-control form-control-sm"></div></div>
+<div class="mt-2"><label class="form-label small">负责场馆</label><div class="row" id="asVenueList"></div></div>
+<div class="mt-2" id="asStatusDiv" style="display:none"><div class="form-check"><input type="checkbox" name="is_active" id="asIsActive" class="form-check-input"><label class="form-check-label small">启用（可登录教师审批端）</label></div></div></form></div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary" onclick="document.getElementById('approvalStaffForm').submit()">保存</button></div>
+</div></div></div>
 
-                        <table class="table table-hover mt-3 align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>申请时间</th>
-                                    <th>姓名</th>
-                                    <th>证件类型</th>
-                                    <th>证件号码</th>
-                                    <th>手机号</th>
-                                    <th>提交邮箱</th>
-                                    <th>状态</th>
-                                    <th>操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="archiveRequestTableBody">
-                                <tr>
-                                    <td colspan="8" class="text-center text-muted py-4">
-                                        加载中...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+<div class="modal fade" id="guideModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title" id="guideModalTitle">添加讲解员</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body"><form method="POST" action="{{ url_for('admin.guide_management') }}" id="guideForm"><input type="hidden" name="action" id="guideAction" value="create"><input type="hidden" name="id" id="guideEditId"><div class="mb-2"><label class="form-label small">姓名</label><input type="text" name="name" id="guideName" class="form-control form-control-sm" required></div><div class="mb-2"><label class="form-label small">工号</label><input type="text" name="staff_id" id="guideStaffId" class="form-control form-control-sm"></div><div class="mb-2"><label class="form-label small">联系电话</label><input type="text" name="phone" id="guidePhone" class="form-control form-control-sm"></div><div class="mb-2"><label class="form-label small">擅长讲解内容</label><input type="text" name="expertise" id="guideExpertise" class="form-control form-control-sm"></div><div class="mb-2"><label class="form-label small">状态</label><select name="status" id="guideStatus" class="form-select form-select-sm"><option value="在岗">在岗</option><option value="离岗">离岗</option></select></div></form></div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary" onclick="document.getElementById('guideForm').submit()">保存</button></div>
+</div></div></div>
 
-                        <nav aria-label="Page navigation" class="mt-4" id="archivePagination">
-                        </nav>
-                    </div>
+<div class="modal fade" id="userHistoryModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title">用户预约历史 - <span id="uhUserName"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body"><div class="table-responsive"><table class="table table-sm table-hover"><thead><tr><th>时间</th><th>场馆</th><th>类型</th><th>参观日期</th><th>人数</th><th>状态</th></tr></thead><tbody id="userHistoryTbody"></tbody></table></div></div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button></div>
+</div></div></div>
 
-                    <div class="tab-pane fade {% if active_tab == 'cancel' %}show active{% endif %}" id="tab-cancel">
-                        <h4>撤销申请审核列表</h4>
+<div class="modal fade" id="reservationDetailModal" tabindex="-1"><div class="modal-dialog modal-xl"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title">预约记录详情</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body" id="reservationDetailBody"></div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button></div>
+</div></div></div>
 
-                        <table class="table table-hover mt-3 align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>申请时间</th>
-                                    <th>预约人</th>
-                                    <th>证件类型</th>
-                                    <th>证件号码</th>
-                                    <th>手机号</th>
-                                    <th>预约场馆</th>
-                                    <th>预约日期</th>
-                                    <th>预约时间</th>
-                                    <th>撤销原因</th>
-                                    <th>状态</th>
-                                    <th>操作</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% if cancel_requests %}
-                                {% for req in cancel_requests %}
-                                <tr>
-                                    <td>{{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                                    <td>{{ req.user.name }}</td>
-                                    <td>{{ req.user.id_type }}</td>
-                                    <td class="font-monospace">{{ req.user.id_card }}</td>
-                                    <td>{{ req.user.phone }}</td>
-                                    <td>{{ req.reservation.venue.name }}</td>
-                                    <td>{{ req.reservation.visit_date }}</td>
-                                    <td>{{ req.reservation.visit_time }}</td>
-                                    <td>{{ req.reason or '-' }}</td>
-                                    <td>
-                                        <span
-                                            class="badge {% if req.status == '待处理' %}bg-warning text-dark{% elif req.status == '已同意' %}bg-success{% else %}bg-danger{% endif %}">
-                                            {{ req.status }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {% if req.status == '待处理' %}
-                                        <button class="btn btn-primary btn-sm"
-                                            onclick="openCancelRequestModal({{ req.id }})">
-                                            审核
-                                        </button>
-                                        {% else %}
-                                        <button class="btn btn-secondary btn-sm"
-                                            onclick="openCancelRequestModal({{ req.id }})">
-                                            查看
-                                        </button>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                                {% else %}
-                                <tr>
-                                    <td colspan="11" class="text-center text-muted py-4">
-                                        暂无撤销申请记录
-                                    </td>
-                                </tr>
-                                {% endif %}
-                            </tbody>
-                        </table>
-                    </div>
+</div></div>
 
-                    <div class="tab-pane fade {% if active_tab == 'venue' %}show active{% endif %}" id="tab-venue">
-                        <h4>场馆管理</h4>
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script>
+const AVAILABLE_PERMISSIONS = {{ available_permissions|tojson }};
+let venueListData = [];
 
-                        <div class="card mb-4">
-                            <div class="card-header">场馆设置</div>
-                            <div class="card-body">
-                                <p class="text-muted">
-                                    系统支持管理两种固定场馆：校史馆和标本馆。您可以在此页面设置每个场馆的详细信息和预约规则。
-                                </p>
-                            </div>
-                        </div>
+function loadReservations(page = 1) {
+    const params = new URLSearchParams({
+        page, per_page: 15,
+        keyword: document.getElementById('res-keyword').value,
+        status: document.getElementById('res-status-filter').value,
+        res_type: document.getElementById('res-type-filter').value,
+        venue_id: document.getElementById('res-venue-filter').value,
+        start_date: document.getElementById('res-start-date').value,
+        end_date: document.getElementById('res-end-date').value
+    });
+    fetch('/admin/api/reservations?' + params).then(r => r.json()).then(data => {
+        document.getElementById('reservations-tbody').innerHTML = data.reservations.map(r => `<tr>
+<td class="small">${r.created_at}</td><td><span class="badge ${r.res_type==='单位'?'bg-info':'bg-secondary'}">${r.res_type==='单位'?'单位':'个人'}</span></td>
+<td>${r.user_name}</td><td class="small">${r.user_id_card}</td><td>${r.group_name||r.visiting_unit||'-'}</td>
+<td>${r.venue_name}</td><td>${r.visit_date}<br><small class="text-muted">${r.visit_time}</small></td><td>${r.visitor_count||1}</td>
+<td>${r.status==='待审核'?'<span class="badge bg-warning text-dark status-badge">待审核</span>':r.status==='已同意'?'<span class="badge bg-success status-badge">已同意</span>':r.status==='已核销'?'<span class="badge bg-dark status-badge">已核销</span>':r.status==='已取消'?'<span class="badge bg-secondary status-badge">已取消</span>':'<span class="badge bg-danger status-badge">已拒绝</span>'}</td>
+<td>${r.guide_info||'-'}</td>
+<td><button class="btn btn-outline-info btn-sm" onclick="viewReservationDetail(${r.id})">详情</button>
+<button class="btn btn-outline-danger btn-sm" onclick="deleteReservation(${r.id})">删除</button></td></tr>`).join('') || '<tr><td colspan="11" class="text-center text-muted py-3">没有匹配记录</td></tr>';
+        const pg = data.pagination;
+        document.getElementById('reservations-pagination').innerHTML = pg.pages > 1 ? `<ul class="pagination justify-content-center">
+<li class="page-item ${pg.has_prev?'':'disabled'}"><a class="page-link" href="#" onclick="loadReservations(${pg.page-1});return false">上一页</a></li>
+<li class="page-item disabled"><span class="page-link">${pg.page}/${pg.pages}</span></li>
+<li class="page-item ${pg.has_next?'':'disabled'}"><a class="page-link" href="#" onclick="loadReservations(${pg.page+1});return false">下一页</a></li></ul>` : '';
+    });
+}
 
-                        <h5>场馆列表</h5>
-                        <div class="list-group">
-                            {% for venue in venues %}
-                            {% if not venue.parent_venue_id %} <!-- 只显示父场馆 -->
-                            <div class="list-group-item bg-light">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6 class="mb-0">
-                                        {{ venue.name }}
-                                        <span class="badge bg-primary ms-2">{{ venue.category }}</span>
-                                        {% if venue.is_active %}
-                                        <span class="badge bg-success ms-2">启用</span>
-                                        {% else %}
-                                        <span class="badge bg-danger ms-2">禁用</span>
-                                        {% endif %}
-                                    </h6>
-                                    <span class="text-muted small">
-                                        更新时间：{{ venue.updated_at.strftime('%Y-%m-%d %H:%M') }}
-                                    </span>
-                                </div>
-                                {% if venue.description %}
-                                <p class="mb-2 text-muted small">{{ venue.description }}</p>
-                                {% endif %}
+function exportReservations() {
+    const params = new URLSearchParams({
+        keyword: document.getElementById('res-keyword').value,
+        status: document.getElementById('res-status-filter').value,
+        res_type: document.getElementById('res-type-filter').value,
+        venue_id: document.getElementById('res-venue-filter').value,
+        start_date: document.getElementById('res-start-date').value,
+        end_date: document.getElementById('res-end-date').value
+    });
+    window.open('/admin/export-reservations?' + params, '_blank');
+}
 
-                                <!-- 显示校区子类别 -->
-                                <div class="ml-4 mt-3">
-                                    <h6 class="text-muted mb-2">校区分馆：</h6>
-                                    {% if venue.child_venues %}
-                                    {% for child_venue in venue.child_venues %}
-                                    <div class="list-group-item list-group-item-secondary mb-2">
-                                        <div class="d-flex justify-content-between align-items-start mb-1">
-                                            <h7 class="mb-0">
-                                                {{ child_venue.name }}
-                                                {% if child_venue.is_active %}
-                                                <span class="badge bg-success ms-2">启用</span>
-                                                {% else %}
-                                                <span class="badge bg-danger ms-2">禁用</span>
-                                                {% endif %}
-                                            </h7>
-                                        </div>
-                                        {% if child_venue.description %}
-                                        <p class="mb-1 text-muted small">{{ child_venue.description }}</p>
-                                        {% endif %}
-                                        {% if child_venue.address %}
-                                        <p class="mb-1 text-muted small">地址：{{ child_venue.address }}</p>
-                                        {% endif %}
-                                        {% if child_venue.campus %}
-                                        <p class="mb-1 text-muted small">校区：{{ child_venue.campus }}</p>
-                                        {% endif %}
-                                        <div class="row mb-1">
-                                            <div class="col-md-6">
-                                                <p class="text-muted small">可提前预约：{{ child_venue.advance_days }}天</p>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <p class="text-muted small">当日截止时间：{{ child_venue.cutoff_time }}</p>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex gap-2 mt-2">
-                                            <!-- 编辑按钮 -->
-                                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
-                                                data-bs-target="#editVenueModal" data-id="{{ child_venue.id }}"
-                                                data-name="{{ child_venue.name }}"
-                                                data-category="{{ child_venue.category }}"
-                                                data-description="{{ child_venue.description }}"
-                                                data-address="{{ child_venue.address }}"
-                                                data-advance_days="{{ child_venue.advance_days }}"
-                                                data-cutoff_time="{{ child_venue.cutoff_time }}"
-                                                data-campus="{{ child_venue.campus }}"
-                                                data-parent_venue_id="{{ child_venue.parent_venue_id }}"
-                                                data-is_active="{{ child_venue.is_active }}">
-                                                编辑基本设置
-                                            </button>
-                                            <!-- 时段设置按钮 -->
-                                            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal"
-                                                data-bs-target="#timeSlotModal" data-venue-id="{{ child_venue.id }}"
-                                                data-venue-name="{{ child_venue.name }}">
-                                                时段设置
-                                            </button>
-                                            <!-- 禁用日期按钮 -->
-                                            <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal"
-                                                data-bs-target="#disabledDateModal" data-venue-id="{{ child_venue.id }}"
-                                                data-venue-name="{{ child_venue.name }}">
-                                                禁用日期
-                                            </button>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                    {% else %}
-                                    <p class="text-muted small">暂无校区分馆</p>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            {% endif %}
-                            {% endfor %}
-                        </div>
-                    </div>
+function loadUsers(page = 1) {
+    const params = new URLSearchParams({
+        page, per_page: 15,
+        keyword: document.getElementById('users-keyword').value,
+        blacklist: document.getElementById('users-blacklist-filter').value
+    });
+    fetch('/admin/api/users?' + params).then(r => r.json()).then(data => {
+        document.getElementById('users-tbody').innerHTML = data.users.map(u => `<tr>
+<td>${u.name}</td><td>${u.id_type}</td><td class="small">${u.id_card}</td><td>${u.phone}</td><td>${u.reservation_count}</td>
+<td>${u.is_blacklisted ? '<span class="badge bg-danger">是</span>' : '<span class="badge bg-success">否</span>'}</td>
+<td class="small">${u.created_at}</td>
+<td><button class="btn btn-outline-info btn-sm" onclick="viewUserHistory(${u.id},'${u.name}')">历史</button>
+<form method="POST" action="/admin/user" style="display:inline">
+<input type="hidden" name="action" value="toggle_blacklist"><input type="hidden" name="user_id" value="${u.id}"><input type="hidden" name="active_tab" value="users">
+<button class="btn btn-outline-${u.is_blacklisted?'success':'danger'} btn-sm">${u.is_blacklisted?'移出黑名单':'加入黑名单'}</button></form>
+<button class="btn btn-outline-danger btn-sm" onclick="deleteUser(${u.id},'${u.name}')">删除</button></td></tr>`).join('') || '<tr><td colspan="8" class="text-center text-muted py-3">没有匹配用户</td></tr>';
+        const pg = data.pagination;
+        document.getElementById('users-pagination').innerHTML = pg.pages > 1 ? `<ul class="pagination justify-content-center">
+<li class="page-item ${pg.has_prev?'':'disabled'}"><a class="page-link" href="#" onclick="loadUsers(${pg.page-1});return false">上一页</a></li>
+<li class="page-item disabled"><span class="page-link">${pg.page}/${pg.pages}</span></li>
+<li class="page-item ${pg.has_next?'':'disabled'}"><a class="page-link" href="#" onclick="loadUsers(${pg.page+1});return false">下一页</a></li></ul>` : '';
+    });
+}
 
-                </div>
+function viewUserHistory(userId, userName) {
+    document.getElementById('uhUserName').innerText = userName;
+    fetch('/admin/api/user/' + userId + '/reservations').then(r => r.json()).then(data => {
+        document.getElementById('userHistoryTbody').innerHTML = data.reservations.map(r => `<tr>
+<td class="small">${r.created_at}</td><td>${r.venue_name}</td><td>${r.res_type==='单位'?'单位':'个人'}</td>
+<td>${r.visit_date} ${r.visit_time}</td><td>${r.visitor_count||1}</td>
+<td>${r.status==='待审核'?'<span class="badge bg-warning text-dark">待审核</span>':r.status==='已同意'?'<span class="badge bg-success">已同意</span>':r.status==='已核销'?'<span class="badge bg-dark">已核销</span>':r.status==='已取消'?'<span class="badge bg-secondary">已取消</span>':'<span class="badge bg-danger">已拒绝</span>'}</td></tr>`).join('') || '<tr><td colspan="6" class="text-center text-muted py-3">无预约记录</td></tr>';
+        new bootstrap.Modal(document.getElementById('userHistoryModal')).show();
+    });
+}
 
-            </div>
-        </div>
-    </div>
+function editVenue(id, name, category, campus, address, description, advanceDays, cutoffTime, isActive, openHours, parentId) {
+    document.getElementById('venueEditId').value = id;
+    document.getElementById('venueEditName').value = name;
+    document.getElementById('venueEditCategory').value = category;
+    document.getElementById('venueEditCampus').value = campus;
+    document.getElementById('venueEditAddress').value = address;
+    document.getElementById('venueEditDescription').value = description;
+    document.getElementById('venueEditAdvanceDays').value = advanceDays;
+    document.getElementById('venueEditCutoffTime').value = cutoffTime;
+    document.getElementById('venueEditIsActive').checked = isActive;
+    document.getElementById('venueEditOpenHours').value = openHours;
+    document.getElementById('venueEditParentId').value = parentId || '';
+    new bootstrap.Modal(document.getElementById('venueEditModal')).show();
+}
 
-    <!-- 编辑场馆模态框 -->
-    <div class="modal fade" id="editVenueModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">编辑场馆设置</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form method="POST" action="{{ url_for('admin.config') }}">
-                        <input type="hidden" name="update_venue" value="1">
-                        <input type="hidden" name="venue_id" id="edit-venue-id">
-                        <input type="hidden" name="active_tab" value="venue">
-                        <div class="mb-3">
-                            <label class="form-label">场馆名称</label>
-                            <input type="text" name="venue_name" id="edit-venue-name" class="form-control"
-                                placeholder="场馆名称" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">场馆描述</label>
-                            <textarea name="venue_description" id="edit-venue-description" class="form-control"
-                                placeholder="场馆描述" rows="3"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">场馆地址</label>
-                            <input type="text" name="venue_address" id="edit-venue-address" class="form-control"
-                                placeholder="场馆地址">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">校区</label>
-                            <input type="text" name="venue_campus" id="edit-venue-campus" class="form-control"
-                                placeholder="校区">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">父场馆</label>
-                            <select name="venue_parent_id" id="edit-venue-parent-id" class="form-control">
-                                <option value="">无（作为父场馆）</option>
-                                {% for v in venues %}
-                                {% if not v.parent_venue_id %}
-                                <option value="{{ v.id }}">{{ v.name }}</option>
-                                {% endif %}
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">可提前预约天数</label>
-                                <input type="number" name="venue_advance_days" id="edit-venue-advance-days"
-                                    class="form-control" placeholder="可提前预约天数" min="1" max="30" value="7">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">当日预约截止时间</label>
-                            <input type="time" name="venue_cutoff_time" id="edit-venue-cutoff-time" class="form-control"
-                                value="16:00">
-                        </div>
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" name="venue_is_active" id="edit-venue-is_active"
-                                class="form-check-input">
-                            <label class="form-check-label" for="edit-venue-is_active">启用</label>
-                        </div>
-                        <button type="submit" class="btn btn-primary">保存修改</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+function openAddVenueModal() { new bootstrap.Modal(document.getElementById('addVenueModal')).show(); }
 
-    <script>
-        // 编辑场馆模态框处理
-        const editVenueModal = document.getElementById('editVenueModal');
-        editVenueModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const id = button.getAttribute('data-id');
-            const name = button.getAttribute('data-name');
-            const description = button.getAttribute('data-description');
-            const address = button.getAttribute('data-address');
-            const campus = button.getAttribute('data-campus');
-            const parent_venue_id = button.getAttribute('data-parent_venue_id');
-            const advance_days = button.getAttribute('data-advance_days') || 7;
-            const cutoff_time = button.getAttribute('data-cutoff_time') || '16:00';
-            const is_active = button.getAttribute('data-is_active') === 'True';
-            const category = button.getAttribute('data-category');
+function deleteVenue(id) {
+    if (!confirm('确定删除此场馆？相关时段和禁用日期也将被删除。')) return;
+    const f = document.createElement('form'); f.method = 'POST'; f.action = '/admin/config';
+    f.innerHTML = '<input type="hidden" name="delete_venue" value="1"><input type="hidden" name="venue_id" value="' + id + '"><input type="hidden" name="active_tab" value="venue">';
+    document.body.appendChild(f); f.submit();
+}
 
-            document.getElementById('edit-venue-id').value = id;
-            document.getElementById('edit-venue-name').value = name;
-            document.getElementById('edit-venue-description').value = description;
-            document.getElementById('edit-venue-address').value = address;
-            document.getElementById('edit-venue-campus').value = campus;
-            document.getElementById('edit-venue-advance-days').value = advance_days;
-            document.getElementById('edit-venue-cutoff-time').value = cutoff_time;
-            document.getElementById('edit-venue-is_active').checked = is_active;
-
-            // 设置父场馆
-            const parentSelect = document.getElementById('edit-venue-parent-id');
-            for (let i = 0; i < parentSelect.options.length; i++) {
-                if (parentSelect.options[i].value === parent_venue_id) {
-                    parentSelect.selectedIndex = i;
-                    break;
-                }
-            }
-            if (!parent_venue_id) {
-                parentSelect.selectedIndex = 0;
-            }
-        });
-    </script>
-
-    <div class="modal fade" id="auditModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">预约详情</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="detail-label">提交时间</div>
-                            <div class="detail-value" id="m-time"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">姓名</div>
-                            <div class="detail-value fw-bold" id="m-name"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">证件类型</div>
-                            <div class="detail-value" id="m-idtype"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">证件号码</div>
-                            <div class="detail-value font-monospace" id="m-idcard"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">手机号</div>
-                            <div class="detail-value" id="m-phone"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">邮箱</div>
-                            <div class="detail-value" id="m-email"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">身份</div>
-                            <div class="detail-value" id="m-identity"></div>
-                        </div>
-                        <div class="col-12">
-                            <hr class="my-2">
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">参观时间</div>
-                            <div class="detail-value text-primary" id="m-visitdate"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">场馆</div>
-                            <div class="detail-value" id="m-venue"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">校区</div>
-                            <div class="detail-value" id="m-campus"></div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="detail-label">申请理由</div>
-                        <div class="reason-box" id="m-reason"></div>
-                    </div>
-
-                    <!-- 团体信息 -->
-                    <div class="mb-3" id="m-group-info" style="display:none;">
-                        <div class="detail-label">团体信息</div>
-                        <div class="row">
-                            <div class="col-6">
-                                <div class="detail-label">团体名称</div>
-                                <div id="m-group-name"></div>
-                            </div>
-                            <div class="col-6">
-                                <div class="detail-label">团体人数</div>
-                                <div id="m-group-size"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 附件信息 -->
-                    <div class="mb-3">
-                        <div class="detail-label">附件</div>
-                        <div id="m-attachments">
-                            <div class="text-muted">无附件</div>
-                        </div>
-                    </div>
-
-                    <div id="m-old-reject" class="alert alert-danger py-2" style="display:none;">
-                        <strong>拒绝原因：</strong>
-                        <span id="m-old-reject-text"></span>
-                    </div>
-
-                    <form method="POST" id="auditForm">
-                        <input type="hidden" name="action" id="actionInput">
-                        <div class="collapse mb-3" id="rejectInputArea">
-                            <label class="form-label text-danger fw-bold">
-                                请填写拒绝理由：
-                            </label>
-                            <textarea name="reject_reason" id="rejectReasonText" class="form-control border-danger"
-                                rows="2" placeholder="例如：该时间段预约已满"></textarea>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="modal-footer bg-light">
-                    <div id="btn-group-pending"
-                        style="display: flex; gap: 10px; width: 100%; justify-content: flex-end;">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-
-                        <button type="button" class="btn btn-danger" id="btn-reject-trigger"
-                            onclick="showRejectInput()">拒绝</button>
-
-                        <button type="button" class="btn btn-danger" id="btn-reject-confirm"
-                            onclick="submitAudit('reject')" style="display:none;">
-                            确认拒绝
-                        </button>
-
-                        <button type="button" class="btn btn-success" id="btn-approve"
-                            onclick="submitAudit('approve')">同意</button>
-                    </div>
-
-                    <div id="btn-group-done" style="display: none;">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="addAdminModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">新增普通管理员</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form method="POST" action="{{ url_for('admin.account') }}">
-                    <div class="modal-body">
-                        <input type="hidden" name="action" value="create_admin">
-                        <input type="hidden" name="active_tab" value="account">
-                        <div class="mb-3">
-                            <label>用户名</label>
-                            <input type="text" name="username" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label>初始密码</label>
-                            <input type="text" name="password" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                        <button type="submit" class="btn btn-primary">创建</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            document.querySelectorAll('form').forEach(function (form) {
-                form.addEventListener('submit', function (e) {
-                    const submitBtns = form.querySelectorAll('button[type="submit"], input[type="submit"]');
-                    submitBtns.forEach(function (btn) {
-                        if (btn.dataset.submitted === 'true') {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            return false;
-                        }
-                        btn.dataset.submitted = 'true';
-                        btn.disabled = true;
-                        const originalText = btn.innerHTML;
-                        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 处理中...';
-                        btn.dataset.originalText = originalText;
-                    });
-                });
-            });
-        });
-
-        var auditModal = new bootstrap.Modal(document.getElementById('auditModal'));
-
-        // 1. 打开审核弹窗
-        function openAuditModal(btn) {
-            const data = btn.dataset;
-            document.getElementById('m-time').innerText = data.time;
-            document.getElementById('m-name').innerText = data.name;
-            document.getElementById('m-phone').innerText = data.phone;
-            document.getElementById('m-email').innerText = data.email || '未填写';
-            document.getElementById('m-idtype').innerText = data.idtype || '身份证';
-            document.getElementById('m-idcard').innerText = data.idcard;
-            document.getElementById('m-identity').innerText = data.identity;
-            document.getElementById('m-visitdate').innerText = data.visitdate;
-            document.getElementById('m-venue').innerText = data.venue;
-            document.getElementById('m-campus').innerText = data.campus || '未指定';
-            document.getElementById('m-reason').innerText = data.reason;
-
-            const groupInfoDiv = document.getElementById('m-group-info');
-            if (data.restype === '团队') {
-                groupInfoDiv.style.display = 'block';
-                document.getElementById('m-group-name').innerText = data.groupname || '未填写';
-                document.getElementById('m-group-size').innerText = data.groupsize || '未填写';
-            } else {
-                groupInfoDiv.style.display = 'none';
-            }
-
-            const form = document.getElementById('auditForm');
-            form.action = "/admin/audit/" + data.id;
-
-            // 获取附件信息
-            fetch(`/admin/get-attachments/${data.id}`, { credentials: 'same-origin' })
-                .then(response => {
-                    if (response.redirected) {
-                        window.location.href = '/admin/login';
-                        return;
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    const attachmentsContainer = document.getElementById('m-attachments');
-                    if (data.attachments && data.attachments.length > 0) {
-                        let attachmentsHtml = '<div class="row row-cols-2 gap-2">';
-                        data.attachments.forEach(attachment => {
-                            const fileSize = (attachment.file_size / 1024 / 1024).toFixed(2);
-                            attachmentsHtml += `
-                                <div class="col">
-                                    <a href="/static/${attachment.filepath}" target="_blank" class="d-block p-2 border rounded">
-                                        <div class="text-truncate">${attachment.filename}</div>
-                                        <div class="text-xs text-muted">${fileSize}MB</div>
-                                    </a>
-                                </div>
-                            `;
-                        });
-                        attachmentsHtml += '</div>';
-                        attachmentsContainer.innerHTML = attachmentsHtml;
-                    } else {
-                        attachmentsContainer.innerHTML = '<div class="text-muted">无附件</div>';
-                    }
-                })
-                .catch(error => {
-                    console.error('获取附件信息失败:', error);
-                    document.getElementById('m-attachments').innerHTML = '<div class="text-muted">无附件</div>';
-                });
-
-            // UI 状态重置
-            const pendingGroup = document.getElementById('btn-group-pending');
-            const doneGroup = document.getElementById('btn-group-done');
-            const rejectArea = document.getElementById('rejectInputArea');
-            const oldRejectArea = document.getElementById('m-old-reject');
-            const btnApprove = document.getElementById('btn-approve');
-            const btnRejectConfirm = document.getElementById('btn-reject-confirm');
-
-            rejectArea.classList.remove('show');
-            document.getElementById('btn-reject-trigger').style.display = 'inline-block';
-            btnRejectConfirm.style.display = 'none';
-            btnRejectConfirm.disabled = false;
-            btnRejectConfirm.innerHTML = '确认拒绝';
-            btnApprove.disabled = false;
-            btnApprove.innerHTML = '同意';
-            document.getElementById('rejectReasonText').value = '';
-
-            if (data.status === '待审核') {
-                pendingGroup.style.display = 'flex';
-                doneGroup.style.display = 'none';
-                oldRejectArea.style.display = 'none';
-            } else {
-                pendingGroup.style.display = 'none';
-                doneGroup.style.display = 'block';
-                if (data.status === '已拒绝') {
-                    oldRejectArea.style.display = 'block';
-                    document.getElementById('m-old-reject-text').innerText = data.rejectreason;
-                } else {
-                    oldRejectArea.style.display = 'none';
-                }
-            }
-            auditModal.show();
+function openTimeSlotModal(venueId) {
+    document.getElementById('timeSlotVenueId').value = venueId;
+    fetch('/admin/get-time-slots/' + venueId).then(r => r.json()).then(data => {
+        const slots = data.slots;
+        const timeSlotValues = Object.keys(slots);
+        if (timeSlotValues.length === 0) {
+            timeSlotValues.push('09:00-10:30', '10:30-12:00', '14:00-15:30', '15:30-17:00');
         }
-
-        // 2. 展开拒绝输入框
-        function showRejectInput() {
-            document.getElementById('rejectInputArea').classList.add('show');
-            document.getElementById('btn-approve').disabled = true;
-            document.getElementById('btn-reject-trigger').style.display = 'none';
-            document.getElementById('btn-reject-confirm').style.display = 'inline-block';
-        }
-
-        // 3. 提交审核 (防重复提交)
-        function submitAudit(actionType) {
-            const actionInput = document.getElementById('actionInput');
-            actionInput.value = actionType;
-            const form = document.getElementById('auditForm');
-
-            if (actionType === 'reject') {
-                const reason = document.getElementById('rejectReasonText').value.trim();
-                if (!reason) { alert("请填写拒绝理由！"); return; }
-            }
-
-            const btnApprove = document.getElementById('btn-approve');
-            const btnRejectConfirm = document.getElementById('btn-reject-confirm');
-
-            if (btnApprove.dataset.submitted === 'true' || btnRejectConfirm.dataset.submitted === 'true') {
-                return;
-            }
-
-            // Loading 状态
-            if (actionType === 'approve') {
-                btnApprove.dataset.submitted = 'true';
-                btnApprove.disabled = true;
-                btnApprove.innerHTML =
-                    '<span class="spinner-border spinner-border-sm"></span> 处理中...';
-            } else {
-                btnRejectConfirm.dataset.submitted = 'true';
-                btnRejectConfirm.disabled = true;
-                btnRejectConfirm.innerHTML =
-                    '<span class="spinner-border spinner-border-sm"></span> 处理中...';
-            }
-            form.submit();
-        }
-    </script>
-
-    <!-- 时段设置模态框 -->
-    <div class="modal fade" id="timeSlotModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">时段设置 - <span id="timeSlotVenueName"></span></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form method="POST" action="{{ url_for('admin.time_slot_config') }}" id="timeSlotForm">
-                        <input type="hidden" name="venue_id" id="timeSlotVenueId">
-                        <input type="hidden" name="active_tab" id="activeTabInput">
-
-                        <div class="mb-3 alert alert-info">
-                            <strong>设置说明：</strong>
-                            <ul>
-                                <li>个人容量：设置该时段个人预约可预约的最大人数</li>
-                                <li>团体预约：无人数限制，但需要选择时段</li>
-                                <li>启用：勾选表示该时段开放预约</li>
-                            </ul>
-                        </div>
-
-                        <div class="mb-3">
-                            <button type="button" class="btn btn-success btn-sm" onclick="addTimeSlot()">
-                                <i class="bi bi-plus"></i> 添加时段
-                            </button>
-                        </div>
-
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>时间段</th>
-                                        <th>周日</th>
-                                        <th>周一</th>
-                                        <th>周二</th>
-                                        <th>周三</th>
-                                        <th>周四</th>
-                                        <th>周五</th>
-                                        <th>周六</th>
-                                        <th>操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="timeSlotTableBody">
-                                    <!-- 时间段设置表格将通过JavaScript动态生成 -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="mt-4">
-                            <button type="submit" class="btn btn-primary">保存设置</button>
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // 时段设置模态框处理
-        const timeSlotModal = document.getElementById('timeSlotModal');
-        timeSlotModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const venueId = button.getAttribute('data-venue-id');
-            const venueName = button.getAttribute('data-venue-name');
-
-            document.getElementById('timeSlotVenueId').value = venueId;
-            document.getElementById('timeSlotVenueName').textContent = venueName;
-
-            // 获取当前活动标签页
-            let activeTab = 'venue';
-            const activeNavLink = document.querySelector('.nav-pills .nav-link.active');
-            if (activeNavLink && activeNavLink.getAttribute('data-bs-target')) {
-                activeTab = activeNavLink.getAttribute('data-bs-target').replace('#tab-', '');
-            }
-            document.getElementById('activeTabInput').value = activeTab;
-
-            // 清空表格
-            const tableBody = document.getElementById('timeSlotTableBody');
-            tableBody.innerHTML = '<tr><td colspan="9" class="text-center py-4">加载中...</td></tr>';
-
-            // 调用API获取现有的时段设置
-            fetch(`{{ url_for('admin.get_time_slots', venue_id=0) }}`.replace('/0', `/${venueId}`), { credentials: 'same-origin' })
-                .then(response => {
-                    if (response.redirected) {
-                        window.location.href = '/admin/login';
-                        return;
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // 清空表格
-                    tableBody.innerHTML = '';
-
-                    if (data.slots && Object.keys(data.slots).length > 0) {
-                        // 生成现有时段行
-                        const timeSlots = Object.keys(data.slots);
-                        timeSlots.forEach(timeSlot => {
-                            addTimeSlotRow(timeSlot, data.slots[timeSlot]);
-                        });
-                    } else {
-                        // 如果没有现有的时段设置，生成默认的时段行
-                        const defaultTimeSlots = ['09:00-10:30', '10:30-12:00', '14:00-15:30', '15:30-17:00'];
-                        defaultTimeSlots.forEach(timeSlot => {
-                            addTimeSlotRow(timeSlot);
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching time slots:', error);
-                    // 加载失败，生成默认的时段行
-                    tableBody.innerHTML = '';
-                    const defaultTimeSlots = ['09:00-10:30', '10:30-12:00', '14:00-15:30', '15:30-17:00'];
-                    defaultTimeSlots.forEach(timeSlot => {
-                        addTimeSlotRow(timeSlot);
-                    });
-                });
-        });
-
-        // 添加时段行
-        function addTimeSlotRow(timeSlotValue = '09:00-10:30', slotData = {}) {
-            const tableBody = document.getElementById('timeSlotTableBody');
-            const row = document.createElement('tr');
-
-            // 时间段列
-            const timeSlotCell = document.createElement('td');
-            timeSlotCell.className = 'font-weight-bold';
-
-            const timeSlotInput = document.createElement('input');
-            timeSlotInput.type = 'text';
-            timeSlotInput.name = 'time_slot_value';
-            timeSlotInput.value = timeSlotValue;
-            timeSlotInput.className = 'form-control';
-            timeSlotInput.placeholder = '例如：09:00-10:30';
-            timeSlotInput.onchange = function () {
-                updateFieldNames(row, this.value);
-            };
-
-            timeSlotCell.appendChild(timeSlotInput);
-            row.appendChild(timeSlotCell);
-
-            // 星期列
+        const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+        let html = '<table class="table table-sm table-bordered"><thead><tr><th>时段</th>' + dayNames.map(d => '<th>' + d + '</th>').join('') + '</tr></thead><tbody>';
+        timeSlotValues.forEach(ts => {
+            html += '<tr><td>' + ts + '</td>';
             for (let day = 0; day < 7; day++) {
-                const dayCell = document.createElement('td');
-
-                // 获取该日期的时段设置
-                const dayData = slotData[day] || {};
-
-                // 个人容量输入
-                const individualCapacityDiv = document.createElement('div');
-                individualCapacityDiv.className = 'form-group';
-
-                const individualCapacityLabel = document.createElement('label');
-                individualCapacityLabel.className = 'form-label text-xs';
-                individualCapacityLabel.textContent = '个人容量';
-                individualCapacityDiv.appendChild(individualCapacityLabel);
-
-                const individualCapacityInput = document.createElement('input');
-                individualCapacityInput.type = 'number';
-                individualCapacityInput.name = `individual_capacity_${timeSlotValue}_${day}`;
-                individualCapacityInput.value = dayData.individual_capacity || '20';
-                individualCapacityInput.min = '0';
-                individualCapacityInput.max = '100';
-                individualCapacityInput.className = 'form-control';
-                individualCapacityDiv.appendChild(individualCapacityInput);
-
-                // 启用复选框
-                const activeDiv = document.createElement('div');
-                activeDiv.className = 'form-check';
-
-                const activeInput = document.createElement('input');
-                activeInput.type = 'checkbox';
-                activeInput.name = `active_${timeSlotValue}_${day}`;
-                activeInput.checked = dayData.is_active !== undefined ? dayData.is_active : true;
-                activeInput.className = 'form-check-input';
-
-                const activeLabel = document.createElement('label');
-                activeLabel.className = 'form-check-label';
-                activeLabel.textContent = '个人预约启用';
-                activeLabel.htmlFor = `active_${timeSlotValue}_${day}`;
-
-                activeDiv.appendChild(activeInput);
-                activeDiv.appendChild(activeLabel);
-
-                // 团体预约启用复选框
-                const groupActiveDiv = document.createElement('div');
-                groupActiveDiv.className = 'form-check';
-
-                const groupActiveInput = document.createElement('input');
-                groupActiveInput.type = 'checkbox';
-                groupActiveInput.name = `is_group_active_${timeSlotValue}_${day}`;
-                groupActiveInput.checked = dayData.is_group_active !== undefined ? dayData.is_group_active : true;
-                groupActiveInput.className = 'form-check-input';
-
-                const groupActiveLabel = document.createElement('label');
-                groupActiveLabel.className = 'form-check-label';
-                groupActiveLabel.textContent = '团体预约启用';
-                groupActiveLabel.htmlFor = `is_group_active_${timeSlotValue}_${day}`;
-
-                groupActiveDiv.appendChild(groupActiveInput);
-                groupActiveDiv.appendChild(groupActiveLabel);
-
-                dayCell.appendChild(individualCapacityDiv);
-                dayCell.appendChild(activeDiv);
-                dayCell.appendChild(groupActiveDiv);
-                row.appendChild(dayCell);
+                const slotInfo = slots[ts] && slots[ts][day];
+                const cap = slotInfo ? slotInfo.individual_capacity : '';
+                const active = slotInfo ? slotInfo.is_active : true;
+                const groupActive = slotInfo ? slotInfo.is_group_active : true;
+                html += '<td class="small"><input type="number" name="individual_capacity_' + ts + '_' + day + '" class="form-control form-control-sm mb-1" value="' + cap + '" placeholder="容量" style="width:65px" min="0"><div class="form-check form-check-inline"><input type="checkbox" name="active_' + ts + '_' + day + '" class="form-check-input" ' + (active ? 'checked' : '') + '><label class="form-check-label small">启用</label></div><div class="form-check form-check-inline"><input type="checkbox" name="is_group_active_' + ts + '_' + day + '" class="form-check-input" ' + (groupActive ? 'checked' : '') + '><label class="form-check-label small">团体</label></div></td>';
             }
-
-            // 操作列
-            const actionCell = document.createElement('td');
-            const deleteButton = document.createElement('button');
-            deleteButton.type = 'button';
-            deleteButton.className = 'btn btn-danger btn-sm';
-            deleteButton.onclick = function () {
-                removeTimeSlot(this);
-            };
-            deleteButton.innerHTML = '<i class="bi bi-trash"></i> 删除';
-            actionCell.appendChild(deleteButton);
-            row.appendChild(actionCell);
-
-            tableBody.appendChild(row);
-        }
-
-        // 更新字段名称
-        function updateFieldNames(row, newTimeSlotValue) {
-            const cells = row.querySelectorAll('td');
-
-            // 从第二个单元格开始（跳过时间段单元格）
-            for (let i = 1; i < cells.length - 1; i++) { // 跳过最后一个操作单元格
-                const day = i - 1; // 星期几（0-6）
-
-                // 更新个人容量输入名称
-                const individualCapacityInput = cells[i].querySelector('input[type="number"]');
-                if (individualCapacityInput) {
-                    individualCapacityInput.name = `individual_capacity_${newTimeSlotValue}_${day}`;
-                }
-
-                // 更新个人预约启用复选框名称
-                const activeInputs = cells[i].querySelectorAll('input[type="checkbox"]');
-                if (activeInputs.length > 0) {
-                    // 个人预约启用复选框
-                    activeInputs[0].name = `active_${newTimeSlotValue}_${day}`;
-                    const activeLabels = cells[i].querySelectorAll('label');
-                    if (activeLabels.length > 0) {
-                        activeLabels[0].htmlFor = `active_${newTimeSlotValue}_${day}`;
-                    }
-
-                    // 团体预约启用复选框
-                    if (activeInputs.length > 1) {
-                        activeInputs[1].name = `is_group_active_${newTimeSlotValue}_${day}`;
-                        if (activeLabels.length > 1) {
-                            activeLabels[1].htmlFor = `is_group_active_${newTimeSlotValue}_${day}`;
-                        }
-                    }
-                }
-            }
-        }
-
-        // 添加新时段
-        function addTimeSlot() {
-            addTimeSlotRow('00:00-00:00');
-        }
-
-        // 删除时段
-        function removeTimeSlot(button) {
-            const row = button.closest('tr');
-            row.remove();
-        }
-    </script>
-
-    <!-- 禁用日期设置模态框 -->
-    <div class="modal fade" id="disabledDateModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">禁用日期设置 - <span id="disabledDateVenueName"></span></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3 alert alert-warning">
-                        <strong>设置说明：</strong>选择要禁用的日期和时段，被禁用的日期时段将无法进行预约。
-                    </div>
-
-                    <form method="POST" action="{{ url_for('admin.manage_disabled_date') }}" id="disabledDateForm"
-                        class="mb-4">
-                        <input type="hidden" name="action" value="add">
-                        <input type="hidden" name="venue_id" id="disabledDateVenueId">
-                        <input type="hidden" name="active_tab" id="disabledDateActiveTab">
-                        <div class="row g-3 align-items-end">
-                            <div class="col-md-3">
-                                <label class="form-label">选择日期</label>
-                                <input type="date" name="disabled_date" id="disabledDateInput" class="form-control"
-                                    required>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">开始时间</label>
-                                <div class="input-group">
-                                    <select id="startHour" class="form-select">
-                                        <option value="08">08</option>
-                                        <option value="09" selected>09</option>
-                                        <option value="10">10</option>
-                                        <option value="11">11</option>
-                                        <option value="12">12</option>
-                                        <option value="13">13</option>
-                                        <option value="14">14</option>
-                                        <option value="15">15</option>
-                                        <option value="16">16</option>
-                                        <option value="17">17</option>
-                                    </select>
-                                    <span class="input-group-text">:</span>
-                                    <select id="startMinute" class="form-select">
-                                        <option value="00" selected>00</option>
-                                        <option value="01">01</option>
-                                        <option value="02">02</option>
-                                        <option value="03">03</option>
-                                        <option value="04">04</option>
-                                        <option value="05">05</option>
-                                        <option value="06">06</option>
-                                        <option value="07">07</option>
-                                        <option value="08">08</option>
-                                        <option value="09">09</option>
-                                        <option value="10">10</option>
-                                        <option value="11">11</option>
-                                        <option value="12">12</option>
-                                        <option value="13">13</option>
-                                        <option value="14">14</option>
-                                        <option value="15">15</option>
-                                        <option value="16">16</option>
-                                        <option value="17">17</option>
-                                        <option value="18">18</option>
-                                        <option value="19">19</option>
-                                        <option value="20">20</option>
-                                        <option value="21">21</option>
-                                        <option value="22">22</option>
-                                        <option value="23">23</option>
-                                        <option value="24">24</option>
-                                        <option value="25">25</option>
-                                        <option value="26">26</option>
-                                        <option value="27">27</option>
-                                        <option value="28">28</option>
-                                        <option value="29">29</option>
-                                        <option value="30">30</option>
-                                        <option value="31">31</option>
-                                        <option value="32">32</option>
-                                        <option value="33">33</option>
-                                        <option value="34">34</option>
-                                        <option value="35">35</option>
-                                        <option value="36">36</option>
-                                        <option value="37">37</option>
-                                        <option value="38">38</option>
-                                        <option value="39">39</option>
-                                        <option value="40">40</option>
-                                        <option value="41">41</option>
-                                        <option value="42">42</option>
-                                        <option value="43">43</option>
-                                        <option value="44">44</option>
-                                        <option value="45">45</option>
-                                        <option value="46">46</option>
-                                        <option value="47">47</option>
-                                        <option value="48">48</option>
-                                        <option value="49">49</option>
-                                        <option value="50">50</option>
-                                        <option value="51">51</option>
-                                        <option value="52">52</option>
-                                        <option value="53">53</option>
-                                        <option value="54">54</option>
-                                        <option value="55">55</option>
-                                        <option value="56">56</option>
-                                        <option value="57">57</option>
-                                        <option value="58">58</option>
-                                        <option value="59">59</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">结束时间</label>
-                                <div class="input-group">
-                                    <select id="endHour" class="form-select">
-                                        <option value="09">09</option>
-                                        <option value="10">10</option>
-                                        <option value="11">11</option>
-                                        <option value="12" selected>12</option>
-                                        <option value="13">13</option>
-                                        <option value="14">14</option>
-                                        <option value="15">15</option>
-                                        <option value="16">16</option>
-                                        <option value="17">17</option>
-                                        <option value="18">18</option>
-                                    </select>
-                                    <span class="input-group-text">:</span>
-                                    <select id="endMinute" class="form-select">
-                                        <option value="00" selected>00</option>
-                                        <option value="01">01</option>
-                                        <option value="02">02</option>
-                                        <option value="03">03</option>
-                                        <option value="04">04</option>
-                                        <option value="05">05</option>
-                                        <option value="06">06</option>
-                                        <option value="07">07</option>
-                                        <option value="08">08</option>
-                                        <option value="09">09</option>
-                                        <option value="10">10</option>
-                                        <option value="11">11</option>
-                                        <option value="12">12</option>
-                                        <option value="13">13</option>
-                                        <option value="14">14</option>
-                                        <option value="15">15</option>
-                                        <option value="16">16</option>
-                                        <option value="17">17</option>
-                                        <option value="18">18</option>
-                                        <option value="19">19</option>
-                                        <option value="20">20</option>
-                                        <option value="21">21</option>
-                                        <option value="22">22</option>
-                                        <option value="23">23</option>
-                                        <option value="24">24</option>
-                                        <option value="25">25</option>
-                                        <option value="26">26</option>
-                                        <option value="27">27</option>
-                                        <option value="28">28</option>
-                                        <option value="29">29</option>
-                                        <option value="30">30</option>
-                                        <option value="31">31</option>
-                                        <option value="32">32</option>
-                                        <option value="33">33</option>
-                                        <option value="34">34</option>
-                                        <option value="35">35</option>
-                                        <option value="36">36</option>
-                                        <option value="37">37</option>
-                                        <option value="38">38</option>
-                                        <option value="39">39</option>
-                                        <option value="40">40</option>
-                                        <option value="41">41</option>
-                                        <option value="42">42</option>
-                                        <option value="43">43</option>
-                                        <option value="44">44</option>
-                                        <option value="45">45</option>
-                                        <option value="46">46</option>
-                                        <option value="47">47</option>
-                                        <option value="48">48</option>
-                                        <option value="49">49</option>
-                                        <option value="50">50</option>
-                                        <option value="51">51</option>
-                                        <option value="52">52</option>
-                                        <option value="53">53</option>
-                                        <option value="54">54</option>
-                                        <option value="55">55</option>
-                                        <option value="56">56</option>
-                                        <option value="57">57</option>
-                                        <option value="58">58</option>
-                                        <option value="59">59</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <button type="submit" class="btn btn-warning">添加禁用</button>
-                            </div>
-                        </div>
-                        <input type="hidden" name="time_slot" id="disabledDateTimeSlot">
-                    </form>
-
-                    <h6>已禁用的日期列表</h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-striped">
-                            <thead>
-                                <tr>
-                                    <th>日期</th>
-                                    <th>时段</th>
-                                    <th>操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="disabledDateTableBody">
-                                <tr>
-                                    <td colspan="3" class="text-center py-3">加载中...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // 禁用日期模态框处理
-        const disabledDateModal = document.getElementById('disabledDateModal');
-        disabledDateModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const venueId = button.getAttribute('data-venue-id');
-            const venueName = button.getAttribute('data-venue-name');
-
-            document.getElementById('disabledDateVenueId').value = venueId;
-            document.getElementById('disabledDateVenueName').textContent = venueName;
-
-            let activeTab = 'venue';
-            const activeNavLink = document.querySelector('.nav-pills .nav-link.active');
-            if (activeNavLink && activeNavLink.getAttribute('data-bs-target')) {
-                activeTab = activeNavLink.getAttribute('data-bs-target').replace('#tab-', '');
-            }
-            document.getElementById('disabledDateActiveTab').value = activeTab;
-
-            // 清空禁用日期列表
-            const tableBody = document.getElementById('disabledDateTableBody');
-            tableBody.innerHTML = '<tr><td colspan="3" class="text-center py-3">加载中...</td></tr>';
-
-            // 清空时段输入框并设置默认值
-            generateTimeSlot();
-
-            // 加载已禁用的日期列表
-            loadDisabledDates(venueId);
+            html += '</tr>';
         });
+        html += '</tbody></table>';
+        document.getElementById('timeSlotTableContainer').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('timeSlotModal')).show();
+    });
+}
 
-        function generateTimeSlot() {
-            const startHour = document.getElementById('startHour').value;
-            const startMinute = document.getElementById('startMinute').value;
-            const endHour = document.getElementById('endHour').value;
-            const endMinute = document.getElementById('endMinute').value;
-            const timeSlot = startHour + ':' + startMinute + '-' + endHour + ':' + endMinute;
-            document.getElementById('disabledDateTimeSlot').value = timeSlot;
+function openDisabledDateModal(venueId) {
+    document.getElementById('ddVenueId').value = venueId;
+    loadDisabledDates(venueId);
+    new bootstrap.Modal(document.getElementById('disabledDateModal')).show();
+}
+
+function loadDisabledDates(venueId) {
+    fetch('/admin/get-disabled-dates/' + venueId).then(r => r.json()).then(data => {
+        document.getElementById('disabledDateList').innerHTML = data.disabled_dates.length === 0 ? '<p class="text-muted">暂无禁用日期</p>' :
+        '<table class="table table-sm"><thead><tr><th>时段</th><th>日期</th><th>操作</th></tr></thead><tbody>' + data.disabled_dates.map(dd => '<tr><td>' + dd.time_slot + '</td><td>' + dd.disabled_date + '</td><td><form method="POST" action="/admin/disabled-date" style="display:inline"><input type="hidden" name="action" value="delete"><input type="hidden" name="venue_id" value="' + venueId + '"><input type="hidden" name="disabled_id" value="' + dd.id + '"><input type="hidden" name="active_tab" value="venue"><button class="btn btn-outline-danger btn-sm">删除</button></form></td></tr>').join('') + '</tbody></table>';
+    });
+}
+
+function openRoleModal() {
+    document.getElementById('roleAction').value = 'create';
+    document.getElementById('roleEditId').value = '';
+    document.getElementById('roleName').value = '';
+    document.getElementById('roleModalTitle').innerText = '添加角色';
+    populateRolePerms([]);
+    new bootstrap.Modal(document.getElementById('roleModal')).show();
+}
+
+function editRole(id, name, perms) {
+    document.getElementById('roleAction').value = 'edit';
+    document.getElementById('roleEditId').value = id;
+    document.getElementById('roleName').value = name;
+    document.getElementById('roleModalTitle').innerText = '编辑角色';
+    populateRolePerms(perms);
+    new bootstrap.Modal(document.getElementById('roleModal')).show();
+}
+
+function deleteRole(id) {
+    if (!confirm('确定删除此角色？相关管理员将失去角色绑定。')) return;
+    const f = document.createElement('form'); f.method = 'POST'; f.action = '/admin/role';
+    f.innerHTML = '<input type="hidden" name="action" value="delete"><input type="hidden" name="role_id" value="' + id + '"><input type="hidden" name="active_tab" value="roles">';
+    document.body.appendChild(f); f.submit();
+}
+
+function populateRolePerms(selected) {
+    document.getElementById('rolePermsList').innerHTML = AVAILABLE_PERMISSIONS.map(p => `<div class="form-check"><input type="checkbox" name="permissions" value="${p[0]}" class="form-check-input" ${selected.includes(p[0])?'checked':''}><label class="form-check-label small">${p[1]}</label></div>`).join('');
+}
+
+function openApprovalStaffModal() {
+    document.getElementById('asAction').value = 'create';
+    document.getElementById('asEditId').value = '';
+    document.getElementById('asUsername').value = '';
+    document.getElementById('asUsername').required = true;
+    document.getElementById('asPassword').value = '';
+    document.getElementById('asPassword').required = true;
+    document.getElementById('asPasswordCol').style.display = 'block';
+    document.getElementById('asName').value = '';
+    document.getElementById('asStaffId').value = '';
+    document.getElementById('asDepartment').value = '';
+    document.getElementById('asPhone').value = '';
+    document.getElementById('asIsActive').checked = true;
+    document.getElementById('asStatusDiv').style.display = 'none';
+    document.getElementById('asModalTitle').innerText = '添加审批人员';
+    populateAsVenueCheckboxes([]);
+    new bootstrap.Modal(document.getElementById('approvalStaffModal')).show();
+}
+
+function editApprovalStaff(id, username, name, staffId, department, phone, venueIds, isActive) {
+    document.getElementById('asAction').value = 'edit';
+    document.getElementById('asEditId').value = id;
+    document.getElementById('asUsername').value = username;
+    document.getElementById('asUsername').required = false;
+    document.getElementById('asPassword').value = '';
+    document.getElementById('asPassword').required = false;
+    document.getElementById('asPasswordCol').style.display = 'block';
+    document.getElementById('asName').value = name;
+    document.getElementById('asStaffId').value = staffId;
+    document.getElementById('asDepartment').value = department;
+    document.getElementById('asPhone').value = phone;
+    document.getElementById('asIsActive').checked = isActive;
+    document.getElementById('asStatusDiv').style.display = 'block';
+    document.getElementById('asModalTitle').innerText = '编辑审批人员';
+    populateAsVenueCheckboxes(venueIds);
+    new bootstrap.Modal(document.getElementById('approvalStaffModal')).show();
+}
+
+function deleteApprovalStaff(id) {
+    if (!confirm('确定删除此审批人员？')) return;
+    const f = document.createElement('form'); f.method = 'POST'; f.action = '/admin/approval-staff';
+    f.innerHTML = '<input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="' + id + '"><input type="hidden" name="active_tab" value="approval_staff">';
+    document.body.appendChild(f); f.submit();
+}
+
+function populateAsVenueCheckboxes(selected) {
+    fetch('/admin/get-all-venues').then(r => r.json()).then(data => {
+        document.getElementById('asVenueList').innerHTML = data.venues.map(v => `<div class="col-6"><div class="form-check"><input type="checkbox" name="assigned_venues" value="${v.id}" class="form-check-input" ${selected.includes(v.id)?'checked':''}><label class="form-check-label small">${v.name}</label></div></div>`).join('');
+    });
+}
+
+function openGuideModal() {
+    document.getElementById('guideAction').value = 'create';
+    document.getElementById('guideEditId').value = '';
+    document.getElementById('guideName').value = '';
+    document.getElementById('guideStaffId').value = '';
+    document.getElementById('guidePhone').value = '';
+    document.getElementById('guideExpertise').value = '';
+    document.getElementById('guideStatus').value = '在岗';
+    document.getElementById('guideModalTitle').innerText = '添加讲解员';
+    new bootstrap.Modal(document.getElementById('guideModal')).show();
+}
+
+function editGuide(id, name, staffId, phone, expertise, status) {
+    document.getElementById('guideAction').value = 'edit';
+    document.getElementById('guideEditId').value = id;
+    document.getElementById('guideName').value = name;
+    document.getElementById('guideStaffId').value = staffId;
+    document.getElementById('guidePhone').value = phone;
+    document.getElementById('guideExpertise').value = expertise;
+    document.getElementById('guideStatus').value = status;
+    document.getElementById('guideModalTitle').innerText = '编辑讲解员';
+    new bootstrap.Modal(document.getElementById('guideModal')).show();
+}
+
+function deleteGuide(id) {
+    if (!confirm('确定删除此讲解员？')) return;
+    const f = document.createElement('form'); f.method = 'POST'; f.action = '/admin/guide';
+    f.innerHTML = '<input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="' + id + '"><input type="hidden" name="active_tab" value="guides">';
+    document.body.appendChild(f); f.submit();
+}
+
+function editAdmin(id, roleId) {
+    const f = document.createElement('form'); f.method = 'POST'; f.action = '/admin/account';
+    f.innerHTML = '<input type="hidden" name="action" value="edit_admin"><input type="hidden" name="admin_id" value="' + id + '"><input type="hidden" name="role_id" value="' + (roleId||'') + '"><input type="hidden" name="active_tab" value="account">';
+    document.body.appendChild(f); f.submit();
+}
+
+function deleteAdmin(id) {
+    if (!confirm('确定删除此管理员？')) return;
+    const f = document.createElement('form'); f.method = 'POST'; f.action = '/admin/account';
+    f.innerHTML = '<input type="hidden" name="action" value="delete_admin"><input type="hidden" name="admin_id" value="' + id + '"><input type="hidden" name="active_tab" value="account">';
+    document.body.appendChild(f); f.submit();
+}
+
+function resetPassword(id) {
+    const newPass = prompt('请输入新密码（≥8位）：');
+    if (!newPass || newPass.length < 8) { alert('密码长度不能少于8位'); return; }
+    const f = document.createElement('form'); f.method = 'POST'; f.action = '/admin/account';
+    f.innerHTML = '<input type="hidden" name="action" value="reset_password"><input type="hidden" name="admin_id" value="' + id + '"><input type="hidden" name="new_password" value="' + newPass + '"><input type="hidden" name="active_tab" value="account">';
+    document.body.appendChild(f); f.submit();
+}
+
+function editAnnouncement(id, title, content) {
+    const htmlDiv = document.createElement('div');
+    htmlDiv.innerHTML = `<div class="modal fade" id="editAnnModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">编辑公告</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form method="POST" action="/admin/announcement/${id}/edit" id="editAnnForm"><div class="mb-2"><input type="text" name="title" class="form-control" value="${title.replace(/"/g,'&quot;')}" required></div><div class="mb-2"><textarea name="content" class="form-control" rows="5" maxlength="5000">${content.replace(/"/g,'&quot;')}</textarea></div></form></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary" onclick="document.getElementById('editAnnForm').submit()">保存</button></div></div></div></div>`;
+    document.body.appendChild(htmlDiv);
+    const modal = new bootstrap.Modal(document.getElementById('editAnnModal'));
+    modal.show();
+    document.getElementById('editAnnModal').addEventListener('hidden.bs.modal', function(){this.remove();});
+}
+
+if (document.getElementById('tab-reservation') && document.getElementById('tab-reservation').classList.contains('active')) loadReservations();
+if (document.getElementById('tab-users') && document.getElementById('tab-users').classList.contains('active')) loadUsers();
+if (document.getElementById('tab-logs') && document.getElementById('tab-logs').classList.contains('active')) loadLogs();
+
+function viewReservationDetail(id) {
+    fetch('/admin/api/reservation/' + id).then(r => r.json()).then(data => {
+        if (data.error) { alert(data.error); return; }
+        let html = '<div class="row"><div class="col-md-6"><table class="table table-sm table-bordered"><tbody>';
+        html += '<tr><th class="bg-light">预约编号</th><td>#' + data.id + '</td></tr>';
+        html += '<tr><th class="bg-light">申请时间</th><td>' + data.created_at + '</td></tr>';
+        html += '<tr><th class="bg-light">预约类型</th><td>' + (data.res_type === '单位' ? '<span class="badge bg-info">单位</span>' : '<span class="badge bg-secondary">个人</span>') + '</td></tr>';
+        html += '<tr><th class="bg-light">查阅类型</th><td>' + data.visit_type + '</td></tr>';
+        html += '<tr><th class="bg-light">状态</th><td>' + (data.status === '待审核' ? '<span class="badge bg-warning text-dark">待审核</span>' : data.status === '已同意' ? '<span class="badge bg-success">已同意</span>' : data.status === '已核销' ? '<span class="badge bg-dark">已核销</span>' : data.status === '已取消' ? '<span class="badge bg-secondary">已取消</span>' : '<span class="badge bg-danger">已拒绝</span>') + '</td></tr>';
+        html += '<tr><th class="bg-light">拒绝原因</th><td>' + (data.reject_reason || '-') + '</td></tr>';
+        html += '</tbody></table></div><div class="col-md-6"><table class="table table-sm table-bordered"><tbody>';
+        html += '<tr><th class="bg-light">申请人</th><td>' + data.user_name + '</td></tr>';
+        html += '<tr><th class="bg-light">证件类型</th><td>' + data.user_id_type + '</td></tr>';
+        html += '<tr><th class="bg-light">证件号码</th><td>' + data.user_id_card + '</td></tr>';
+        html += '<tr><th class="bg-light">手机号</th><td>' + data.user_phone + '</td></tr>';
+        html += '<tr><th class="bg-light">邮箱</th><td>' + (data.user_email || '-') + '</td></tr>';
+        html += '<tr><th class="bg-light">身份</th><td>' + (data.identity || '-') + '</td></tr>';
+        html += '</tbody></table></div></div>';
+        html += '<h6 class="mt-3">参观信息</h6><div class="row"><div class="col-md-6"><table class="table table-sm table-bordered"><tbody>';
+        html += '<tr><th class="bg-light">参观场馆</th><td>' + data.venue_name + ' (' + data.venue_category + ')</td></tr>';
+        html += '<tr><th class="bg-light">校区</th><td>' + (data.campus || '-') + '</td></tr>';
+        html += '<tr><th class="bg-light">参观日期</th><td>' + data.visit_date + '</td></tr>';
+        html += '<tr><th class="bg-light">参观时间</th><td>' + (data.visit_time || '-') + '</td></tr>';
+        html += '<tr><th class="bg-light">参观人数</th><td>' + (data.visitor_count || 1) + '</td></tr>';
+        html += '</tbody></table></div><div class="col-md-6"><table class="table table-sm table-bordered"><tbody>';
+        html += '<tr><th class="bg-light">团体名称</th><td>' + (data.group_name || '-') + '</td></tr>';
+        html += '<tr><th class="bg-light">参观单位</th><td>' + (data.visiting_unit || '-') + '</td></tr>';
+        html += '<tr><th class="bg-light">联系人</th><td>' + (data.group_contact || '-') + '</td></tr>';
+        html += '<tr><th class="bg-light">联系电话</th><td>' + (data.contact_phone || '-') + '</td></tr>';
+        html += '<tr><th class="bg-light">讲解员</th><td>' + (data.guide_info || '-') + '</td></tr>';
+        html += '</tbody></table></div></div>';
+        if (data.archive_name || data.archive_number) {
+            html += '<h6 class="mt-3">档案查阅信息</h6><div class="row"><div class="col-md-6"><table class="table table-sm table-bordered"><tbody>';
+            html += '<tr><th class="bg-light">档案名称</th><td>' + (data.archive_name || '-') + '</td></tr>';
+            html += '<tr><th class="bg-light">档号</th><td>' + (data.archive_number || '-') + '</td></tr>';
+            html += '<tr><th class="bg-light">查阅目的</th><td>' + (data.archive_purpose || '-') + '</td></tr>';
+            html += '</tbody></table></div></div>';
         }
-
-        document.getElementById('disabledDateForm').addEventListener('submit', function (e) {
-            generateTimeSlot();
-            const timeSlot = document.getElementById('disabledDateTimeSlot').value;
-            if (!timeSlot) {
-                e.preventDefault();
-                alert('请选择时段');
-                return false;
-            }
-        });
-
-        function loadDisabledDates(venueId) {
-            const tableBody = document.getElementById('disabledDateTableBody');
-            tableBody.innerHTML = '<tr><td colspan="3" class="text-center py-3">加载中...</td></tr>';
-
-            const url = '/admin/get-disabled-dates/' + venueId;
-            fetch(url, { credentials: 'same-origin' })
-                .then(response => {
-                    if (response.redirected) {
-                        window.location.href = '/admin/login';
-                        return;
-                    }
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.disabled_dates && data.disabled_dates.length > 0) {
-                        tableBody.innerHTML = data.disabled_dates.map(item => `
-                            <tr>
-                                <td>${item.disabled_date}</td>
-                                <td>${item.time_slot}</td>
-                                <td>
-                                    <form method="POST" action="{{ url_for('admin.manage_disabled_date') }}" style="display:inline;">
-                                        <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="venue_id" value="${venueId}">
-                                        <input type="hidden" name="disabled_id" value="${item.id}">
-                                        <input type="hidden" name="active_tab" value="venue">
-                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('确定要删除这条禁用记录吗？');">删除</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        `).join('');
-                    } else {
-                        tableBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">暂无禁用的日期</td></tr>';
-                    }
-                })
-                .catch(error => {
-                    console.error('加载禁用日期失败:', error);
-                    tableBody.innerHTML = '<tr><td colspan="3" class="text-center text-danger py-3">加载失败，请重试</td></tr>';
-                });
-        }
-    </script>
-
-    <!-- 档案查询申请详情模态框 -->
-    <div class="modal fade" id="archiveRequestModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">档案查询申请详情</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="detail-label">申请时间</div>
-                            <div class="detail-value" id="ar-time"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">状态</div>
-                            <div class="detail-value" id="ar-status"></div>
-                        </div>
-                        <div class="col-12">
-                            <hr class="my-2">
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">姓名</div>
-                            <div class="detail-value fw-bold" id="ar-name"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">证件类型</div>
-                            <div class="detail-value" id="ar-idtype"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">证件号码</div>
-                            <div class="detail-value font-monospace" id="ar-idcard"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">手机号</div>
-                            <div class="detail-value" id="ar-phone"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">用户邮箱（注册时）</div>
-                            <div class="detail-value" id="ar-user-email"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">提交邮箱（用于接收档案）</div>
-                            <div class="detail-value text-primary fw-bold" id="ar-request-email"></div>
-                        </div>
-                    </div>
-
-                    <div id="ar-old-remark" class="alert alert-info py-2 mt-3" style="display:none;">
-                        <strong>处理备注：</strong>
-                        <span id="ar-old-remark-text"></span>
-                    </div>
-
-                    <form method="POST" id="archiveRequestForm"
-                        action="{{ url_for('admin.handle_archive_request', req_id=0) }}">
-                        <input type="hidden" name="action" id="ar-action">
-                        <input type="hidden" name="active_tab" value="archive">
-                        <div class="collapse mb-3" id="arRemarkArea">
-                            <label class="form-label text-primary fw-bold">
-                                请填写处理备注：
-                            </label>
-                            <textarea name="remark" id="arRemarkText" class="form-control border-primary" rows="3"
-                                placeholder="请输入处理结果或备注信息"></textarea>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="modal-footer bg-light">
-                    <div id="ar-btn-pending" style="display: flex; gap: 10px; width: 100%; justify-content: flex-end;">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                        <button type="button" class="btn btn-danger" id="ar-btn-reject-trigger"
-                            onclick="showArchiveRejectInput()">拒绝</button>
-                        <button type="button" class="btn btn-danger" id="ar-btn-reject-confirm"
-                            onclick="submitArchiveRequest('reject')" style="display:none;">
-                            确认拒绝
-                        </button>
-                        <button type="button" class="btn btn-success" id="ar-btn-approve"
-                            onclick="submitArchiveRequest('approve')">同意处理</button>
-                    </div>
-
-                    <div id="ar-btn-done" style="display: none;">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let archiveCurrentPage = 1;
-        let archiveModal = new bootstrap.Modal(document.getElementById('archiveRequestModal'));
-
-        function loadArchiveRequests(page = 1) {
-            archiveCurrentPage = page;
-            const status = document.getElementById('archiveStatusFilter').value;
-            let url = `/admin/archive-requests?page=${page}`;
-            if (status) url += `&status=${status}`;
-
-            fetch(url, { credentials: 'same-origin' })
-                .then(response => {
-                    if (response.redirected) {
-                        window.location.href = '/admin/login';
-                        return;
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    const tbody = document.getElementById('archiveRequestTableBody');
-
-                    if (data.archive_requests && data.archive_requests.length > 0) {
-                        tbody.innerHTML = data.archive_requests.map(req => `
-                            <tr>
-                                <td>${req.created_at}</td>
-                                <td>${req.user_name}</td>
-                                <td>${req.user_id_type}</td>
-                                <td class="font-monospace">${req.user_id_card}</td>
-                                <td>${req.user_phone}</td>
-                                <td class="text-primary">${req.request_email}</td>
-                                <td>
-                                    <span class="badge 
-                                        ${req.status === '待处理' ? 'bg-warning text-dark' :
-                                req.status === '已处理' ? 'bg-success' : 'bg-danger'}">
-                                        ${req.status}
-                                    </span>
-                                </td>
-                                <td>
-                                    <button class="btn btn-primary btn-sm" onclick="openArchiveRequestModal(${JSON.stringify(req).replace(/"/g, '&quot;')})">
-                                        查看详情
-                                    </button>
-                                </td>
-                            </tr>
-                        `).join('');
-                    } else {
-                        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">没有找到匹配的记录</td></tr>';
-                    }
-
-                    renderArchivePagination(data.pagination);
-                })
-                .catch(error => {
-                    console.error('加载档案申请失败:', error);
-                    document.getElementById('archiveRequestTableBody').innerHTML =
-                        '<tr><td colspan="8" class="text-center text-danger py-4">加载失败，请重试</td></tr>';
-                });
-        }
-
-        function renderArchivePagination(pagination) {
-            const nav = document.getElementById('archivePagination');
-
-            if (pagination.pages <= 1) {
-                nav.innerHTML = '';
-                return;
-            }
-
-            let html = '<ul class="pagination justify-content-center">';
-            html += `<li class="page-item ${!pagination.has_prev ? 'disabled' : ''}">
-                        <a class="page-link" onclick="loadArchiveRequests(${pagination.page - 1})">上一页</a>
-                      </li>`;
-            html += `<li class="page-item disabled"><span class="page-link">第 ${pagination.page} / ${pagination.pages} 页</span></li>`;
-            html += `<li class="page-item ${!pagination.has_next ? 'disabled' : ''}">
-                        <a class="page-link" onclick="loadArchiveRequests(${pagination.page + 1})">下一页</a>
-                      </li>`;
+        html += '<h6 class="mt-3">预约原因</h6><p class="bg-light p-2 rounded">' + (data.reason || '无') + '</p>';
+        if (data.attachments && data.attachments.length > 0) {
+            html += '<h6 class="mt-3">附件</h6><ul>';
+            data.attachments.forEach(a => { html += '<li><a href="' + a.filepath + '" target="_blank">' + a.filename + '</a> (' + (a.file_size / 1024).toFixed(1) + ' KB)</li>'; });
             html += '</ul>';
-            nav.innerHTML = html;
         }
-
-        function openArchiveRequestModal(req) {
-            document.getElementById('ar-time').innerText = req.created_at;
-            document.getElementById('ar-name').innerText = req.user_name;
-            document.getElementById('ar-idtype').innerText = req.user_id_type;
-            document.getElementById('ar-idcard').innerText = req.user_id_card;
-            document.getElementById('ar-phone').innerText = req.user_phone;
-            document.getElementById('ar-user-email').innerText = req.user_email || '未填写';
-            document.getElementById('ar-request-email').innerText = req.request_email;
-
-            const statusEl = document.getElementById('ar-status');
-            if (req.status === '待处理') {
-                statusEl.innerHTML = '<span class="badge bg-warning text-dark">待处理</span>';
-            } else if (req.status === '已处理') {
-                statusEl.innerHTML = '<span class="badge bg-success">已处理</span>';
-            } else {
-                statusEl.innerHTML = '<span class="badge bg-danger">已拒绝</span>';
-            }
-
-            const form = document.getElementById('archiveRequestForm');
-            form.action = `/admin/archive-request/${req.id}`;
-
-            const pendingGroup = document.getElementById('ar-btn-pending');
-            const doneGroup = document.getElementById('ar-btn-done');
-            const remarkArea = document.getElementById('arRemarkArea');
-            const oldRemarkArea = document.getElementById('ar-old-remark');
-
-            remarkArea.classList.remove('show');
-            document.getElementById('ar-btn-reject-trigger').style.display = 'inline-block';
-            document.getElementById('ar-btn-reject-confirm').style.display = 'none';
-            document.getElementById('ar-btn-reject-confirm').disabled = false;
-            document.getElementById('ar-btn-approve').disabled = false;
-            document.getElementById('arRemarkText').value = '';
-
-            if (req.status === '待处理') {
-                pendingGroup.style.display = 'flex';
-                doneGroup.style.display = 'none';
-                oldRemarkArea.style.display = 'none';
-            } else {
-                pendingGroup.style.display = 'none';
-                doneGroup.style.display = 'block';
-                if (req.admin_remark) {
-                    oldRemarkArea.style.display = 'block';
-                    document.getElementById('ar-old-remark-text').innerText = req.admin_remark;
-                } else {
-                    oldRemarkArea.style.display = 'none';
-                }
-            }
-            archiveModal.show();
+        if (data.cancel_requests && data.cancel_requests.length > 0) {
+            html += '<h6 class="mt-3">撤销申请记录</h6><table class="table table-sm table-bordered"><thead><tr><th>申请时间</th><th>原因</th><th>状态</th><th>处理备注</th><th>处理时间</th></tr></thead><tbody>';
+            data.cancel_requests.forEach(cr => {
+                html += '<tr><td>' + cr.created_at + '</td><td>' + cr.reason + '</td><td>' + cr.status + '</td><td>' + (cr.admin_remark || '-') + '</td><td>' + (cr.processed_at || '-') + '</td></tr>';
+            });
+            html += '</tbody></table>';
         }
+        document.getElementById('reservationDetailBody').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('reservationDetailModal')).show();
+    });
+}
 
-        function showArchiveRejectInput() {
-            document.getElementById('arRemarkArea').classList.add('show');
-            document.getElementById('ar-btn-approve').disabled = true;
-            document.getElementById('ar-btn-reject-trigger').style.display = 'none';
-            document.getElementById('ar-btn-reject-confirm').style.display = 'inline-block';
-        }
+function deleteReservation(id) {
+    if (!confirm('确定删除此预约记录？相关的附件和撤销申请也将被删除。')) return;
+    fetch('/admin/api/reservation/' + id + '/delete', { method: 'POST' }).then(r => r.json()).then(data => {
+        if (data.success) { loadReservations(); } else { alert(data.error || '删除失败'); }
+    });
+}
 
-        function submitArchiveRequest(actionType) {
-            const actionInput = document.getElementById('ar-action');
-            actionInput.value = actionType;
+function exportUsers() {
+    const params = new URLSearchParams({
+        keyword: document.getElementById('users-keyword').value,
+        blacklist: document.getElementById('users-blacklist-filter').value
+    });
+    window.open('/admin/api/users/export?' + params, '_blank');
+}
 
-            if (actionType === 'reject') {
-                const remark = document.getElementById('arRemarkText').value.trim();
-                if (!remark) { alert("请填写处理备注！"); return; }
-            }
-
-            const confirmed = confirm(actionType === 'approve' ? '确定要同意处理此申请吗？' : '确定要拒绝此申请吗？');
-            if (!confirmed) return;
-
-            const form = document.getElementById('archiveRequestForm');
-            form.submit();
-        }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const urlParams = new URLSearchParams(window.location.search);
-            const activeTab = urlParams.get('active_tab');
-
-            if (activeTab === 'archive') {
-                loadArchiveRequests(1);
-            }
-
-            const archiveTab = document.querySelector('[data-bs-target="#tab-archive"]');
-            if (archiveTab) {
-                archiveTab.addEventListener('shown.bs.tab', function () {
-                    loadArchiveRequests(1);
-                });
-            }
+function deleteUser(userId, userName) {
+    if (!confirm('确定删除用户 ' + userName + '？该用户的所有预约记录和附件将被删除。此操作不可恢复！')) return;
+    fetch('/admin/api/users/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({user_id: userId}) })
+        .then(r => r.json()).then(data => {
+            if (data.success) { loadUsers(); } else { alert(data.error || '删除失败'); }
         });
+}
 
-        let cancelRequestModal;
+function loadLogs(page = 1) {
+    const params = new URLSearchParams({
+        page, per_page: 20,
+        log_type: document.getElementById('log-type-filter').value,
+        keyword: document.getElementById('log-keyword').value,
+        start_date: document.getElementById('log-start-date').value,
+        end_date: document.getElementById('log-end-date').value
+    });
+    fetch('/admin/api/logs?' + params).then(r => r.json()).then(data => {
+        document.getElementById('logs-tbody').innerHTML = data.logs.map(l => '<tr><td class="small">' + l.created_at + '</td><td><span class="badge ' + (l.log_type === 'login' ? 'bg-info' : l.log_type === 'operation' ? 'bg-primary' : l.log_type === 'error' ? 'bg-danger' : 'bg-warning text-dark') + '">' + l.log_type_label + '</span></td><td>' + l.operator + '</td><td class="small">' + (l.operator_ip || '-') + '</td><td>' + l.module + '</td><td>' + l.action + '</td><td class="small">' + l.detail + '</td><td>' + (l.result === '成功' ? '<span class="badge bg-success">成功</span>' : '<span class="badge bg-danger">失败</span>') + '</td></tr>').join('') || '<tr><td colspan="8" class="text-center text-muted py-3">暂无日志记录</td></tr>';
+        const pg = data.pagination;
+        document.getElementById('logs-pagination').innerHTML = pg.pages > 1 ? '<ul class="pagination justify-content-center"><li class="page-item ' + (pg.has_prev ? '' : 'disabled') + '"><a class="page-link" href="#" onclick="loadLogs(' + (pg.page - 1) + ');return false">上一页</a></li><li class="page-item disabled"><span class="page-link">' + pg.page + '/' + pg.pages + '</span></li><li class="page-item ' + (pg.has_next ? '' : 'disabled') + '"><a class="page-link" href="#" onclick="loadLogs(' + (pg.page + 1) + ');return false">下一页</a></li></ul>' : '';
+    });
+}
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const modalEl = document.getElementById('cancelRequestModal');
-            if (modalEl) {
-                cancelRequestModal = new bootstrap.Modal(modalEl);
-            }
-        });
+function exportLogs() {
+    const params = new URLSearchParams({
+        log_type: document.getElementById('log-type-filter').value,
+        keyword: document.getElementById('log-keyword').value,
+        start_date: document.getElementById('log-start-date').value,
+        end_date: document.getElementById('log-end-date').value
+    });
+    window.open('/admin/api/logs/export?' + params, '_blank');
+}
 
-        function openCancelRequestModal(reqId) {
-            fetch('/admin/cancel-request/' + reqId, {
-                credentials: 'include'
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('HTTP ' + response.status + ': ' + response.statusText);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.error) {
-                        alert(data.error);
-                        return;
-                    }
-                    const req = data.cancel_request;
-                    document.getElementById('cr-time').innerText = req.created_at;
-                    document.getElementById('cr-name').innerText = req.user_name;
-                    document.getElementById('cr-idtype').innerText = req.user_id_type;
-                    document.getElementById('cr-idcard').innerText = req.user_id_card;
-                    document.getElementById('cr-phone').innerText = req.user_phone;
-                    document.getElementById('cr-venue').innerText = req.venue_name;
-                    document.getElementById('cr-visit-date').innerText = req.visit_date;
-                    document.getElementById('cr-visit-time').innerText = req.visit_time;
-                    document.getElementById('cr-reason').innerText = req.reason || '未填写';
-
-                    const statusEl = document.getElementById('cr-status');
-                    if (req.status === '待处理') {
-                        statusEl.innerHTML = '<span class="badge bg-warning text-dark">待处理</span>';
-                    } else if (req.status === '已同意') {
-                        statusEl.innerHTML = '<span class="badge bg-success">已同意</span>';
-                    } else {
-                        statusEl.innerHTML = '<span class="badge bg-danger">已拒绝</span>';
-                    }
-
-                    const form = document.getElementById('cancelRequestForm');
-                    form.action = '/admin/handle-cancel-request/' + reqId;
-
-                    const pendingGroup = document.getElementById('cr-btn-pending');
-                    const doneGroup = document.getElementById('cr-btn-done');
-
-                    if (req.status === '待处理') {
-                        pendingGroup.style.display = 'flex';
-                        doneGroup.style.display = 'none';
-                    } else {
-                        pendingGroup.style.display = 'none';
-                        doneGroup.style.display = 'block';
-                    }
-                    if (cancelRequestModal) {
-                        cancelRequestModal.show();
-                    } else {
-                        alert('模态框初始化失败，请刷新页面重试');
-                    }
-                })
-                .catch(error => {
-                    console.error('加载撤销申请详情失败:', error);
-                    alert('加载失败，请重试\n' + error.message);
-                });
-        }
-
-        function submitCancelRequest(actionType) {
-            const actionInput = document.getElementById('cr-action');
-            actionInput.value = actionType;
-
-            const confirmed = confirm(actionType === 'approve' ? '确定要同意此撤销申请吗？\n同意后该预约将被删除。' : '确定要拒绝此撤销申请吗？');
-            if (!confirmed) return;
-
-            const form = document.getElementById('cancelRequestForm');
-            form.submit();
-        }
-    </script>
-
-    <!-- 撤销申请详情模态框 -->
-    <div class="modal fade" id="cancelRequestModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">撤销申请详情</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="detail-label">申请时间</div>
-                            <div class="detail-value" id="cr-time"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">状态</div>
-                            <div class="detail-value" id="cr-status"></div>
-                        </div>
-                    </div>
-                    <hr>
-                    <h6>预约人信息</h6>
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="detail-label">姓名</div>
-                            <div class="detail-value" id="cr-name"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">证件类型</div>
-                            <div class="detail-value" id="cr-idtype"></div>
-                        </div>
-                    </div>
-                    <div class="row mt-2">
-                        <div class="col-6">
-                            <div class="detail-label">证件号码</div>
-                            <div class="detail-value font-monospace" id="cr-idcard"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">手机号</div>
-                            <div class="detail-value" id="cr-phone"></div>
-                        </div>
-                    </div>
-                    <hr>
-                    <h6>预约信息</h6>
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="detail-label">场馆</div>
-                            <div class="detail-value" id="cr-venue"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-label">预约日期</div>
-                            <div class="detail-value" id="cr-visit-date"></div>
-                        </div>
-                    </div>
-                    <div class="row mt-2">
-                        <div class="col-6">
-                            <div class="detail-label">预约时间</div>
-                            <div class="detail-value" id="cr-visit-time"></div>
-                        </div>
-                    </div>
-                    <hr>
-                    <h6>撤销信息</h6>
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="detail-label">撤销原因</div>
-                            <div class="detail-value" id="cr-reason"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <div id="cr-btn-pending" style="display:flex; gap:10px;">
-                        <button type="button" class="btn btn-success" id="cr-btn-approve"
-                            onclick="submitCancelRequest('approve')">
-                            同意撤销
-                        </button>
-                        <button type="button" class="btn btn-danger" onclick="submitCancelRequest('reject')">
-                            拒绝
-                        </button>
-                    </div>
-                    <div id="cr-btn-done" style="display:none;">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <form id="cancelRequestForm" method="POST">
-        <input type="hidden" name="action" id="cr-action" value="">
-    </form>
+function clearOldLogs() {
+    const days = prompt('请输入保留天数（将清理此天数之前的日志）：', '90');
+    if (!days || isNaN(days) || parseInt(days) < 1) { alert('请输入有效天数'); return; }
+    if (!confirm('确定清理 ' + days + ' 天前的日志？此操作不可恢复。')) return;
+    const f = document.createElement('form'); f.method = 'POST'; f.action = '/admin/api/logs/clear';
+    f.innerHTML = '<input type="hidden" name="days" value="' + days + '">';
+    document.body.appendChild(f); f.submit();
+}
+</script>
 </body>
-
 </html>
