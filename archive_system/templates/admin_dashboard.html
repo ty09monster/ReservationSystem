@@ -594,10 +594,10 @@
                                     <td>{{ v.cutoff_time }}</td>
                                     <td>{% if v.is_active %}<span class="badge bg-success">是</span>{% else %}<span
                                             class="badge bg-secondary">否</span>{% endif %}</td>
-                                    <td><button class="btn btn-outline-primary btn-sm" onclick=\"editVenue({{ v.id
-                                            }},'{{ v.name|e }}','{{ v.campus or '' }}','{{ v.address or '' }}','{{
-                                            v.description or '' }}',{{ v.advance_days }},'{{ v.cutoff_time }}',{{ 'true'
-                                            if v.is_active else 'false' }},'{{ v.open_hours or '' }}')">编辑</button>
+                                    <td><button class="btn btn-outline-primary btn-sm" onclick='editVenue({{ v.id
+                                            }},{{ v.name|tojson }},{{ (v.campus or '')|tojson }},{{ (v.address or '')|tojson }},{{
+                                            (v.description or '')|tojson }},{{ v.advance_days }},{{ v.cutoff_time|tojson }},{{ 'true'
+                                            if v.is_active else 'false' }},{{ (v.open_hours or '')|tojson }})'>编辑</button>
                                         <button class="btn btn-outline-warning btn-sm"
                                             onclick="openTimeSlotModal({{ v.id }})">时段</button>
                                         <button class="btn btn-outline-secondary btn-sm"

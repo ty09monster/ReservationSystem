@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, date, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import check_password_hash
-from sqlalchemy import or_, func
+from sqlalchemy import or_, and_, func
 from ..extensions import db
 from ..models import ApprovalStaff, Reservation, User, Venue, Guide
 
@@ -124,7 +124,8 @@ def dashboard():
     page = request.args.get('page', 1, type=int)
 
     query = Reservation.query.join(User).join(Venue).filter(
-        Reservation.approval_teacher_id == staff.id
+        Reservation.approval_teacher_id == staff.id,
+        Venue.category == '档案馆'
     )
 
     if keyword:
@@ -329,7 +330,7 @@ def api_stats():
     else:
         date_cond = func.date(Reservation.created_at).between(start, end)
 
-    teacher_cond = Reservation.approval_teacher_id == staff_id
+    teacher_cond = and_(Reservation.approval_teacher_id == staff_id, Venue.category == '档案馆')
 
     def _count(extra_cond=None):
         filters = [date_cond, teacher_cond]
@@ -370,7 +371,7 @@ def stats_page():
 def archive_reservation_trend():
     time_range = request.args.get("time_range", "month")
     staff_id = session.get("archive_staff_id")
-    teacher_cond = Reservation.approval_teacher_id == staff_id
+    teacher_cond = and_(Reservation.approval_teacher_id == staff_id, Venue.category == '档案馆')
 
     if time_range == "day":
         result = db.session.query(
@@ -410,8 +411,9 @@ def archive_reservation_status():
     result = db.session.query(
         Reservation.status,
         func.count(Reservation.id).label('count')
-    ).filter(
-        Reservation.approval_teacher_id == staff_id
+    ).select_from(Reservation).join(Venue).filter(
+        Reservation.approval_teacher_id == staff_id,
+        Venue.category == '档案馆'
     ).group_by(Reservation.status).all()
     return {
         "labels": [item.status for item in result],
@@ -425,8 +427,9 @@ def archive_reservation_type():
     result = db.session.query(
         Reservation.res_type,
         func.count(Reservation.id).label('count')
-    ).filter(
-        Reservation.approval_teacher_id == staff_id
+    ).select_from(Reservation).join(Venue).filter(
+        Reservation.approval_teacher_id == staff_id,
+        Venue.category == '档案馆'
     ).group_by(Reservation.res_type).all()
     return {
         "labels": [item.res_type for item in result],

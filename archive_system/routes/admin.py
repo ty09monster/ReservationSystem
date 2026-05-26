@@ -157,7 +157,7 @@ def dashboard():
 
     announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
     config = SystemConfig.query.first()
-    venues = Venue.query.order_by(Venue.id).all()
+    venues = Venue.query.filter(Venue.category.in_(categories)).order_by(Venue.id).all()
 
     admin_list = []
     roles = []
@@ -171,8 +171,8 @@ def dashboard():
     cancel_requests = []
     if active_tab == "cancel":
         cancel_page = request.args.get('cancel_page', 1, type=int)
-        cancel_query = CancelRequest.query.join(Reservation).join(User).filter(
-            True
+        cancel_query = CancelRequest.query.join(Reservation).join(User).join(Venue).filter(
+            Venue.category.in_(categories)
         ).order_by(
             case((CancelRequest.status == '待处理', 0), else_=1),
             CancelRequest.created_at.desc()
@@ -186,9 +186,7 @@ def dashboard():
         ArchiveRequest.status.in_(['待审核', '待处理'])
     ).count()
     pending_cancel_count = CancelRequest.query.join(Reservation).filter(
-        CancelRequest.status == '待处理',
-        True
-    ).count()
+        CancelRequest.status == '待处理', Venue.category.in_(categories)).count()
 
     return render_template(
         "admin_dashboard.html",
@@ -226,7 +224,7 @@ def api_reservations():
     visit_end = request.args.get('visit_end', '').strip()
     categories = _get_area_categories()
 
-    query = Reservation.query.join(User).join(Venue)
+    query = Reservation.query.join(User).join(Venue).filter(Venue.category.in_(categories))
 
     if keyword:
         query = query.filter(
@@ -314,7 +312,7 @@ def export_reservations():
     visit_end = request.args.get('visit_end', '').strip()
     categories = _get_area_categories()
 
-    query = Reservation.query.join(User).join(Venue)
+    query = Reservation.query.join(User).join(Venue).filter(Venue.category.in_(categories))
 
     if keyword:
         query = query.filter(
@@ -384,10 +382,10 @@ def export_reservations():
             idx,
             r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else '',
             '单位预约' if r.res_type == '单位' else '个人预约',
-            r.user.name,
-            r.user.id_type,
-            r.user.id_card,
-            r.user.phone,
+            r.user.name if r.user else '',
+            r.user.id_type if r.user else '',
+            r.user.id_card if r.user else '',
+            r.user.phone if r.user else '',
             r.group_name or '',
             r.visiting_unit or '',
             r.venue.name,
@@ -477,7 +475,7 @@ def api_stats():
     else:
         date_cond = func.date(Reservation.created_at).between(start, end)
 
-    venue_cond = True
+    venue_cond = Venue.category.in_(categories)
 
     total_count = db.session.query(func.count(Reservation.id)).filter(
         date_cond, venue_cond
@@ -1100,7 +1098,7 @@ def api_users():
 
 @admin_bp.route("/api/user/<int:user_id>/reservations")
 def api_user_reservations(user_id):
-    reservations = Reservation.query.filter_by(user_id=user_id).join(Venue).order_by(
+    reservations = Reservation.query.filter_by(user_id=user_id).join(Venue).filter(Venue.category.in_(_get_area_categories())).order_by(
         Reservation.created_at.desc()
     ).all()
 
@@ -1134,7 +1132,7 @@ def logout():
 @admin_bp.route("/stats")
 def stats():
     categories = _get_area_categories()
-    venues = Venue.query.all()
+    venues = Venue.query.filter(Venue.category.in_(categories)).all()
     return render_template(
         "admin_stats.html",
         venues=venues,
@@ -1229,7 +1227,7 @@ def get_attachments(res_id):
 @admin_bp.route("/get-venues")
 def get_venues():
     categories = _get_area_categories()
-    venues = Venue.query.all()
+    venues = Venue.query.filter(Venue.category.in_(categories)).all()
 
     venue_list = []
     for venue in venues:
@@ -1245,7 +1243,7 @@ def get_venues():
 @admin_bp.route("/get-all-venues")
 def get_all_venues():
     categories = _get_area_categories()
-    venues = Venue.query.all()
+    venues = Venue.query.filter(Venue.category.in_(categories)).all()
 
     return jsonify({
         "venues": [
@@ -1260,13 +1258,13 @@ def reservation_trend():
     time_range = request.args.get("time_range", "month")
     categories = _get_area_categories()
 
-    query = Reservation.query.join(Venue).filter(True)
+    query = Reservation.query.join(Venue).filter(Venue.category.in_(categories))
 
     if time_range == "day":
         result = db.session.query(
             func.date(Reservation.created_at).label('date'),
             func.count(Reservation.id).label('count')
-        ).filter(True).group_by(
+        ).filter(Venue.category.in_(categories)).group_by(
             func.date(Reservation.created_at)
         ).order_by('date').all()
         data = {
@@ -1277,7 +1275,7 @@ def reservation_trend():
         result = db.session.query(
             func.date_format(Reservation.created_at, '%Y-%u').label('week'),
             func.count(Reservation.id).label('count')
-        ).filter(True).group_by(
+        ).filter(Venue.category.in_(categories)).group_by(
             'week'
         ).order_by('week').all()
         data = {
@@ -1288,7 +1286,7 @@ def reservation_trend():
         result = db.session.query(
             func.date_format(Reservation.created_at, '%Y-%m').label('month'),
             func.count(Reservation.id).label('count')
-        ).filter(True).group_by(
+        ).filter(Venue.category.in_(categories)).group_by(
             'month'
         ).order_by('month').all()
         data = {
@@ -1304,7 +1302,7 @@ def reservation_status():
     result = db.session.query(
         Reservation.status,
         func.count(Reservation.id).label('count')
-    ).join(Venue).filter(True).group_by(
+    ).join(Venue).filter(Venue.category.in_(categories)).group_by(
         Reservation.status
     ).all()
     data = {
@@ -1321,7 +1319,7 @@ def venue_comparison():
         Venue.name,
         func.count(Reservation.id).label('count')
     ).join(Reservation, Venue.id == Reservation.venue_id).filter(
-        True
+        Venue.category.in_(categories)
     ).group_by(Venue.name).all()
     data = {
         "labels": [item.name for item in result],
@@ -1336,7 +1334,7 @@ def reservation_type():
     result = db.session.query(
         Reservation.res_type,
         func.count(Reservation.id).label('count')
-    ).join(Venue).filter(True).group_by(
+    ).join(Venue).filter(Venue.category.in_(categories)).group_by(
         Reservation.res_type
     ).all()
     data = {
@@ -1356,9 +1354,7 @@ def visitor_trend():
             func.date(Reservation.visit_date).label('date'),
             func.sum(Reservation.group_size).label('count')
         ).join(Venue).filter(
-            Reservation.status == "已同意",
-            True
-        ).group_by(func.date(Reservation.visit_date)).order_by('date').all()
+            Reservation.status == "已同意", Venue.category.in_(categories)).group_by(func.date(Reservation.visit_date)).order_by('date').all()
         data = {
             "labels": [item.date.strftime('%Y-%m-%d') for item in result],
             "values": [int(item.count or 0) for item in result]
@@ -1368,9 +1364,7 @@ def visitor_trend():
             func.date_format(Reservation.visit_date, '%Y-%u').label('week'),
             func.sum(Reservation.group_size).label('count')
         ).join(Venue).filter(
-            Reservation.status == "已同意",
-            True
-        ).group_by('week').order_by('week').all()
+            Reservation.status == "已同意", Venue.category.in_(categories)).group_by('week').order_by('week').all()
         data = {
             "labels": [item.week for item in result],
             "values": [int(item.count or 0) for item in result]
@@ -1380,9 +1374,7 @@ def visitor_trend():
             func.date_format(Reservation.visit_date, '%Y-%m').label('month'),
             func.sum(Reservation.group_size).label('count')
         ).join(Venue).filter(
-            Reservation.status == "已同意",
-            True
-        ).group_by('month').order_by('month').all()
+            Reservation.status == "已同意", Venue.category.in_(categories)).group_by('month').order_by('month').all()
         data = {
             "labels": [item.month for item in result],
             "values": [int(item.count or 0) for item in result]
@@ -1397,9 +1389,7 @@ def peak_hours():
         Reservation.visit_time,
         func.sum(Reservation.group_size).label('count')
     ).join(Venue).filter(
-        Reservation.status == "已同意",
-        True
-    ).group_by(Reservation.visit_time).order_by('count').all()
+        Reservation.status == "已同意", Venue.category.in_(categories)).group_by(Reservation.visit_time).order_by('count').all()
     data = {
         "labels": [item.visit_time for item in result],
         "values": [int(item.count or 0) for item in result]
@@ -1414,9 +1404,7 @@ def campus_comparison():
         Venue.campus,
         func.sum(Reservation.group_size).label('count')
     ).join(Reservation, Venue.id == Reservation.venue_id).filter(
-        Reservation.status == "已同意",
-        True
-    ).group_by(Venue.campus).all()
+        Reservation.status == "已同意", Venue.category.in_(categories)).group_by(Venue.campus).all()
     data = {
         "labels": [item.campus for item in result],
         "values": [int(item.count or 0) for item in result]
@@ -1428,7 +1416,7 @@ def campus_comparison():
 def time_utilization():
     categories = _get_area_categories()
     venue_ids = [v.id for v in Venue.query.filter(
-        True
+        Venue.category.in_(categories)
     ).all()]
 
     time_slots = VenueTimeSlot.query.filter(
@@ -1449,9 +1437,7 @@ def time_utilization():
             func.sum(Reservation.group_size)
         ).join(Venue).filter(
             Reservation.visit_time == time_slot,
-            Reservation.status == "已同意",
-            True
-        ).scalar() or 0
+            Reservation.status == "已同意", Venue.category.in_(categories)).scalar() or 0
 
         utilization = (usage / capacity * 100) if capacity > 0 else 0
 
@@ -1476,24 +1462,20 @@ def total_statistics():
 
     total_reservations = db.session.query(
         func.count(Reservation.id)
-    ).join(Venue).filter(True).scalar() or 0
+    ).join(Venue).filter(Venue.category.in_(categories)).scalar() or 0
 
     approved_reservations = db.session.query(
         func.count(Reservation.id)
     ).join(Venue).filter(
-        Reservation.status == "已同意",
-        True
-    ).scalar() or 0
+        Reservation.status == "已同意", Venue.category.in_(categories)).scalar() or 0
 
     total_visitors = db.session.query(
         func.sum(Reservation.group_size)
     ).join(Venue).filter(
-        Reservation.status == "已同意",
-        True
-    ).scalar() or 0
+        Reservation.status == "已同意", Venue.category.in_(categories)).scalar() or 0
 
     venue_ids = [v.id for v in Venue.query.filter(
-        True
+        Venue.category.in_(categories)
     ).all()]
 
     total_capacity = db.session.query(
@@ -1503,9 +1485,7 @@ def total_statistics():
     total_usage = db.session.query(
         func.sum(Reservation.group_size)
     ).join(Venue).filter(
-        Reservation.status == "已同意",
-        True
-    ).scalar() or 0
+        Reservation.status == "已同意", Venue.category.in_(categories)).scalar() or 0
 
     avg_utilization = (total_usage / total_capacity * 100) if total_capacity > 0 else 0
 
@@ -1849,7 +1829,7 @@ def custom_report():
     res_type_filter = request.args.get('res_type', '').strip()
 
     query = db.session.query(Reservation).join(Venue).filter(
-        True
+        Venue.category.in_(categories)
     )
 
     if start_date:
@@ -1868,7 +1848,7 @@ def custom_report():
             func.date(Reservation.created_at).label('label'),
             func.count(Reservation.id).label('count')
         ).select_from(Reservation).join(Venue).filter(
-            True
+            Venue.category.in_(categories)
         )
         if start_date:
             result = result.filter(func.date(Reservation.created_at) >= start_date)
@@ -1886,7 +1866,7 @@ def custom_report():
             func.date_format(Reservation.created_at, '%Y-%u').label('label'),
             func.count(Reservation.id).label('count')
         ).select_from(Reservation).join(Venue).filter(
-            True
+            Venue.category.in_(categories)
         )
         if start_date:
             result = result.filter(func.date(Reservation.created_at) >= start_date)
@@ -1904,7 +1884,7 @@ def custom_report():
             func.date_format(Reservation.created_at, '%Y-%m').label('label'),
             func.count(Reservation.id).label('count')
         ).select_from(Reservation).join(Venue).filter(
-            True
+            Venue.category.in_(categories)
         )
         if start_date:
             result = result.filter(func.date(Reservation.created_at) >= start_date)
@@ -1943,7 +1923,7 @@ def export_stats_report():
         func.date_format(Reservation.created_at, '%Y-%m').label('label'),
         func.count(Reservation.id).label('count')
     ).select_from(Reservation).join(Venue).filter(
-        True
+        Venue.category.in_(categories)
     )
     if start_date:
         result = result.filter(func.date(Reservation.created_at) >= start_date)

@@ -450,7 +450,9 @@ def history():
     end_date = request.args.get("end_date", "").strip()
     venue_name = request.args.get("venue_name", "").strip()
 
-    query = Reservation.query.filter_by(user_id=session["user_id"]).join(Venue)
+    query = Reservation.query.filter_by(user_id=session["user_id"]).join(Venue).filter(
+        Venue.category.in_(["校史馆", "标本馆"])
+    )
 
     if status_filter:
         query = query.filter(Reservation.status == status_filter)
@@ -466,7 +468,9 @@ def history():
 
     reservations = query.order_by(Reservation.created_at.desc()).all()
 
-    venue_names = db.session.query(Venue.name).distinct().all()
+    venue_names = db.session.query(Venue.name).filter(
+        Venue.category.in_(["校史馆", "标本馆"])
+    ).distinct().all()
     venue_names = [v[0] for v in venue_names]
 
     return render_template("h5_history.html",
@@ -513,7 +517,8 @@ def archive_history():
     end_date = request.args.get("end_date", "").strip()
 
     query = Reservation.query.join(Venue).filter(
-        Reservation.user_id == session["user_id"]
+        Reservation.user_id == session["user_id"],
+        Venue.category == "档案馆"
     )
 
     if status_filter:
@@ -633,6 +638,22 @@ def get_available_slots():
         # 获取场馆信息
         venue = db.session.get(Venue, venue_id)
 
+        # 如果场馆没有配置时段，回退使用系统全局配置的预约时间段
+        if not time_slots:
+            config = SystemConfig.query.first()
+            global_times = config.visit_times if config else "09:00-11:00,14:00-16:00"
+            return {"slots": [
+                {
+                    "time_slot": t.strip(),
+                    "available_individual": True,
+                    "available_group": True,
+                    "is_disabled": False,
+                    "is_expired": False,
+                    "is_museum": True,
+                }
+                for t in global_times.split(",") if t.strip()
+            ]}
+
         # 生成可用时段
         available_slots = []
         current_time = datetime.now()
@@ -730,7 +751,7 @@ def archive_reserve(visit_type):
         flash("系统维护中，暂时关闭预约")
         return redirect(url_for("h5.home"))
 
-    venues = Venue.query.filter_by(is_active=True).all()
+    venues = Venue.query.filter_by(is_active=True).filter(Venue.category == "档案馆").all()
     if not venues:
         flash("暂无可用场馆")
         return redirect(url_for("h5.home"))
@@ -804,9 +825,20 @@ def archive_reserve(visit_type):
             is_active=True
         ).first()
 
-        if not time_slot_config:
+        has_any_slots = VenueTimeSlot.query.filter_by(
+            venue_id=campus_venue_id
+        ).first()
+
+        if has_any_slots and not time_slot_config:
             flash("所选时段未开放，请选择其他时段")
             return _render()
+
+        if not has_any_slots:
+            config = SystemConfig.query.first()
+            global_times = [t.strip() for t in (config.visit_times if config else "09:00-11:00,14:00-16:00").split(",") if t.strip()]
+            if visit_time not in global_times:
+                flash("所选时段未开放，请选择其他时段")
+                return _render()
 
         disabled_list = VenueTimeSlotDisabledDate.query.filter_by(
             venue_id=campus_venue_id,
@@ -825,17 +857,18 @@ def archive_reserve(visit_type):
         from sqlalchemy.exc import SQLAlchemyError
 
         try:
-            time_slot_config = VenueTimeSlot.query.filter_by(
-                venue_id=campus_venue_id,
-                day_of_week=day_of_week,
-                time_slot=visit_time,
-                is_active=True
-            ).with_for_update().first()
+            if has_any_slots:
+                time_slot_config = VenueTimeSlot.query.filter_by(
+                    venue_id=campus_venue_id,
+                    day_of_week=day_of_week,
+                    time_slot=visit_time,
+                    is_active=True
+                ).with_for_update().first()
 
-            if not time_slot_config:
-                db.session.rollback()
-                flash("所选时段未开放，请选择其他时段")
-                return _render()
+                if not time_slot_config:
+                    db.session.rollback()
+                    flash("所选时段未开放，请选择其他时段")
+                    return _render()
 
             res = Reservation(
                 user_id=session["user_id"],

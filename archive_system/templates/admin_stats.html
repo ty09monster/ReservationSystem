@@ -143,7 +143,18 @@ function updateUtilChart() {
     });
 }
 function exportStatsExcel() {
-    alert('导出功能开发中');
+    const params = new URLSearchParams();
+    const trendRange = document.getElementById('trend-time-range')?.value || 'month';
+    params.set('group_by', trendRange);
+    const start = document.getElementById('stats-custom-start')?.value || '';
+    const end = document.getElementById('stats-custom-end')?.value || '';
+    if (start && end) {
+        params.set('start', start);
+        params.set('end', end);
+    } else {
+        params.set('period', document.getElementById('stats-time-range')?.value || 'month');
+    }
+    window.open('/admin/stats/export-report?' + params.toString(), '_blank');
 }
 
 updateAllCharts();

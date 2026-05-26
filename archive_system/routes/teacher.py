@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, date, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import check_password_hash
-from sqlalchemy import or_, func
+from sqlalchemy import or_, and_, func
 from ..extensions import db
 from ..models import ApprovalStaff, Reservation, User, Venue, Guide
 
@@ -117,7 +117,7 @@ def dashboard():
     custom_end = request.args.get('end_date', '').strip()
     page = request.args.get('page', 1, type=int)
 
-    query = Reservation.query.join(User).join(Venue)
+    query = Reservation.query.join(User).join(Venue).filter(Venue.category.in_(['校史馆', '标本馆']))
     assigned_ids = _get_assigned_venue_ids()
     if assigned_ids:
         query = query.filter(Reservation.venue_id.in_(assigned_ids))
@@ -316,7 +316,7 @@ def api_stats():
     else:
         date_cond = func.date(Reservation.created_at).between(start, end)
 
-    teacher_cond = Reservation.venue_id.in_(_get_assigned_venue_ids()) if _get_assigned_venue_ids() else False
+    teacher_cond = and_(Reservation.venue_id.in_(_get_assigned_venue_ids()), Venue.category.in_(['校史馆', '标本馆'])) if _get_assigned_venue_ids() else False
 
     def _count(extra_cond=None):
         filters = [date_cond, teacher_cond]
@@ -357,7 +357,7 @@ def stats_page():
 def teacher_reservation_trend():
     time_range = request.args.get("time_range", "month")
     assigned_ids = _get_assigned_venue_ids()
-    teacher_cond = Reservation.venue_id.in_(assigned_ids) if assigned_ids else False
+    teacher_cond = and_(Reservation.venue_id.in_(assigned_ids), Venue.category.in_(['校史馆', '标本馆'])) if assigned_ids else False
 
     if time_range == "day":
         result = db.session.query(
@@ -394,7 +394,7 @@ def teacher_reservation_trend():
 @teacher_bp.route("/stats/reservation-status")
 def teacher_reservation_status():
     assigned_ids = _get_assigned_venue_ids()
-    cond = Reservation.venue_id.in_(assigned_ids) if assigned_ids else False
+    cond = and_(Reservation.venue_id.in_(assigned_ids), Venue.category.in_(['校史馆', '标本馆']))
     result = db.session.query(
         Reservation.status,
         func.count(Reservation.id).label('count')
@@ -410,7 +410,7 @@ def teacher_reservation_status():
 @teacher_bp.route("/stats/reservation-type")
 def teacher_reservation_type():
     assigned_ids = _get_assigned_venue_ids()
-    cond = Reservation.venue_id.in_(assigned_ids) if assigned_ids else False
+    cond = and_(Reservation.venue_id.in_(assigned_ids), Venue.category.in_(['校史馆', '标本馆'])) if assigned_ids else False
     result = db.session.query(
         Reservation.res_type,
         func.count(Reservation.id).label('count')
