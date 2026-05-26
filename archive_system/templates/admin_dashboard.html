@@ -97,15 +97,15 @@ body{background:#f5f6fa;min-height:100vh}.navbar-brand{font-weight:700;letter-sp
 </div>
 
 <div class="tab-content-section {% if active_tab == 'approval_staff' %}active{% endif %}" id="tab-approval_staff">
-<h5 class="mb-3">审批教师管理 <button class="btn btn-primary btn-sm" onclick="openApprovalStaffModal()">+ 添加教师</button></h5>
-<div class="card-custom"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>用户名</th><th>姓名</th><th>工号</th><th>部门</th><th>电话</th><th>负责场馆</th><th>状态</th><th>操作</th></tr></thead><tbody>
+<h5 class="mb-3">审批人员管理 <button class="btn btn-primary btn-sm" onclick="openApprovalStaffModal()">+ 添加人员</button></h5>
+<div class="card-custom"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>用户名</th><th>姓名</th><th>类型</th><th>工号</th><th>部门</th><th>电话</th><th>负责场馆</th><th>状态</th><th>操作</th></tr></thead><tbody>
 {% for staff in approval_staff_list %}
-<tr><td>{{ staff.username }}</td><td>{{ staff.name }}</td><td>{{ staff.staff_id or '-' }}</td><td>{{ staff.department or '-' }}</td><td>{{ staff.phone or '-' }}</td>
+<tr><td>{{ staff.username }}</td><td>{{ staff.name }}</td><td>{% if staff.staff_type == 'leader' %}<span class="badge bg-warning text-dark">部门领导</span>{% else %}<span class="badge bg-info">审批教师</span>{% endif %}</td><td>{{ staff.staff_id or '-' }}</td><td>{{ staff.department or '-' }}</td><td>{{ staff.phone or '-' }}</td>
 <td>{% for vid in staff.get_assigned_venue_ids() %}{% for v in venues %}{% if v.id == vid %}<span class="badge bg-light text-dark me-1">{{ v.name }}</span>{% endif %}{% endfor %}{% endfor %}{% if not staff.get_assigned_venue_ids() %}-{% endif %}</td>
 <td>{% if staff.is_active %}<span class="badge bg-success">启用</span>{% else %}<span class="badge bg-secondary">停用</span>{% endif %}</td>
-<td><button class="btn btn-outline-primary btn-sm" onclick="editApprovalStaff({{ staff.id }},'{{ staff.username }}','{{ staff.name }}','{{ staff.staff_id or '' }}','{{ staff.department or '' }}','{{ staff.phone or '' }}',{{ staff.get_assigned_venue_ids()|tojson }},{{ 'true' if staff.is_active else 'false' }})">编辑</button>
+<td><button class="btn btn-outline-primary btn-sm" onclick="editApprovalStaff({{ staff.id }},'{{ staff.username }}','{{ staff.name }}','{{ staff.staff_type }}','{{ staff.staff_id or '' }}','{{ staff.department or '' }}','{{ staff.phone or '' }}',{{ staff.get_assigned_venue_ids()|tojson }},{{ 'true' if staff.is_active else 'false' }})">编辑</button>
 <button class="btn btn-outline-danger btn-sm" onclick="deleteApprovalStaff({{ staff.id }})">删除</button></td></tr>
-{% endfor %}{% if not approval_staff_list %}<tr><td colspan="8" class="text-center text-muted py-3">暂无审批人员</td></tr>{% endif %}
+{% endfor %}{% if not approval_staff_list %}<tr><td colspan="9" class="text-center text-muted py-3">暂无审批人员</td></tr>{% endif %}
 </tbody></table></div></div>
 </div>
 
@@ -288,6 +288,7 @@ body{background:#f5f6fa;min-height:100vh}.navbar-brand{font-weight:700;letter-sp
 <div class="col-md-6"><label class="form-label small">工号</label><input type="text" name="staff_id" id="asStaffId" class="form-control form-control-sm"></div></div>
 <div class="row g-2 mt-1"><div class="col-md-6"><label class="form-label small">所属部门</label><input type="text" name="department" id="asDepartment" class="form-control form-control-sm"></div>
 <div class="col-md-6"><label class="form-label small">联系电话</label><input type="text" name="phone" id="asPhone" class="form-control form-control-sm"></div></div>
+<div class="row g-2 mt-1"><div class="col-md-6"><label class="form-label small">人员类型</label><select name="staff_type" id="asStaffType" class="form-select form-select-sm"><option value="approval">审批教师</option><option value="leader">部门领导</option></select></div></div>
 <div class="mt-2"><label class="form-label small">负责场馆</label><div class="row" id="asVenueList"></div></div>
 <div class="mt-2" id="asStatusDiv" style="display:none"><div class="form-check"><input type="checkbox" name="is_active" id="asIsActive" class="form-check-input"><label class="form-check-label small">启用（可登录教师审批端）</label></div></div></form></div>
 <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary" onclick="document.getElementById('approvalStaffForm').submit()">保存</button></div>
@@ -333,7 +334,7 @@ function loadReservations(page = 1) {
 <td class="small">${r.created_at}</td><td><span class="badge ${r.res_type==='单位'?'bg-info':'bg-secondary'}">${r.res_type==='单位'?'单位':'个人'}</span></td>
 <td>${r.user_name}</td><td class="small">${r.user_id_card}</td><td>${r.group_name||r.visiting_unit||'-'}</td>
 <td>${r.venue_name}</td><td>${r.visit_date}<br><small class="text-muted">${r.visit_time}</small></td><td>${r.visitor_count||1}</td>
-<td>${r.status==='待审核'?'<span class="badge bg-warning text-dark status-badge">待审核</span>':r.status==='已同意'?'<span class="badge bg-success status-badge">已同意</span>':r.status==='已核销'?'<span class="badge bg-dark status-badge">已核销</span>':r.status==='已取消'?'<span class="badge bg-secondary status-badge">已取消</span>':'<span class="badge bg-danger status-badge">已拒绝</span>'}</td>
+<td>${r.status==='待部门领导指定审批人'?'<span class="badge bg-secondary status-badge">待指定审批人</span>':r.status==='待审核'?'<span class="badge bg-warning text-dark status-badge">待审核</span>':r.status==='已同意'?'<span class="badge bg-success status-badge">已同意</span>':r.status==='已核销'?'<span class="badge bg-dark status-badge">已核销</span>':r.status==='已取消'?'<span class="badge bg-secondary status-badge">已取消</span>':'<span class="badge bg-danger status-badge">已拒绝</span>'}</td>
 <td>${r.guide_info||'-'}</td>
 <td><button class="btn btn-outline-info btn-sm" onclick="viewReservationDetail(${r.id})">详情</button>
 <button class="btn btn-outline-danger btn-sm" onclick="deleteReservation(${r.id})">删除</button></td></tr>`).join('') || '<tr><td colspan="11" class="text-center text-muted py-3">没有匹配记录</td></tr>';
@@ -387,7 +388,7 @@ function viewUserHistory(userId, userName) {
         document.getElementById('userHistoryTbody').innerHTML = data.reservations.map(r => `<tr>
 <td class="small">${r.created_at}</td><td>${r.venue_name}</td><td>${r.res_type==='单位'?'单位':'个人'}</td>
 <td>${r.visit_date} ${r.visit_time}</td><td>${r.visitor_count||1}</td>
-<td>${r.status==='待审核'?'<span class="badge bg-warning text-dark">待审核</span>':r.status==='已同意'?'<span class="badge bg-success">已同意</span>':r.status==='已核销'?'<span class="badge bg-dark">已核销</span>':r.status==='已取消'?'<span class="badge bg-secondary">已取消</span>':'<span class="badge bg-danger">已拒绝</span>'}</td></tr>`).join('') || '<tr><td colspan="6" class="text-center text-muted py-3">无预约记录</td></tr>';
+<td>${r.status==='待部门领导指定审批人'?'<span class="badge bg-secondary">待指定审批人</span>':r.status==='待审核'?'<span class="badge bg-warning text-dark">待审核</span>':r.status==='已同意'?'<span class="badge bg-success">已同意</span>':r.status==='已核销'?'<span class="badge bg-dark">已核销</span>':r.status==='已取消'?'<span class="badge bg-secondary">已取消</span>':'<span class="badge bg-danger">已拒绝</span>'}</td></tr>`).join('') || '<tr><td colspan="6" class="text-center text-muted py-3">无预约记录</td></tr>';
         new bootstrap.Modal(document.getElementById('userHistoryModal')).show();
     });
 }
@@ -494,6 +495,7 @@ function openApprovalStaffModal() {
     document.getElementById('asPassword').required = true;
     document.getElementById('asPasswordCol').style.display = 'block';
     document.getElementById('asName').value = '';
+    document.getElementById('asStaffType').value = 'approval';
     document.getElementById('asStaffId').value = '';
     document.getElementById('asDepartment').value = '';
     document.getElementById('asPhone').value = '';
@@ -504,7 +506,7 @@ function openApprovalStaffModal() {
     new bootstrap.Modal(document.getElementById('approvalStaffModal')).show();
 }
 
-function editApprovalStaff(id, username, name, staffId, department, phone, venueIds, isActive) {
+function editApprovalStaff(id, username, name, staffType, staffId, department, phone, venueIds, isActive) {
     document.getElementById('asAction').value = 'edit';
     document.getElementById('asEditId').value = id;
     document.getElementById('asUsername').value = username;
@@ -513,6 +515,7 @@ function editApprovalStaff(id, username, name, staffId, department, phone, venue
     document.getElementById('asPassword').required = false;
     document.getElementById('asPasswordCol').style.display = 'block';
     document.getElementById('asName').value = name;
+    document.getElementById('asStaffType').value = staffType || 'approval';
     document.getElementById('asStaffId').value = staffId;
     document.getElementById('asDepartment').value = department;
     document.getElementById('asPhone').value = phone;
@@ -609,7 +612,7 @@ function viewReservationDetail(id) {
         html += '<tr><th class="bg-light">申请时间</th><td>' + data.created_at + '</td></tr>';
         html += '<tr><th class="bg-light">预约类型</th><td>' + (data.res_type === '单位' ? '<span class="badge bg-info">单位</span>' : '<span class="badge bg-secondary">个人</span>') + '</td></tr>';
         html += '<tr><th class="bg-light">查阅类型</th><td>' + data.visit_type + '</td></tr>';
-        html += '<tr><th class="bg-light">状态</th><td>' + (data.status === '待审核' ? '<span class="badge bg-warning text-dark">待审核</span>' : data.status === '已同意' ? '<span class="badge bg-success">已同意</span>' : data.status === '已核销' ? '<span class="badge bg-dark">已核销</span>' : data.status === '已取消' ? '<span class="badge bg-secondary">已取消</span>' : '<span class="badge bg-danger">已拒绝</span>') + '</td></tr>';
+        html += '<tr><th class="bg-light">状态</th><td>' + (data.status === '待部门领导指定审批人' ? '<span class="badge bg-secondary">待指定审批人</span>' : data.status === '待审核' ? '<span class="badge bg-warning text-dark">待审核</span>' : data.status === '已同意' ? '<span class="badge bg-success">已同意</span>' : data.status === '已核销' ? '<span class="badge bg-dark">已核销</span>' : data.status === '已取消' ? '<span class="badge bg-secondary">已取消</span>' : '<span class="badge bg-danger">已拒绝</span>') + '</td></tr>';
         html += '<tr><th class="bg-light">拒绝原因</th><td>' + (data.reject_reason || '-') + '</td></tr>';
         html += '</tbody></table></div><div class="col-md-6"><table class="table table-sm table-bordered"><tbody>';
         html += '<tr><th class="bg-light">申请人</th><td>' + data.user_name + '</td></tr>';

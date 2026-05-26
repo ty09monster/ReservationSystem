@@ -168,7 +168,7 @@ def dashboard():
         admin_list = Admin.query.all()
         roles = Role.query.all()
 
-    approval_staff_list = ApprovalStaff.query.filter_by(staff_type='approval').order_by(ApprovalStaff.created_at.desc()).all()
+    approval_staff_list = ApprovalStaff.query.order_by(ApprovalStaff.created_at.desc()).all()
     guide_list = Guide.query.order_by(Guide.created_at.desc()).all()
 
     cancel_requests = []
