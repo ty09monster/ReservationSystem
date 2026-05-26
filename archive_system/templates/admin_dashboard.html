@@ -7,14 +7,43 @@
     <title>{{ area_label }} - 管理后台</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <style>
+        :root {
+            --admin-green-900: #1B3B22;
+            --admin-green-800: #1F4F2D;
+            --admin-green-700: #2A6338;
+            --admin-green-600: #2E7D32;
+            --admin-green-500: #388E3C;
+            --admin-green-400: #43A047;
+            --admin-gold-500: #C5A44E;
+            --admin-gold-400: #D4AF5A;
+            --admin-cream: #FAF7F2;
+            --admin-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            --admin-radius: 12px;
+        }
+
         body {
-            background: #f5f6fa;
-            min-height: 100vh
+            background: linear-gradient(180deg, #FAF7F2 0%, #F5F0E8 100%);
+            min-height: 100vh;
+            font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #1B3B22 0%, #1F4F2D 40%, #2A6338 100%) !important;
+            box-shadow: 0 2px 16px rgba(27, 59, 34, 0.3);
         }
 
         .navbar-brand {
             font-weight: 700;
-            letter-spacing: 1px
+            letter-spacing: 1px;
+            color: #fff !important;
+        }
+
+        .navbar .nav-link {
+            color: rgba(255, 255, 255, 0.85) !important;
+        }
+
+        .navbar .nav-link:hover {
+            color: #D4AF5A !important;
         }
 
         .main-container {
@@ -25,30 +54,31 @@
         .sidebar {
             width: 220px;
             min-width: 220px;
-            background: linear-gradient(180deg, #2c3e50 0%, #1a252f 100%);
+            background: linear-gradient(180deg, #1B3B22 0%, #1F4F2D 60%, #2A6338 100%);
             padding: 10px 0;
             overflow-y: auto
         }
 
         .sidebar .nav-link {
-            color: #b0bec5;
+            color: rgba(255, 255, 255, 0.7);
             padding: 10px 20px;
-            font-size: 0.88rem;
+            font-size: 0.86rem;
             border-left: 3px solid transparent;
             transition: all 0.2s;
-            white-space: nowrap
+            white-space: nowrap;
+            margin: 1px 0;
         }
 
         .sidebar .nav-link:hover {
             color: #fff;
-            background: rgba(255, 255, 255, 0.05);
-            border-left-color: #ffc107
+            background: rgba(255, 255, 255, 0.08);
+            border-left-color: #D4AF5A
         }
 
         .sidebar .nav-link.active {
             color: #fff;
-            background: rgba(255, 255, 255, 0.1);
-            border-left-color: #4fc3f7;
+            background: rgba(255, 255, 255, 0.12);
+            border-left-color: #43A047;
             font-weight: 600
         }
 
@@ -57,11 +87,11 @@
         }
 
         .sidebar .section-label {
-            color: #607d8b;
-            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 0.68rem;
             text-transform: uppercase;
             padding: 15px 20px 5px;
-            letter-spacing: 1px
+            letter-spacing: 1.5px
         }
 
         .content {
@@ -73,16 +103,18 @@
 
         .card-custom {
             background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04)
+            border-radius: var(--admin-radius);
+            box-shadow: var(--admin-shadow);
+            border: 1px solid rgba(0, 0, 0, 0.04);
         }
 
         .card-custom .card-header {
-            background: #f8f9fc;
-            border-bottom: 2px solid #eef0f7;
+            background: linear-gradient(135deg, #FAF7F2 0%, #F5F0E8 100%);
+            border-bottom: 2px solid #F5EDD6;
             font-weight: 700;
             padding: 14px 20px;
-            border-radius: 12px 12px 0 0
+            border-radius: 12px 12px 0 0;
+            color: #2A6338;
         }
 
         .card-custom .card-body {
@@ -90,26 +122,29 @@
         }
 
         .table thead th {
-            background: #f8f9fc;
-            border-bottom: 2px solid #eef0f7;
-            font-size: 0.82rem;
-            color: #666;
+            background: #FAF7F2;
+            border-bottom: 2px solid #F5EDD6;
+            font-size: 0.8rem;
+            color: #555;
             font-weight: 600;
             white-space: nowrap
         }
 
         .filter-row {
             background: #fff;
-            border-radius: 10px;
+            border-radius: var(--admin-radius);
             padding: 16px 18px;
             margin-bottom: 16px;
-            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04)
+            box-shadow: var(--admin-shadow);
+            border: 1px solid rgba(0, 0, 0, 0.04);
         }
 
         .status-badge {
-            font-size: 0.76rem;
-            padding: 4px 10px;
-            border-radius: 20px
+            font-size: 0.74rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
         }
 
         .tab-content-section {
@@ -121,16 +156,16 @@
         }
 
         .guide-status-on {
-            background: #d4edda;
-            color: #155724;
+            background: #E8F5E9;
+            color: #2E7D32;
             padding: 3px 12px;
             border-radius: 12px;
             font-size: 0.8rem
         }
 
         .guide-status-off {
-            background: #f8d7da;
-            color: #721c24;
+            background: #FFEBEE;
+            color: #C62828;
             padding: 3px 12px;
             border-radius: 12px;
             font-size: 0.8rem
@@ -150,14 +185,14 @@
             padding: 6px 0;
             font-size: 0.78rem;
             border-radius: 6px;
-            color: #b0bec5;
+            color: rgba(255, 255, 255, 0.7);
             text-decoration: none;
             transition: all 0.2s
         }
 
         .area-switch a.active {
-            background: #4fc3f7;
-            color: #1a252f;
+            background: #D4AF5A;
+            color: #1B3B22;
             font-weight: 700
         }
 
@@ -165,6 +200,36 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 6px
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2E7D32 0%, #388E3C 100%) !important;
+            border: none !important;
+            box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1F4F2D 0%, #2E7D32 100%) !important;
+        }
+
+        .btn-outline-primary {
+            color: #2E7D32 !important;
+            border-color: #43A047 !important;
+        }
+
+        .btn-outline-primary:hover {
+            background: #E8F5E9 !important;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #388E3C 0%, #43A047 100%) !important;
+            border: none !important;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #C5A44E 0%, #D4AF5A 100%) !important;
+            border: none !important;
+            color: #1B3B22 !important;
         }
 
         @media(max-width:768px) {
@@ -529,8 +594,10 @@
                                     <td>{{ v.cutoff_time }}</td>
                                     <td>{% if v.is_active %}<span class="badge bg-success">是</span>{% else %}<span
                                             class="badge bg-secondary">否</span>{% endif %}</td>
-                                    <td><button class="btn btn-outline-primary btn-sm"
-                                            onclick=\"editVenue({{ v.id }},'{{ v.name|e }}','{{ v.campus or '' }}','{{ v.address or '' }}','{{ v.description or '' }}',{{ v.advance_days }},'{{ v.cutoff_time }}',{{ 'true' if v.is_active else 'false' }},'{{ v.open_hours or '' }}')">编辑</button>
+                                    <td><button class="btn btn-outline-primary btn-sm" onclick=\"editVenue({{ v.id
+                                            }},'{{ v.name|e }}','{{ v.campus or '' }}','{{ v.address or '' }}','{{
+                                            v.description or '' }}',{{ v.advance_days }},'{{ v.cutoff_time }}',{{ 'true'
+                                            if v.is_active else 'false' }},'{{ v.open_hours or '' }}')">编辑</button>
                                         <button class="btn btn-outline-warning btn-sm"
                                             onclick="openTimeSlotModal({{ v.id }})">时段</button>
                                         <button class="btn btn-outline-secondary btn-sm"

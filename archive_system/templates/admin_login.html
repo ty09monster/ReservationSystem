@@ -6,8 +6,34 @@
     <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"> -->
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <style>
-        body { background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .login-box { width: 400px; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        body {
+            background: linear-gradient(135deg, #F5F0E8 0%, #FAF7F2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .login-box {
+            width: 400px;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(27, 59, 34, 0.1);
+            border-top: 4px solid #C5A44E;
+        }
+        .login-box h3 { color: #1B3B22; font-weight: 700; }
+        .login-box label { color: #2A6338; font-weight: 600; font-size: 0.9rem; }
+        .login-box .form-control { border-color: #e0d8c8; border-radius: 8px; }
+        .login-box .form-control:focus { border-color: #C5A44E; box-shadow: 0 0 0 0.2rem rgba(197, 164, 78, 0.25); }
+        .login-box .btn {
+            background: linear-gradient(135deg, #2A6338 0%, #1B3B22 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 0;
+            font-weight: 600;
+            color: #fff;
+        }
+        .login-box .btn:hover { opacity: 0.9; }
     </style>
 </head>
 <body>

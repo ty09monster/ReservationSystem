@@ -7,39 +7,54 @@
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        body { background: #f5f6fa; }
+        body { background: #F5F0E8; }
+        .navbar { background: linear-gradient(135deg, #1B3B22 0%, #2A6338 100%) !important; }
         .navbar-brand { font-weight: 700; letter-spacing: 1px; }
         .stat-card {
             border: none; border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            box-shadow: 0 2px 12px rgba(27, 59, 34, 0.08);
             transition: transform 0.2s;
         }
         .stat-card:hover { transform: translateY(-2px); }
         .stat-card .card-body { padding: 18px 20px; }
         .stat-card .stat-label { font-size: 0.82rem; color: #888; margin-bottom: 4px; }
         .stat-card .stat-value { font-size: 1.8rem; font-weight: 700; }
+        .stat-card.border-primary { border-color: #2E7D32 !important; }
+        .stat-card.border-warning { border-color: #D4AF5A !important; }
+        .stat-card.border-success { border-color: #388E3C !important; }
+        .stat-card.border-danger { border-color: #c0392b !important; }
+        .stat-card.border-dark { border-color: #1B3B22 !important; }
+        .stat-card.border-info { border-color: #2A6338 !important; }
+        .stat-value.text-primary { color: #2E7D32 !important; }
+        .stat-value.text-warning { color: #D4AF5A !important; }
+        .stat-value.text-success { color: #388E3C !important; }
+        .stat-value.text-dark { color: #1B3B22 !important; }
+        .stat-value.text-info { color: #2A6338 !important; }
         .filter-bar {
             background: #fff; border-radius: 12px; padding: 20px 24px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.04); margin-bottom: 20px;
+            box-shadow: 0 2px 12px rgba(27, 59, 34, 0.06); margin-bottom: 20px;
+            border-left: 4px solid #D4AF5A;
         }
         .table-card {
             background: #fff; border-radius: 12px; padding: 0;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.04); overflow: hidden;
+            box-shadow: 0 2px 12px rgba(27, 59, 34, 0.06); overflow: hidden;
         }
         .table-card .table { margin-bottom: 0; }
         .table thead th {
-            background: #f8f9fc; border-bottom: 2px solid #eef0f7;
-            font-size: 0.85rem; color: #666; font-weight: 600;
+            background: #F5F0E8; border-bottom: 2px solid #D4AF5A;
+            font-size: 0.85rem; color: #2A6338; font-weight: 600;
             padding: 14px 16px; white-space: nowrap;
         }
         .table tbody td { padding: 14px 16px; vertical-align: middle; font-size: 0.9rem; }
-        .table tbody tr:hover { background: #f8f9ff; }
+        .table tbody tr:hover { background: #FAF7F2; }
         .status-badge { font-size: 0.8rem; padding: 5px 12px; border-radius: 20px; }
-        .detail-label { font-weight: 600; color: #666; font-size: 0.82rem; margin-bottom: 3px; }
+        .detail-label { font-weight: 600; color: #2A6338; font-size: 0.82rem; margin-bottom: 3px; }
         .detail-value { margin-bottom: 10px; font-size: 0.95rem; word-break: break-all; }
         .period-btn { font-size: 0.8rem; padding: 4px 14px; border-radius: 20px; }
-        .period-btn.active { background: #667eea; color: #fff; border-color: #667eea; }
-        .section-title { font-weight: 700; color: #333; margin-bottom: 16px; }
+        .period-btn.active { background: #2E7D32; color: #fff; border-color: #2E7D32; }
+        .section-title { font-weight: 700; color: #1B3B22; margin-bottom: 16px; }
+        .pagination .page-link { color: #2E7D32; }
+        .pagination .page-item.active .page-link { background-color: #2E7D32; border-color: #2E7D32; }
     </style>
 </head>
 <body>
@@ -415,7 +430,7 @@
 
     <style>
         .reason-box {
-            background-color: #f8f9fa; border: 1px solid #dee2e6;
+            background-color: #FAF7F2; border: 1px solid #e0d8c8;
             border-radius: 6px; padding: 12px; min-height: 60px;
             max-height: 150px; overflow-y: auto; font-size: 0.9rem; color: #495057;
         }

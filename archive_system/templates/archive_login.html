@@ -7,7 +7,7 @@
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(135deg, #0d47a1 0%, #1976d2 100%);
+            background: linear-gradient(135deg, #F5F0E8 0%, #FAF7F2 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -16,14 +16,15 @@
         .login-card {
             background: #fff;
             border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 32px rgba(27, 59, 34, 0.1);
             padding: 48px 40px;
             width: 400px;
             max-width: 90vw;
+            border-top: 4px solid #C5A44E;
         }
         .login-card h3 {
             font-weight: 700;
-            color: #0d47a1;
+            color: #1B3B22;
             margin-bottom: 8px;
         }
         .login-card .subtitle {
@@ -31,17 +32,26 @@
             font-size: 0.9rem;
             margin-bottom: 32px;
         }
+        .login-card .form-control {
+            border-color: #e0d8c8;
+            border-radius: 8px;
+        }
+        .login-card .form-control:focus {
+            border-color: #C5A44E;
+            box-shadow: 0 0 0 0.2rem rgba(197, 164, 78, 0.25);
+        }
         .login-card .btn-primary {
-            background: linear-gradient(135deg, #0d47a1 0%, #1976d2 100%);
+            background: linear-gradient(135deg, #2A6338 0%, #1B3B22 100%);
             border: none;
             padding: 10px 0;
             font-weight: 600;
+            border-radius: 8px;
         }
         .login-card .btn-primary:hover { opacity: 0.9; }
         .badge-archive {
             display: inline-block;
-            background: #e3f2fd;
-            color: #0d47a1;
+            background: #e8f5e9;
+            color: #2E7D32;
             padding: 4px 12px;
             border-radius: 12px;
             font-size: 0.75rem;
