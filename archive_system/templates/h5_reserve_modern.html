@@ -539,7 +539,6 @@
                             <select class="form-control" onchange="location.href='?type='+this.value">
                                 <option value="校史馆" {% if venue_category == '校史馆' %}selected{% endif %}>校史馆</option>
                                 <option value="标本馆" {% if venue_category == '标本馆' %}selected{% endif %}>标本馆</option>
-                                <option value="档案馆" {% if venue_category == '档案馆' %}selected{% endif %}>档案馆</option>
                             </select>
                         </div>
 
@@ -884,6 +883,11 @@
                                         timeSlot.innerHTML = `
                                             <div>${slot.time_slot}</div>
                                             <div class="text-xs text-danger">无法预约</div>
+                                        `;
+                                    } else if (slot.is_museum) {
+                                        timeSlot.innerHTML = `
+                                            <div>${slot.time_slot}</div>
+                                            <div class="text-xs text-muted">可预约</div>
                                         `;
                                     } else {
                                         const remaining = `${slot.remaining_individual}/${slot.individual_capacity}`;

@@ -193,7 +193,7 @@ def reserve_select():
 @login_required
 def reserve():
     venue_category = request.args.get("type", "校史馆")
-    if venue_category not in ("校史馆", "标本馆", "档案馆"):
+    if venue_category not in ("校史馆", "标本馆"):
         venue_category = "校史馆"
     return _reserve_base(venue_category, "个人")
 
@@ -210,7 +210,7 @@ def _reserve_base(venue_category, render_res_type="个人", visit_type="线下")
         flash("系统维护中，暂时关闭预约")
         return redirect(url_for("h5.home"))
 
-    venues = Venue.query.filter_by(is_active=True).all()
+    venues = Venue.query.filter(Venue.is_active.is_(True), Venue.category.in_(("校史馆", "标本馆"))).all()
     if not venues:
         flash("暂无可用场馆")
         return redirect(url_for("h5.home"))
@@ -331,8 +331,8 @@ def _reserve_base(venue_category, render_res_type="个人", visit_type="线下")
                 flash("所选时段未开放，请选择其他时段")
                 return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
             
-            # 只有个人预约需要检查名额
-            if res_type == "个人":
+            # 只有档案馆的个人预约需要检查名额，校史馆/标本馆不限制
+            if venue_category == "档案馆" and res_type == "个人":
                 # 检查所选时段是否已满（包括已同意和审核中的申请），加锁
                 time_slot_reservations = Reservation.query.filter_by(
                     venue_id=campus_venue_id,
@@ -369,7 +369,7 @@ def _reserve_base(venue_category, render_res_type="个人", visit_type="线下")
                 visiting_unit=visiting_unit if res_type == "单位" else None,
                 contact_phone=contact_phone if res_type == "单位" else None,
                 campus=venue.campus,
-                status="待部门领导指定审批人",
+                status="待审核",
             )
             db.session.add(res)
             db.session.flush()  # 获取res的ID，用于附件关联
@@ -650,22 +650,27 @@ def get_available_slots():
             disabled_date=visit_date_obj
         ).all()
 
+        # 获取场馆信息，判断是否为校史馆/标本馆
+        venue = db.session.get(Venue, venue_id)
+        is_museum = venue and venue.category in ('校史馆', '标本馆')
+
         # 获取该场馆在该日期的已预约人数（已同意和待审核的）
-        reservations = Reservation.query.filter_by(
-            venue_id=venue_id,
-            visit_date=visit_date_obj
-        ).filter(
-            Reservation.status.in_(["已同意", "待审核"])
-        ).all()
-        
-        # 统计每个时段的已预约人数（只统计个人预约）
+        # 校史馆/标本馆不限制容量，仅档案馆需要统计
         slot_counts = {}
-        for res in reservations:
-            if res.res_type == "个人":
-                if res.visit_time not in slot_counts:
-                    slot_counts[res.visit_time] = 0
-                slot_counts[res.visit_time] += (res.visitor_count or res.group_size)
-        
+        if not is_museum:
+            reservations = Reservation.query.filter_by(
+                venue_id=venue_id,
+                visit_date=visit_date_obj
+            ).filter(
+                Reservation.status.in_(["已同意", "待审核"])
+            ).all()
+
+            for res in reservations:
+                if res.res_type == "个人":
+                    if res.visit_time not in slot_counts:
+                        slot_counts[res.visit_time] = 0
+                    slot_counts[res.visit_time] += (res.visitor_count or res.group_size)
+
         # 生成可用时段和剩余名额
         available_slots = []
         current_time = datetime.now()
@@ -688,18 +693,29 @@ def get_available_slots():
                         is_expired = True
                 except ValueError:
                     pass
-            used_individual = slot_counts.get(slot.time_slot, 0)
-            remaining_individual = slot.individual_capacity - used_individual
-            available_slots.append({
-                "time_slot": slot.time_slot,
-                "individual_capacity": slot.individual_capacity,
-                "used_individual": used_individual,
-                "remaining_individual": remaining_individual,
-                "available_individual": remaining_individual > 0 and not is_disabled and not is_expired,
-                "available_group": getattr(slot, 'is_group_active', True) and not is_disabled and not is_expired,
-                "is_disabled": is_disabled,
-                "is_expired": is_expired
-            })
+
+            if is_museum:
+                available_slots.append({
+                    "time_slot": slot.time_slot,
+                    "available_individual": not is_disabled and not is_expired,
+                    "available_group": getattr(slot, 'is_group_active', True) and not is_disabled and not is_expired,
+                    "is_disabled": is_disabled,
+                    "is_expired": is_expired,
+                    "is_museum": True,
+                })
+            else:
+                used_individual = slot_counts.get(slot.time_slot, 0)
+                remaining_individual = slot.individual_capacity - used_individual
+                available_slots.append({
+                    "time_slot": slot.time_slot,
+                    "individual_capacity": slot.individual_capacity,
+                    "used_individual": used_individual,
+                    "remaining_individual": remaining_individual,
+                    "available_individual": remaining_individual > 0 and not is_disabled and not is_expired,
+                    "available_group": getattr(slot, 'is_group_active', True) and not is_disabled and not is_expired,
+                    "is_disabled": is_disabled,
+                    "is_expired": is_expired,
+                })
         
         return {"slots": available_slots}
     except Exception as e:
