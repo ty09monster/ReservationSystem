@@ -46,6 +46,67 @@ def _get_init_lock_path():
     os.makedirs(lock_dir, exist_ok=True)
     return os.path.join(lock_dir, 'db_init.lock')
 
+def ensure_table_schema():
+    """检测并自动添加模型定义中存在但数据库表中缺失的列和外键"""
+    import sys
+    from sqlalchemy import inspect as sa_inspect, text
+
+    inspector = sa_inspect(db.engine)
+    existing_tables = inspector.get_table_names()
+
+    for table_name in sorted(db.metadata.tables.keys()):
+        if table_name not in existing_tables:
+            continue
+
+        model_table = db.metadata.tables[table_name]
+        existing_cols = {col['name'] for col in inspector.get_columns(table_name)}
+
+        with db.engine.connect() as conn:
+            for col in model_table.columns:
+                if col.name not in existing_cols:
+                    col_type_sql = col.type.compile(dialect=db.engine.dialect)
+                    nullable_sql = " NULL" if col.nullable else " NOT NULL"
+
+                    default_sql = ""
+                    if col.default and hasattr(col.default, 'arg') and col.default.arg is not None:
+                        if isinstance(col.default.arg, (int, float)):
+                            default_sql = f" DEFAULT {col.default.arg}"
+                        elif isinstance(col.default.arg, bool):
+                            default_sql = f" DEFAULT {1 if col.default.arg else 0}"
+                        else:
+                            default_sql = f" DEFAULT '{col.default.arg}'"
+
+                    sql = f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type_sql}{nullable_sql}{default_sql}"
+                    sys.stdout.write(f"[Schema] 添加缺失列: {table_name}.{col.name}\n")
+                    sys.stdout.flush()
+                    conn.execute(text(sql))
+            conn.commit()
+
+        existing_fks = set()
+        for fk in inspector.get_foreign_keys(table_name):
+            if fk.get('constrained_columns') and fk.get('referred_table') and fk.get('referred_columns'):
+                key = (fk['constrained_columns'][0], fk['referred_table'], fk['referred_columns'][0])
+                existing_fks.add(key)
+
+        with db.engine.connect() as conn:
+            for col in model_table.columns:
+                if col.foreign_keys:
+                    col_name = col.name
+                    for fk_ref in col.foreign_keys:
+                        ref_table = fk_ref.column.table.name
+                        ref_col = fk_ref.column.name
+                        if (col_name, ref_table, ref_col) not in existing_fks:
+                            fk_name = f"fk_{table_name}_{col_name}"
+                            fk_sql = f"ALTER TABLE {table_name} ADD CONSTRAINT {fk_name} FOREIGN KEY ({col_name}) REFERENCES {ref_table}({ref_col})"
+                            sys.stdout.write(f"[Schema] 添加缺失外键: {table_name}.{col_name} -> {ref_table}.{ref_col}\n")
+                            sys.stdout.flush()
+                            try:
+                                conn.execute(text(fk_sql))
+                            except Exception:
+                                pass
+            conn.commit()
+
+
 def init_database_with_lock():
     """使用原子文件创建锁，防止多进程并发初始化"""
     import atexit
@@ -71,6 +132,7 @@ def init_database_with_lock():
         sys.stdout.write("正在初始化数据库...\n")
         sys.stdout.flush()
         db.create_all()
+        ensure_table_schema()
         init_data()
         sys.stdout.write("数据库初始化完成\n")
         sys.stdout.flush()
