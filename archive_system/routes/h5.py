@@ -192,13 +192,10 @@ def reserve_select():
 @h5_bp.route("/h5/reserve", methods=["GET", "POST"])
 @login_required
 def reserve():
-    venue_category = request.args.get("type", "校史馆")
-    if venue_category not in ("校史馆", "标本馆"):
-        venue_category = "校史馆"
-    return _reserve_base(venue_category, "个人")
+    return _reserve_base("visit", "个人")
 
 # 预约基础函数
-def _reserve_base(venue_category, render_res_type="个人", visit_type="线下"):
+def _reserve_base(template_key, render_res_type="个人", visit_type="线下"):
     user = db.session.get(User, session["user_id"])
     if not user:
         flash("用户信息不存在，请重新登录")
@@ -214,7 +211,7 @@ def _reserve_base(venue_category, render_res_type="个人", visit_type="线下")
         flash("系统维护中，暂时关闭预约")
         return redirect(url_for("h5.home"))
 
-    venues = Venue.query.filter(Venue.is_active.is_(True), Venue.category.in_(("校史馆", "标本馆"))).all()
+    venues = Venue.query.filter(Venue.is_active.is_(True)).all()
     if not venues:
         flash("暂无可用场馆")
         return redirect(url_for("h5.home"))
@@ -243,13 +240,13 @@ def _reserve_base(venue_category, render_res_type="个人", visit_type="线下")
         venue = Venue.query.filter_by(id=campus_venue_id, is_active=True).first()
         if not venue:
             flash("选择的场馆不存在或未启用")
-            return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
+            return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
 
         # 验证预约日期，传入 advance_days 上限
         is_date_valid, date_msg = validate_visit_date(visit_date, advance_days=venue.advance_days)
         if not is_date_valid:
             flash(date_msg)
-            return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
+            return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
 
         # F14: cutoff_time 校验——如果预约当天，检查是否超过截止时间
         visit_date_obj = datetime.strptime(visit_date, "%Y-%m-%d").date()
@@ -258,7 +255,7 @@ def _reserve_base(venue_category, render_res_type="个人", visit_type="线下")
                 cutoff = datetime.strptime(venue.cutoff_time, "%H:%M").time()
                 if datetime.now().time() > cutoff:
                     flash(f"今日预约已截止（截止时间 {venue.cutoff_time}），请选择其他日期")
-                    return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
+                    return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
             except ValueError:
                 pass  # cutoff_time 格式异常时跳过校验
 
@@ -268,7 +265,7 @@ def _reserve_base(venue_category, render_res_type="个人", visit_type="线下")
                 slot_start_time = datetime.strptime(visit_time.split('-')[0], "%H:%M").time()
                 if datetime.now().time() > slot_start_time:
                     flash(f"所选时间段 {visit_time} 已过，请选择其他时段")
-                    return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
+                    return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
             except ValueError:
                 pass  # 时间段格式异常时跳过校验
 
@@ -276,16 +273,16 @@ def _reserve_base(venue_category, render_res_type="个人", visit_type="线下")
         if res_type == "单位":
             if not group_name:
                 flash("请输入预约单位")
-                return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
+                return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
             if not visiting_unit:
                 flash("请输入参观单位")
-                return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
+                return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
             if not group_contact:
                 flash("请输入单位联系人")
-                return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
+                return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
             if not contact_phone:
                 flash("请输入联系电话")
-                return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
+                return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
 
 
         # 获取该时段的容量配置
@@ -300,7 +297,7 @@ def _reserve_base(venue_category, render_res_type="个人", visit_type="线下")
         
         if not time_slot_config:
             flash("所选时段未开放，请选择其他时段")
-            return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
+            return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
 
         # 检查该日期时段是否被禁用（检查时间段是否有重叠）
         disabled_list = VenueTimeSlotDisabledDate.query.filter_by(
@@ -315,7 +312,7 @@ def _reserve_base(venue_category, render_res_type="个人", visit_type="线下")
             visit_end = visit_time.split('-')[1]
             if not (visit_end <= disabled_start or visit_start >= disabled_end):
                 flash("所选日期时段已被管理员禁用，请选择其他时段")
-                return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
+                return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
 
         # 使用事务确保并发安全
         from sqlalchemy.exc import SQLAlchemyError
@@ -333,28 +330,8 @@ def _reserve_base(venue_category, render_res_type="个人", visit_type="线下")
             if not time_slot_config:
                 db.session.rollback()
                 flash("所选时段未开放，请选择其他时段")
-                return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
+                return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
             
-            # 只有档案馆的个人预约需要检查名额，校史馆/标本馆不限制
-            if venue_category == "档案馆" and res_type == "个人":
-                # 检查所选时段是否已满（包括已同意和审核中的申请），加锁
-                time_slot_reservations = Reservation.query.filter_by(
-                    venue_id=campus_venue_id,
-                    visit_date=visit_date_obj,
-                    visit_time=visit_time,
-                    res_type="个人"
-                ).filter(
-                    Reservation.status.in_(["待审核", "已同意"])
-                ).with_for_update().all()
-                
-                # 计算已预约人数
-                reserved_individual = sum(res.visitor_count or res.group_size for res in time_slot_reservations)
-                
-                if reserved_individual + visitor_count > time_slot_config.individual_capacity:
-                    db.session.rollback()
-                    flash("所选时段个人预约人数已满，请选择其他时段")
-                    return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
-
             # 创建预约记录
             res = Reservation(
                 user_id=session["user_id"],
@@ -386,7 +363,7 @@ def _reserve_base(venue_category, render_res_type="个人", visit_type="线下")
                 if len(files) > MAX_FILE_COUNT:
                     db.session.rollback()
                     flash(f"最多上传 {MAX_FILE_COUNT} 个文件")
-                    return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
+                    return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
                 
                 # 创建上传目录
                 upload_dir = os.path.join(os.path.dirname(__file__), '..', 'static', 'uploads')
@@ -401,7 +378,7 @@ def _reserve_base(venue_category, render_res_type="个人", visit_type="线下")
                         if ext not in ALLOWED_EXTENSIONS:
                             db.session.rollback()
                             flash(f"不支持的文件类型: {file.filename}，仅允许图片文件（{', '.join(ALLOWED_EXTENSIONS)}）")
-                            return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
+                            return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
                         
                         # 先读取文件内容，检查真实大小（file.content_length 不可靠）
                         content = file.read()
@@ -409,7 +386,7 @@ def _reserve_base(venue_category, render_res_type="个人", visit_type="线下")
                         if actual_size > MAX_FILE_SIZE:
                             db.session.rollback()
                             flash(f"文件 {file.filename} 超过15MB限制（实际大小：{actual_size // 1024 // 1024}MB）")
-                            return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
+                            return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
                         
                         # 生成唯一文件名（保留安全的扩展名）
                         filename = f"{uuid.uuid4()}{ext}"
@@ -438,26 +415,26 @@ def _reserve_base(venue_category, render_res_type="个人", visit_type="线下")
             db.session.rollback()
             logger.error("预约提交失败: %s", e)
             flash("预约提交失败，请稍后重试")
-            return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
+            return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
 
         logger.info("用户 %s 预约提交成功，等待审核", session['user_id'])
         flash("预约提交成功，请等待审核通知")
         return redirect(url_for("h5.history"))
 
     # GET请求时显示预约表单
-    return render_template(f"h5_reserve_{venue_category}_{render_res_type}.html", user=user, venues=venues, venue=default_venue, venue_category=venue_category)
+    return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
 
 # 校史馆预约
 @h5_bp.route("/h5/reserve/xiaoshi", methods=["GET", "POST"])
 @login_required
 def reserve_xiaoshi():
-    return _reserve_base("校史馆", "个人")
+    return _reserve_base("visit", "个人")
 
 # 标本馆预约
 @h5_bp.route("/h5/reserve/biaoben", methods=["GET", "POST"])
 @login_required
 def reserve_biaoben():
-    return _reserve_base("标本馆", "个人")
+    return _reserve_base("visit", "个人")
 
 @h5_bp.route("/h5/history")
 @login_required
@@ -473,9 +450,7 @@ def history():
     end_date = request.args.get("end_date", "").strip()
     venue_name = request.args.get("venue_name", "").strip()
 
-    query = Reservation.query.filter_by(user_id=session["user_id"]).join(Venue).filter(
-        Venue.category.in_(("校史馆", "标本馆"))
-    )
+    query = Reservation.query.filter_by(user_id=session["user_id"]).join(Venue)
 
     if status_filter:
         query = query.filter(Reservation.status == status_filter)
@@ -491,9 +466,7 @@ def history():
 
     reservations = query.order_by(Reservation.created_at.desc()).all()
 
-    venue_names = db.session.query(Venue.name).filter(
-        Venue.category.in_(("校史馆", "标本馆"))
-    ).distinct().all()
+    venue_names = db.session.query(Venue.name).distinct().all()
     venue_names = [v[0] for v in venue_names]
 
     return render_template("h5_history.html",
@@ -540,8 +513,7 @@ def archive_history():
     end_date = request.args.get("end_date", "").strip()
 
     query = Reservation.query.join(Venue).filter(
-        Reservation.user_id == session["user_id"],
-        Venue.category == '档案馆'
+        Reservation.user_id == session["user_id"]
     )
 
     if status_filter:
@@ -658,28 +630,10 @@ def get_available_slots():
             disabled_date=visit_date_obj
         ).all()
 
-        # 获取场馆信息，判断是否为校史馆/标本馆
+        # 获取场馆信息
         venue = db.session.get(Venue, venue_id)
-        is_museum = venue and venue.category in ('校史馆', '标本馆')
 
-        # 获取该场馆在该日期的已预约人数（已同意和待审核的）
-        # 校史馆/标本馆不限制容量，仅档案馆需要统计
-        slot_counts = {}
-        if not is_museum:
-            reservations = Reservation.query.filter_by(
-                venue_id=venue_id,
-                visit_date=visit_date_obj
-            ).filter(
-                Reservation.status.in_(["已同意", "待审核"])
-            ).all()
-
-            for res in reservations:
-                if res.res_type == "个人":
-                    if res.visit_time not in slot_counts:
-                        slot_counts[res.visit_time] = 0
-                    slot_counts[res.visit_time] += (res.visitor_count or res.group_size)
-
-        # 生成可用时段和剩余名额
+        # 生成可用时段
         available_slots = []
         current_time = datetime.now()
         current_date = current_time.date()
@@ -702,28 +656,14 @@ def get_available_slots():
                 except ValueError:
                     pass
 
-            if is_museum:
-                available_slots.append({
-                    "time_slot": slot.time_slot,
-                    "available_individual": not is_disabled and not is_expired,
-                    "available_group": getattr(slot, 'is_group_active', True) and not is_disabled and not is_expired,
-                    "is_disabled": is_disabled,
-                    "is_expired": is_expired,
-                    "is_museum": True,
-                })
-            else:
-                used_individual = slot_counts.get(slot.time_slot, 0)
-                remaining_individual = slot.individual_capacity - used_individual
-                available_slots.append({
-                    "time_slot": slot.time_slot,
-                    "individual_capacity": slot.individual_capacity,
-                    "used_individual": used_individual,
-                    "remaining_individual": remaining_individual,
-                    "available_individual": remaining_individual > 0 and not is_disabled and not is_expired,
-                    "available_group": getattr(slot, 'is_group_active', True) and not is_disabled and not is_expired,
-                    "is_disabled": is_disabled,
-                    "is_expired": is_expired,
-                })
+            available_slots.append({
+                "time_slot": slot.time_slot,
+                "available_individual": not is_disabled and not is_expired,
+                "available_group": getattr(slot, 'is_group_active', True) and not is_disabled and not is_expired,
+                "is_disabled": is_disabled,
+                "is_expired": is_expired,
+                "is_museum": True,
+            })
         
         return {"slots": available_slots}
     except Exception as e:
@@ -796,9 +736,8 @@ def archive_reserve(visit_type):
         return redirect(url_for("h5.home"))
 
     def _get_default_archive_venue_id():
-        for v in venues:
-            if v.category == '档案馆':
-                return v.id
+        if venues:
+            return venues[0].id
         return None
 
     default_venue_id = _get_default_archive_venue_id()
@@ -896,22 +835,6 @@ def archive_reserve(visit_type):
             if not time_slot_config:
                 db.session.rollback()
                 flash("所选时段未开放，请选择其他时段")
-                return _render()
-
-            time_slot_reservations = Reservation.query.filter_by(
-                venue_id=campus_venue_id,
-                visit_date=visit_date_obj,
-                visit_time=visit_time,
-                res_type="个人"
-            ).filter(
-                Reservation.status.in_(["待部门领导指定审批人", "待审核", "已同意"])
-            ).with_for_update().all()
-
-            reserved_individual = sum(res.visitor_count or res.group_size for res in time_slot_reservations)
-
-            if reserved_individual + 1 > time_slot_config.individual_capacity:
-                db.session.rollback()
-                flash("所选时段个人预约人数已满，请选择其他时段")
                 return _render()
 
             res = Reservation(

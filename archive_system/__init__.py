@@ -163,8 +163,8 @@ def init_data():
     # 创建默认审批人员账号
     if not ApprovalStaff.query.first():
         import json
-        archive_venue_ids = [v.id for v in Venue.query.filter_by(category="档案馆").all()]
-        xiaoshi_venue_ids = [v.id for v in Venue.query.filter(Venue.category.in_(["校史馆", "标本馆"])).all()]
+        archive_venue_ids = [v.id for v in Venue.query.all()]
+        xiaoshi_venue_ids = [v.id for v in Venue.query.all()]
 
         default_staffs = [
             ApprovalStaff(

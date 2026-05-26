@@ -536,20 +536,10 @@
 
                         <div class="form-group">
                             <label class="form-label">选择场馆</label>
-                            <select class="form-control" onchange="location.href='?type='+this.value">
-                                <option value="校史馆" {% if venue_category == '校史馆' %}selected{% endif %}>校史馆</option>
-                                <option value="标本馆" {% if venue_category == '标本馆' %}selected{% endif %}>标本馆</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">校区</label>
                             <select name="campus_venue_id" id="campusSelect" class="form-control" required>
-                                <option value="">请选择校区</option>
+                                <option value="">请选择场馆</option>
                                 {% for v in venues %}
-                                {% if v.category == venue_category and v.campus %}
-                                <option value="{{ v.id }}">{{ v.campus }}</option>
-                                {% endif %}
+                                <option value="{{ v.id }}">{{ v.name }}（{{ v.campus }}）</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -880,16 +870,10 @@
                                             <div>${slot.time_slot}</div>
                                             <div class="text-xs text-danger">无法预约</div>
                                         `;
-                                    } else if (slot.is_museum) {
+                                    } else {
                                         timeSlot.innerHTML = `
                                             <div>${slot.time_slot}</div>
                                             <div class="text-xs text-muted">可预约</div>
-                                        `;
-                                    } else {
-                                        const remaining = `${slot.remaining_individual}/${slot.individual_capacity}`;
-                                        timeSlot.innerHTML = `
-                                            <div>${slot.time_slot}</div>
-                                            <div class="text-xs text-muted">剩余: ${remaining}</div>
                                         `;
                                     }
                                 }

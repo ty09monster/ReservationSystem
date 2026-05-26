@@ -59,7 +59,7 @@ class Venue(db.Model):
     __tablename__ = 'venue'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False, comment='场馆名称')
-    category = db.Column(db.String(50), nullable=False, comment='场馆分类：校史馆/标本馆')
+    category = db.Column(db.String(50), nullable=False, default='', comment='场馆分类')
     campus = db.Column(db.String(100), comment='校区')
     description = db.Column(db.Text, comment='场馆描述')
     address = db.Column(db.String(200), comment='场馆地址')
