@@ -356,16 +356,19 @@
 
         function cancelReservation(resId, event) {
             event.stopPropagation();
+            const reason = prompt('请输入取消原因：');
+            if (reason === null) return;
+            if (!reason.trim()) { alert('取消原因不能为空'); return; }
             if (!confirm('确定要取消此预约吗？取消后状态将变为"已取消"，无法恢复。')) return;
 
             const form = document.getElementById('cancelForm');
             form.action = "{{ url_for('h5.cancel_archive_reservation', res_id=0) }}".replace('0', resId);
 
-            const actionInput = document.createElement('input');
-            actionInput.type = 'hidden';
-            actionInput.name = '_method';
-            actionInput.value = 'POST';
-            form.appendChild(actionInput);
+            const reasonInput = document.createElement('input');
+            reasonInput.type = 'hidden';
+            reasonInput.name = 'cancel_reason';
+            reasonInput.value = reason.trim();
+            form.appendChild(reasonInput);
 
             form.submit();
         }
