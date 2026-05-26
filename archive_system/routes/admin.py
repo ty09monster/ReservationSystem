@@ -559,7 +559,6 @@ def config():
         description = request.form.get("venue_description")
         address = request.form.get("venue_address")
         campus = request.form.get("venue_campus")
-        parent_id = request.form.get("venue_parent_id", type=int)
         advance_days = request.form.get("venue_advance_days", 7, type=int)
         cutoff_time = request.form.get("venue_cutoff_time", "16:00")
         is_active = "venue_is_active" in request.form
@@ -572,7 +571,6 @@ def config():
             venue.description = description
             venue.address = address
             venue.campus = campus
-            venue.parent_venue_id = parent_id or None
             venue.advance_days = advance_days
             venue.cutoff_time = cutoff_time
             venue.is_active = is_active

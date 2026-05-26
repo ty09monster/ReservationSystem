@@ -60,7 +60,6 @@ class Venue(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False, comment='场馆名称')
     category = db.Column(db.String(50), nullable=False, comment='场馆分类：校史馆/标本馆')
-    parent_venue_id = db.Column(db.Integer, db.ForeignKey('venue.id'), nullable=True, comment='父场馆ID，用于表示场馆-校区的层级关系')
     campus = db.Column(db.String(100), comment='校区')
     description = db.Column(db.Text, comment='场馆描述')
     address = db.Column(db.String(200), comment='场馆地址')
@@ -75,9 +74,6 @@ class Venue(db.Model):
     is_active = db.Column(db.Boolean, default=True, comment='是否启用')
     created_at = db.Column(db.DateTime, default=datetime.now, comment='创建时间')
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, nullable=False, comment='更新时间')
-
-    # 自引用关系，用于表示场馆-校区的层级关系
-    parent_venue = db.relationship('Venue', remote_side=[id], backref=db.backref('child_venues', lazy=True))
 
 class Reservation(db.Model):
     """预约记录表"""

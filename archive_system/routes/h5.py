@@ -473,7 +473,9 @@ def history():
     end_date = request.args.get("end_date", "").strip()
     venue_name = request.args.get("venue_name", "").strip()
 
-    query = Reservation.query.filter_by(user_id=session["user_id"])
+    query = Reservation.query.filter_by(user_id=session["user_id"]).join(Venue).filter(
+        Venue.category.in_(("校史馆", "标本馆"))
+    )
 
     if status_filter:
         query = query.filter(Reservation.status == status_filter)
@@ -485,11 +487,13 @@ def history():
         query = query.filter(Reservation.visit_date <= end_date)
 
     if venue_name:
-        query = query.join(Venue).filter(Venue.name.contains(venue_name))
+        query = query.filter(Venue.name.contains(venue_name))
 
     reservations = query.order_by(Reservation.created_at.desc()).all()
 
-    venue_names = db.session.query(Venue.name).distinct().all()
+    venue_names = db.session.query(Venue.name).filter(
+        Venue.category.in_(("校史馆", "标本馆"))
+    ).distinct().all()
     venue_names = [v[0] for v in venue_names]
 
     return render_template("h5_history.html",
