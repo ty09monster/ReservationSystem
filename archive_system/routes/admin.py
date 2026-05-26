@@ -158,9 +158,8 @@ def dashboard():
     announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
     config = SystemConfig.query.first()
     venues = Venue.query.filter(
-        Venue.parent_venue_id.isnot(None),
         Venue.category.in_(categories)
-    ).all()
+    ).order_by(Venue.id).all()
 
     admin_list = []
     roles = []
@@ -573,7 +572,7 @@ def config():
             venue.description = description
             venue.address = address
             venue.campus = campus
-            venue.parent_venue_id = parent_id
+            venue.parent_venue_id = parent_id or None
             venue.advance_days = advance_days
             venue.cutoff_time = cutoff_time
             venue.is_active = is_active
@@ -588,25 +587,15 @@ def config():
         name = request.form.get("venue_name")
         category = request.form.get("venue_category", "校史馆")
         campus = request.form.get("venue_campus", "")
-        is_parent = request.form.get("venue_is_parent") == "1"
-
-        if is_parent:
-            new_venue = Venue(
-                name=name, category=category,
-                description=request.form.get("venue_description", ""),
-                is_active=True
-            )
-        else:
-            parent_id = request.form.get("venue_parent_id", type=int)
-            new_venue = Venue(
-                name=name, category=category,
-                parent_venue_id=parent_id, campus=campus,
-                address=request.form.get("venue_address", ""),
-                open_hours=request.form.get("venue_open_hours", "09:00-11:00,14:00-16:00"),
-                advance_days=request.form.get("venue_advance_days", 7, type=int),
-                cutoff_time=request.form.get("venue_cutoff_time", "16:00"),
-                is_active=True
-            )
+        new_venue = Venue(
+            name=name, category=category, campus=campus,
+            address=request.form.get("venue_address", ""),
+            open_hours=request.form.get("venue_open_hours", "09:00-11:00,14:00-16:00"),
+            advance_days=request.form.get("venue_advance_days", 7, type=int),
+            cutoff_time=request.form.get("venue_cutoff_time", "16:00"),
+            description=request.form.get("venue_description", ""),
+            is_active=True
+        )
         db.session.add(new_venue)
         flash(f"场馆 {name} 已添加")
 
@@ -614,16 +603,13 @@ def config():
         venue_id = request.form.get("venue_id", type=int)
         venue = Venue.query.get(venue_id)
         if venue:
+            res_ids = [r.id for r in Reservation.query.with_entities(Reservation.id).filter_by(venue_id=venue_id).all()]
+            CancelRequest.query.filter(CancelRequest.reservation_id.in_(res_ids)).delete(synchronize_session=False)
+            Attachment.query.filter(Attachment.reservation_id.in_(res_ids)).delete(synchronize_session=False)
+            Reservation.query.filter_by(venue_id=venue_id).delete()
             VenueTimeSlot.query.filter_by(venue_id=venue_id).delete()
             VenueTimeSlotDisabledDate.query.filter_by(venue_id=venue_id).delete()
-            if venue.parent_venue_id:
-                db.session.delete(venue)
-            else:
-                for child in venue.child_venues:
-                    VenueTimeSlot.query.filter_by(venue_id=child.id).delete()
-                    VenueTimeSlotDisabledDate.query.filter_by(venue_id=child.id).delete()
-                    db.session.delete(child)
-                db.session.delete(venue)
+            db.session.delete(venue)
             flash(f"场馆 {venue.name} 已删除")
 
     db.session.commit()
@@ -1146,7 +1132,6 @@ def logout():
 def stats():
     categories = _get_area_categories()
     venues = Venue.query.filter(
-        Venue.parent_venue_id.isnot(None),
         Venue.category.in_(categories)
     ).all()
     return render_template(
@@ -1242,7 +1227,6 @@ def get_attachments(res_id):
 def get_venues():
     categories = _get_area_categories()
     venues = Venue.query.filter(
-        Venue.parent_venue_id.isnot(None),
         Venue.category.in_(categories)
     ).all()
 
@@ -1262,7 +1246,6 @@ def get_venues():
 def get_all_venues():
     categories = _get_area_categories()
     venues = Venue.query.filter(
-        Venue.parent_venue_id.isnot(None),
         Venue.category.in_(categories)
     ).all()
 
@@ -1340,8 +1323,7 @@ def venue_comparison():
         Venue.name,
         func.count(Reservation.id).label('count')
     ).join(Reservation, Venue.id == Reservation.venue_id).filter(
-        Venue.category.in_(categories),
-        Venue.parent_venue_id.isnot(None)
+        Venue.category.in_(categories)
     ).group_by(Venue.name).all()
     data = {
         "labels": [item.name for item in result],
@@ -1448,7 +1430,6 @@ def campus_comparison():
 def time_utilization():
     categories = _get_area_categories()
     venue_ids = [v.id for v in Venue.query.filter(
-        Venue.parent_venue_id.isnot(None),
         Venue.category.in_(categories)
     ).all()]
 
@@ -1514,7 +1495,6 @@ def total_statistics():
     ).scalar() or 0
 
     venue_ids = [v.id for v in Venue.query.filter(
-        Venue.parent_venue_id.isnot(None),
         Venue.category.in_(categories)
     ).all()]
 

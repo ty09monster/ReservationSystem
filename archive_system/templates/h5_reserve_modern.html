@@ -546,13 +546,9 @@
                             <label class="form-label">校区</label>
                             <select name="campus_venue_id" id="campusSelect" class="form-control" required>
                                 <option value="">请选择校区</option>
-                                {% for parent_venue in venues %}
-                                {% if not parent_venue.parent_venue_id and parent_venue.name == venue_category %}
-                                {% for child_venue in venues %}
-                                {% if child_venue.parent_venue_id == parent_venue.id %}
-                                <option value="{{ child_venue.id }}">{{ child_venue.campus }}</option>
-                                {% endif %}
-                                {% endfor %}
+                                {% for v in venues %}
+                                {% if v.category == venue_category and v.campus %}
+                                <option value="{{ v.id }}">{{ v.campus }}</option>
                                 {% endif %}
                                 {% endfor %}
                             </select>

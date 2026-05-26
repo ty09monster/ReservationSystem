@@ -205,6 +205,10 @@ def _reserve_base(venue_category, render_res_type="个人", visit_type="线下")
         session.clear()
         return redirect(url_for("h5.login"))
 
+    if user.is_blacklisted:
+        flash("您的账号已被管理员限制预约，如有疑问请联系学校相关部门")
+        return redirect(url_for("h5.home"))
+
     config = SystemConfig.query.first()
     if not config.is_open:
         flash("系统维护中，暂时关闭预约")
@@ -773,6 +777,10 @@ def archive_reserve(visit_type):
         session.clear()
         return redirect(url_for("h5.login"))
 
+    if user.is_blacklisted:
+        flash("您的账号已被管理员限制预约，如有疑问请联系学校相关部门")
+        return redirect(url_for("h5.home"))
+
     config = SystemConfig.query.first()
     if not config.is_open:
         flash("系统维护中，暂时关闭预约")
@@ -784,9 +792,6 @@ def archive_reserve(visit_type):
         return redirect(url_for("h5.home"))
 
     def _get_default_archive_venue_id():
-        for v in venues:
-            if v.category == '档案馆' and v.parent_venue_id is not None:
-                return v.id
         for v in venues:
             if v.category == '档案馆':
                 return v.id
