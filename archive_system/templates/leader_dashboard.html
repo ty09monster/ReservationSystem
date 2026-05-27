@@ -199,7 +199,7 @@
                 <thead>
                     <tr>
                         <th>申请时间</th>
-                        <th>预约类型</th>
+                        <th>查阅方式</th>
                         <th>申请人/单位</th>
                         <th>参观场馆</th>
                         <th>预约日期</th>
@@ -446,7 +446,7 @@
                             } else {
                                 statusBadge = '<span class="badge bg-secondary status-badge">' + r.status + '</span>';
                             }
-                            const typeBadge = r.res_type === '单位' ? '<span class="badge bg-info">单位</span>' : '<span class="badge bg-secondary">个人</span>';
+                            const typeBadge = r.visit_type === '线上' ? '<span class="badge bg-primary">线上查阅</span>' : '<span class="badge bg-secondary">线下查阅</span>';
                             const displayName = r.res_type === '单位' && r.group_name ? r.group_name : r.user_name;
                             return '<tr>' +
                                 '<td>' + r.created_at + '</td>' +

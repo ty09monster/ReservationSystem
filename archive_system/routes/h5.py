@@ -259,15 +259,14 @@ def _reserve_base(template_key, render_res_type="个人", visit_type="线下"):
             except ValueError:
                 pass  # cutoff_time 格式异常时跳过校验
 
-        # 新增：时间段过期校验——如果预约当天，检查当前时间是否已超过所选时间段的开始时间
         if visit_date_obj == datetime.now().date():
             try:
-                slot_start_time = datetime.strptime(visit_time.split('-')[0], "%H:%M").time()
-                if datetime.now().time() > slot_start_time:
+                slot_end_time = datetime.strptime(visit_time.split('-')[1], "%H:%M").time()
+                if datetime.now().time() > slot_end_time:
                     flash(f"所选时间段 {visit_time} 已过，请选择其他时段")
                     return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
             except ValueError:
-                pass  # 时间段格式异常时跳过校验
+                pass
 
         # 验证单位信息
         if res_type == "单位":
@@ -693,8 +692,8 @@ def get_available_slots():
                     break
             if visit_date_obj == current_date:
                 try:
-                    slot_start_time = datetime.strptime(slot_start, "%H:%M").time()
-                    if current_time.time() > slot_start_time:
+                    slot_end_time = datetime.strptime(slot_end, "%H:%M").time()
+                    if current_time.time() > slot_end_time:
                         is_expired = True
                 except ValueError:
                     pass
@@ -832,8 +831,8 @@ def archive_reserve(visit_type):
 
         if visit_date_obj == datetime.now().date():
             try:
-                slot_start_time = datetime.strptime(visit_time.split('-')[0], "%H:%M").time()
-                if datetime.now().time() > slot_start_time:
+                slot_end_time = datetime.strptime(visit_time.split('-')[1], "%H:%M").time()
+                if datetime.now().time() > slot_end_time:
                     flash(f"所选时间段 {visit_time} 已过，请选择其他时段")
                     return _render()
             except ValueError:

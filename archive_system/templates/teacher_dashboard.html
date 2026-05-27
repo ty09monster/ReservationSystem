@@ -207,7 +207,7 @@
                 <thead>
                     <tr>
                         <th>申请时间</th>
-                        <th>预约类型</th>
+                        <th>{% if bp_name == 'archive' %}查阅方式{% else %}预约类型{% endif %}</th>
                         <th>申请人/单位</th>
                         <th>参观场馆</th>
                         <th>预约日期</th>
@@ -227,9 +227,15 @@
                     <tr>
                         <td>{{ res.created_at.strftime('%m-%d %H:%M') }}</td>
                         <td>
+                            {% if bp_name == 'archive' %}
+                            <span class="badge {% if res.visit_type == '线上' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                {{ '线上查阅' if res.visit_type == '线上' else '线下查阅' }}
+                            </span>
+                            {% else %}
                             <span class="badge {% if res.res_type == '单位' %}bg-info{% else %}bg-secondary{% endif %}">
                                 {{ '单位预约' if res.res_type == '单位' else '个人预约' }}
                             </span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if res.res_type == '单位' and res.group_name %}
