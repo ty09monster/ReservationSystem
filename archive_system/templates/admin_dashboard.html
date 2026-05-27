@@ -285,7 +285,8 @@
                 href="?active_tab=guides">讲解员管理</a>{% endif %}
             <div class="section-label">内容管理</div>
             <a class="nav-link {% if active_tab == 'notice' %}active{% endif %}" href="?active_tab=notice">公告管理</a>
-            <a class="nav-link {% if active_tab == 'venue' %}active{% endif %}" href="?active_tab=venue">场馆管理</a>
+            {% if management_area != 'archive' %}<a class="nav-link {% if active_tab == 'venue' %}active{% endif %}"
+                href="?active_tab=venue">场馆管理</a>{% endif %}
             {% if session.get('is_super') %}
             <div class="section-label">系统管理</div>
             <a class="nav-link {% if active_tab == 'account' %}active{% endif %}" href="?active_tab=account">账号管理</a>
@@ -594,10 +595,12 @@
                                     <td>{{ v.cutoff_time }}</td>
                                     <td>{% if v.is_active %}<span class="badge bg-success">是</span>{% else %}<span
                                             class="badge bg-secondary">否</span>{% endif %}</td>
-                                    <td><button class="btn btn-outline-primary btn-sm" onclick='editVenue({{ v.id
+                                    <td><button class="btn btn-outline-primary btn-sm"
+                                            onclick='editVenue({{ v.id
                                             }},{{ v.name|tojson }},{{ (v.campus or '')|tojson }},{{ (v.address or '')|tojson }},{{
-                                            (v.description or '')|tojson }},{{ v.advance_days }},{{ v.cutoff_time|tojson }},{{ 'true'
-                                            if v.is_active else 'false' }},{{ (v.open_hours or '')|tojson }})'>编辑</button>
+                                            (v.description or '')|tojson }},{{ v.advance_days }},{{ v.cutoff_time|tojson }},{{ ' true' if v.is_active else 'false'
+                                            }},{{ (v.open_hours or '' )|tojson }},{{ (v.category or '' )|tojson
+                                            }})'>编辑</button>
                                         <button class="btn btn-outline-warning btn-sm"
                                             onclick="openTimeSlotModal({{ v.id }})">时段</button>
                                         <button class="btn btn-outline-secondary btn-sm"
@@ -867,6 +870,12 @@
                                     <div class="col-md-6"><label class="form-label small">校区</label><input type="text"
                                             name="venue_campus" id="venueEditCampus"
                                             class="form-control form-control-sm"></div>
+                                    <div class="col-md-6"><label class="form-label small">分类</label><select
+                                            name="venue_category" id="venueEditCategory"
+                                            class="form-select form-select-sm">
+                                            <option value="校史馆">校史馆</option>
+                                            <option value="标本馆">标本馆</option>
+                                        </select></div>
                                     <div class="col-md-6"><label class="form-label small">地址</label><input type="text"
                                             name="venue_address" id="venueEditAddress"
                                             class="form-control form-control-sm"></div>
@@ -1224,7 +1233,7 @@
             });
         }
 
-        function editVenue(id, name, campus, address, description, advanceDays, cutoffTime, isActive, openHours) {
+        function editVenue(id, name, campus, address, description, advanceDays, cutoffTime, isActive, openHours, category) {
             document.getElementById('venueEditId').value = id;
             document.getElementById('venueEditName').value = name;
             document.getElementById('venueEditCampus').value = campus;
@@ -1234,6 +1243,7 @@
             document.getElementById('venueEditCutoffTime').value = cutoffTime;
             document.getElementById('venueEditIsActive').checked = isActive;
             document.getElementById('venueEditOpenHours').value = openHours;
+            if (category) document.getElementById('venueEditCategory').value = category;
             new bootstrap.Modal(document.getElementById('venueEditModal')).show();
         }
 

@@ -211,7 +211,7 @@ def _reserve_base(template_key, render_res_type="个人", visit_type="线下"):
         flash("系统维护中，暂时关闭预约")
         return redirect(url_for("h5.home"))
 
-    venues = Venue.query.filter(Venue.is_active.is_(True)).all()
+    venues = Venue.query.filter(Venue.is_active.is_(True), Venue.category.in_(['校史馆', '标本馆'])).all()
     if not venues:
         flash("暂无可用场馆")
         return redirect(url_for("h5.home"))

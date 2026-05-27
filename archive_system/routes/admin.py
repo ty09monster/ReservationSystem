@@ -551,6 +551,7 @@ def config():
         description = request.form.get("venue_description")
         address = request.form.get("venue_address")
         campus = request.form.get("venue_campus")
+        category = request.form.get("venue_category", "")
         advance_days = request.form.get("venue_advance_days", 7, type=int)
         cutoff_time = request.form.get("venue_cutoff_time", "16:00")
         is_active = "venue_is_active" in request.form
@@ -562,6 +563,8 @@ def config():
             venue.description = description
             venue.address = address
             venue.campus = campus
+            if category:
+                venue.category = category
             venue.advance_days = advance_days
             venue.cutoff_time = cutoff_time
             venue.is_active = is_active
@@ -573,8 +576,11 @@ def config():
     if "add_venue" in request.form:
         name = request.form.get("venue_name")
         campus = request.form.get("venue_campus", "")
+        area = session.get('management_area', 'xiaoshi')
+        category = '档案馆' if area == 'archive' else '校史馆'
         new_venue = Venue(
             name=name, campus=campus,
+            category=category,
             address=request.form.get("venue_address", ""),
             open_hours=request.form.get("venue_open_hours", "09:00-11:00,14:00-16:00"),
             advance_days=request.form.get("venue_advance_days", 7, type=int),
