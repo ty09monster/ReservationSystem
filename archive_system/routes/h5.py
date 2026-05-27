@@ -4,7 +4,7 @@ import html as html_module
 from urllib.parse import urlparse, urljoin
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from markupsafe import Markup
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import os
 import uuid
 from ..extensions import db
@@ -448,7 +448,17 @@ def history():
     status_filter = request.args.get("status", "").strip()
     start_date = request.args.get("start_date", "").strip()
     end_date = request.args.get("end_date", "").strip()
+    time_range = request.args.get("time_range", "").strip()
     venue_name = request.args.get("venue_name", "").strip()
+
+    if time_range and not start_date:
+        today = date.today()
+        if time_range == 'week':
+            start_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
+        elif time_range == 'month':
+            start_date = (today - timedelta(days=30)).strftime('%Y-%m-%d')
+        elif time_range == '3month':
+            start_date = (today - timedelta(days=90)).strftime('%Y-%m-%d')
 
     query = Reservation.query.filter_by(user_id=session["user_id"]).join(Venue).filter(
         Venue.category.in_(["校史馆", "标本馆"])
@@ -478,6 +488,7 @@ def history():
                            curr_status=status_filter,
                            curr_start_date=start_date,
                            curr_end_date=end_date,
+                           curr_time_range=time_range,
                            curr_venue_name=venue_name,
                            venue_names=venue_names)
 
@@ -513,8 +524,18 @@ def archive_history():
 
     status_filter = request.args.get("status", "").strip()
     type_filter = request.args.get("type", "").strip()
+    time_range = request.args.get("time_range", "").strip()
     start_date = request.args.get("start_date", "").strip()
     end_date = request.args.get("end_date", "").strip()
+
+    if time_range and not start_date:
+        today = date.today()
+        if time_range == 'week':
+            start_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
+        elif time_range == 'month':
+            start_date = (today - timedelta(days=30)).strftime('%Y-%m-%d')
+        elif time_range == '3month':
+            start_date = (today - timedelta(days=90)).strftime('%Y-%m-%d')
 
     query = Reservation.query.join(Venue).filter(
         Reservation.user_id == session["user_id"],
@@ -542,6 +563,7 @@ def archive_history():
                            reservations=reservations,
                            curr_status=status_filter,
                            curr_type=type_filter,
+                           curr_time_range=time_range,
                            curr_start_date=start_date,
                            curr_end_date=end_date)
 

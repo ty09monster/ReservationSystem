@@ -487,37 +487,25 @@ def api_stats():
 
     venue_cond = Venue.category.in_(categories)
 
-    total_count = db.session.query(func.count(Reservation.id)).filter(
+    base_query = db.session.query(func.count(Reservation.id)).join(Venue).filter(
         date_cond, venue_cond
-    ).scalar() or 0
+    )
 
-    pending_count = db.session.query(func.count(Reservation.id)).filter(
-        date_cond, venue_cond, Reservation.status == '待审核'
-    ).scalar() or 0
+    total_count = base_query.scalar() or 0
 
-    approved_count = db.session.query(func.count(Reservation.id)).filter(
-        date_cond, venue_cond, Reservation.status.in_(['已同意', '已核销'])
-    ).scalar() or 0
+    pending_count = base_query.filter(Reservation.status == '待审核').scalar() or 0
 
-    group_count = db.session.query(func.count(Reservation.id)).filter(
-        date_cond, venue_cond, Reservation.res_type == '单位'
-    ).scalar() or 0
+    approved_count = base_query.filter(Reservation.status.in_(['已同意', '已核销'])).scalar() or 0
 
-    individual_count = db.session.query(func.count(Reservation.id)).filter(
-        date_cond, venue_cond, Reservation.res_type == '个人'
-    ).scalar() or 0
+    group_count = base_query.filter(Reservation.res_type == '单位').scalar() or 0
 
-    verified_count = db.session.query(func.count(Reservation.id)).filter(
-        date_cond, venue_cond, Reservation.status == '已核销'
-    ).scalar() or 0
+    individual_count = base_query.filter(Reservation.res_type == '个人').scalar() or 0
 
-    rejected_count = db.session.query(func.count(Reservation.id)).filter(
-        date_cond, venue_cond, Reservation.status == '已拒绝'
-    ).scalar() or 0
+    verified_count = base_query.filter(Reservation.status == '已核销').scalar() or 0
 
-    cancelled_count = db.session.query(func.count(Reservation.id)).filter(
-        date_cond, venue_cond, Reservation.status == '已取消'
-    ).scalar() or 0
+    rejected_count = base_query.filter(Reservation.status == '已拒绝').scalar() or 0
+
+    cancelled_count = base_query.filter(Reservation.status == '已取消').scalar() or 0
 
     return jsonify({
         "period": period,
@@ -2141,7 +2129,9 @@ def export_logs():
 def clear_logs():
     days = request.form.get('days', 90, type=int)
     cutoff_date = datetime.now() - timedelta(days=days)
-    count = SystemLog.query.filter(SystemLog.created_at < cutoff_date).delete()
+    count = SystemLog.query.filter(SystemLog.created_at < cutoff_date).delete(
+        synchronize_session=False
+    )
     db.session.commit()
     _write_log('operation', '日志管理', '清理日志', f'清理 {days} 天前的日志，共 {count} 条')
     flash(f"已清理 {count} 条 {days} 天前的日志")

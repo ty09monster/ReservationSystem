@@ -1583,9 +1583,18 @@ ${isArchive ? '' : '<td>' + r.venue_name + '</td>'}
             const days = prompt('请输入保留天数（将清理此天数之前的日志）：', '90');
             if (!days || isNaN(days) || parseInt(days) < 1) { alert('请输入有效天数'); return; }
             if (!confirm('确定清理 ' + days + ' 天前的日志？此操作不可恢复。')) return;
-            const f = document.createElement('form'); f.method = 'POST'; f.action = '/admin/api/logs/clear';
-            f.innerHTML = '<input type="hidden" name="days" value="' + days + '">';
-            document.body.appendChild(f); f.submit();
+            const formData = new FormData();
+            formData.append('days', days);
+            fetch('/admin/api/logs/clear', { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('已清理 ' + data.count + ' 条 ' + days + ' 天前的日志');
+                        if (typeof loadLogs === 'function') loadLogs();
+                    } else {
+                        alert('清理失败');
+                    }
+                });
         }
     </script>
 </body>
