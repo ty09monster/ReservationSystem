@@ -158,11 +158,11 @@
                     </select>
                 </div>
                 <div class="col-auto">
-                    <label class="form-label small text-muted mb-1">预约类型</label>
-                    <select id="filterResType" class="form-select">
+                    <label class="form-label small text-muted mb-1">查阅方式</label>
+                    <select id="filterVisitType" class="form-select">
                         <option value="">全部</option>
-                        <option value="线上">线上预约</option>
-                        <option value="线下">线下预约</option>
+                        <option value="线上">线上查阅</option>
+                        <option value="线下">线下查阅</option>
                     </select>
                 </div>
                 <div class="col-auto">
@@ -408,11 +408,11 @@
             const params = new URLSearchParams();
             params.set('page', page);
             const status = document.getElementById('filterStatus').value;
-            const resType = document.getElementById('filterResType').value;
+            const visitType = document.getElementById('filterVisitType').value;
             const timeRange = document.getElementById('filterTimeRange').value;
             const keyword = document.getElementById('filterKeyword').value.trim();
             if (status) params.set('status', status);
-            if (resType) params.set('res_type', resType);
+            if (visitType) params.set('visit_type', visitType);
             if (timeRange) params.set('time_range', timeRange);
             if (timeRange === 'custom') {
                 const startDate = document.getElementById('filterStartDate').value;
@@ -486,7 +486,7 @@
 
         function resetFilters() {
             document.getElementById('filterStatus').value = '';
-            document.getElementById('filterResType').value = '';
+            document.getElementById('filterVisitType').value = '';
             document.getElementById('filterTimeRange').value = '';
             document.getElementById('filterStartDate').value = '';
             document.getElementById('filterEndDate').value = '';

@@ -112,6 +112,7 @@ def dashboard():
     keyword = request.args.get('keyword', '').strip()
     status_filter = request.args.get('status', '').strip()
     res_type_filter = request.args.get('res_type', '').strip()
+    visit_type_filter = request.args.get('visit_type', '').strip()
     time_range = request.args.get('time_range', '').strip()
     custom_start = request.args.get('start_date', '').strip()
     custom_end = request.args.get('end_date', '').strip()
@@ -137,6 +138,9 @@ def dashboard():
 
     if res_type_filter:
         query = query.filter(Reservation.res_type == res_type_filter)
+
+    if visit_type_filter:
+        query = query.filter(Reservation.visit_type == visit_type_filter)
 
     if time_range == 'week':
         query = query.filter(Reservation.created_at >= datetime.now() - timedelta(days=7))
@@ -170,6 +174,7 @@ def dashboard():
         curr_keyword=keyword,
         curr_status=status_filter,
         curr_res_type=res_type_filter,
+        curr_visit_type=visit_type_filter,
         curr_time_range=time_range,
         curr_start_date=custom_start,
         curr_end_date=custom_end,
