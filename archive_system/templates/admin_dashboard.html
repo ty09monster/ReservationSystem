@@ -317,13 +317,20 @@
                             </select></div>
                         <div class="col-auto"><select id="res-type-filter" class="form-select form-select-sm">
                                 <option value="">全部类型</option>
+                                {% if management_area == 'archive' %}
+                                <option value="线上">线上查阅</option>
+                                <option value="线下">线下查阅</option>
+                                {% else %}
                                 <option value="个人">个人</option>
                                 <option value="单位">单位</option>
+                                {% endif %}
                             </select></div>
+                        {% if management_area != 'archive' %}
                         <div class="col-auto"><select id="res-venue-filter" class="form-select form-select-sm">
                                 <option value="">全部场馆</option>{% for v in venues %}<option value="{{ v.id }}">{{ v.name
                                     }}</option>{% endfor %}
                             </select></div>
+                        {% endif %}
                         <div class="col-auto"><input type="date" id="res-start-date"
                                 class="form-control form-control-sm" placeholder="参观日期从"></div>
                         <div class="col-auto"><input type="date" id="res-end-date" class="form-control form-control-sm"
@@ -346,7 +353,9 @@
                                     <th>姓名</th>
                                     <th>证件号</th>
                                     <th>团体/单位</th>
+                                    {% if management_area != 'archive' %}
                                     <th>场馆</th>
+                                    {% endif %}
                                     <th>参观日期</th>
                                     <th>人数</th>
                                     <th>状态</th>
@@ -1157,27 +1166,38 @@
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script>
         const AVAILABLE_PERMISSIONS = {{ available_permissions| tojson }};
+        const MANAGEMENT_AREA = '{{ management_area }}';
         let venueListData = [];
 
         function loadReservations(page = 1) {
+            const isArchive = MANAGEMENT_AREA === 'archive';
             const params = new URLSearchParams({
                 page, per_page: 15,
                 keyword: document.getElementById('res-keyword').value,
                 status: document.getElementById('res-status-filter').value,
-                res_type: document.getElementById('res-type-filter').value,
-                venue_id: document.getElementById('res-venue-filter').value,
                 start_date: document.getElementById('res-start-date').value,
                 end_date: document.getElementById('res-end-date').value
             });
+            if (isArchive) {
+                params.set('visit_type', document.getElementById('res-type-filter').value);
+            } else {
+                params.set('res_type', document.getElementById('res-type-filter').value);
+                params.set('venue_id', document.getElementById('res-venue-filter').value);
+            }
             fetch('/admin/api/reservations?' + params).then(r => r.json()).then(data => {
+                const badge = (r) => isArchive
+                    ? (r.visit_type === '线上' ? '<span class="badge bg-success">线上</span>' : '<span class="badge bg-secondary">线下</span>')
+                    : (r.res_type === '单位' ? '<span class="badge bg-info">单位</span>' : '<span class="badge bg-secondary">个人</span>');
+                const totalCols = isArchive ? 10 : 11;
                 document.getElementById('reservations-tbody').innerHTML = data.reservations.map(r => `<tr>
-<td class="small">${r.created_at}</td><td><span class="badge ${r.res_type === '单位' ? 'bg-info' : 'bg-secondary'}">${r.res_type === '单位' ? '单位' : '个人'}</span></td>
+<td class="small">${r.created_at}</td><td>${badge(r)}</td>
 <td>${r.user_name}</td><td class="small">${r.user_id_card}</td><td>${r.group_name || r.visiting_unit || '-'}</td>
-<td>${r.venue_name}</td><td>${r.visit_date}<br><small class="text-muted">${r.visit_time}</small></td><td>${r.visitor_count || 1}</td>
+${isArchive ? '' : '<td>' + r.venue_name + '</td>'}
+<td>${r.visit_date}<br><small class="text-muted">${r.visit_time}</small></td><td>${r.visitor_count || 1}</td>
 <td>${r.status === '待部门领导指定审批人' ? '<span class="badge bg-secondary status-badge">待指定审批人</span>' : r.status === '待审核' ? '<span class="badge bg-warning text-dark status-badge">待审核</span>' : r.status === '已同意' ? '<span class="badge bg-success status-badge">已同意</span>' : r.status === '已核销' ? '<span class="badge bg-dark status-badge">已核销</span>' : r.status === '已取消' ? '<span class="badge bg-secondary status-badge">已取消</span>' : '<span class="badge bg-danger status-badge">已拒绝</span>'}</td>
 <td>${r.guide_info || '-'}</td>
 <td><button class="btn btn-outline-info btn-sm" onclick="viewReservationDetail(${r.id})">详情</button>
-<button class="btn btn-outline-danger btn-sm" onclick="deleteReservation(${r.id})">删除</button></td></tr>`).join('') || '<tr><td colspan="11" class="text-center text-muted py-3">没有匹配记录</td></tr>';
+<button class="btn btn-outline-danger btn-sm" onclick="deleteReservation(${r.id})">删除</button></td></tr>`).join('') || '<tr><td colspan="' + totalCols + '" class="text-center text-muted py-3">没有匹配记录</td></tr>';
                 const pg = data.pagination;
                 document.getElementById('reservations-pagination').innerHTML = pg.pages > 1 ? `<ul class="pagination justify-content-center">
 <li class="page-item ${pg.has_prev ? '' : 'disabled'}"><a class="page-link" href="#" onclick="loadReservations(${pg.page - 1});return false">上一页</a></li>
@@ -1187,14 +1207,19 @@
         }
 
         function exportReservations() {
+            const isArchive = MANAGEMENT_AREA === 'archive';
             const params = new URLSearchParams({
                 keyword: document.getElementById('res-keyword').value,
                 status: document.getElementById('res-status-filter').value,
-                res_type: document.getElementById('res-type-filter').value,
-                venue_id: document.getElementById('res-venue-filter').value,
                 start_date: document.getElementById('res-start-date').value,
                 end_date: document.getElementById('res-end-date').value
             });
+            if (isArchive) {
+                params.set('visit_type', document.getElementById('res-type-filter').value);
+            } else {
+                params.set('res_type', document.getElementById('res-type-filter').value);
+                params.set('venue_id', document.getElementById('res-venue-filter').value);
+            }
             window.open('/admin/export-reservations?' + params, '_blank');
         }
 

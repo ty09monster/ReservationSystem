@@ -217,6 +217,7 @@ def api_reservations():
     keyword = request.args.get('keyword', '').strip()
     status_filter = request.args.get('status', '').strip()
     res_type_filter = request.args.get('res_type', '').strip()
+    visit_type_filter = request.args.get('visit_type', '').strip()
     start_date = request.args.get('start_date', '').strip()
     end_date = request.args.get('end_date', '').strip()
     venue_id = request.args.get('venue_id', '').strip()
@@ -242,6 +243,9 @@ def api_reservations():
 
     if res_type_filter:
         query = query.filter(Reservation.res_type == res_type_filter)
+
+    if visit_type_filter:
+        query = query.filter(Reservation.visit_type == visit_type_filter)
 
     if start_date:
         query = query.filter(Reservation.visit_date >= start_date)
@@ -271,6 +275,7 @@ def api_reservations():
                 "user_id_card": r.user.id_card,
                 "user_id_type": r.user.id_type,
                 "res_type": r.res_type,
+                "visit_type": r.visit_type or '',
                 "group_name": r.group_name or '',
                 "visiting_unit": r.visiting_unit or '',
                 "visitor_count": r.visitor_count or 1,
@@ -305,6 +310,7 @@ def export_reservations():
     keyword = request.args.get('keyword', '').strip()
     status_filter = request.args.get('status', '').strip()
     res_type_filter = request.args.get('res_type', '').strip()
+    visit_type_filter = request.args.get('visit_type', '').strip()
     start_date = request.args.get('start_date', '').strip()
     end_date = request.args.get('end_date', '').strip()
     venue_id = request.args.get('venue_id', '').strip()
@@ -331,6 +337,9 @@ def export_reservations():
     if res_type_filter:
         query = query.filter(Reservation.res_type == res_type_filter)
 
+    if visit_type_filter:
+        query = query.filter(Reservation.visit_type == visit_type_filter)
+
     if start_date:
         query = query.filter(Reservation.visit_date >= start_date)
 
@@ -354,7 +363,7 @@ def export_reservations():
     ws.title = "预约记录"
 
     headers = [
-        '序号', '申请时间', '预约类型', '申请人姓名', '证件类型', '证件号码',
+        '序号', '申请时间', '查阅方式', '预约类型', '申请人姓名', '证件类型', '证件号码',
         '手机号', '单位名称', '参观单位', '参观场馆', '校区', '参观日期',
         '参观时间', '参观人数', '需要讲解', '讲解员', '车牌号', '审批状态',
         '拒绝原因', '核销时间', '申请理由'
@@ -381,6 +390,7 @@ def export_reservations():
         row_data = [
             idx,
             r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else '',
+            '线上查阅' if r.visit_type == '线上' else '线下查阅',
             '单位预约' if r.res_type == '单位' else '个人预约',
             r.user.name if r.user else '',
             r.user.id_type if r.user else '',
