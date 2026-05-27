@@ -82,11 +82,14 @@ def ensure_table_schema():
                     conn.execute(text(sql))
             conn.commit()
 
-        existing_fks = set()
+        existing_fks = {}
         for fk in inspector.get_foreign_keys(table_name):
             if fk.get('constrained_columns') and fk.get('referred_table') and fk.get('referred_columns'):
-                key = (fk['constrained_columns'][0], fk['referred_table'], fk['referred_columns'][0])
-                existing_fks.add(key)
+                col_name = fk['constrained_columns'][0]
+                ref_table = fk['referred_table']
+                ref_col = fk['referred_columns'][0]
+                fk_name = fk.get('name', '')
+                existing_fks[col_name] = (ref_table, ref_col, fk_name)
 
         with db.engine.connect() as conn:
             for col in model_table.columns:
@@ -95,7 +98,24 @@ def ensure_table_schema():
                     for fk_ref in col.foreign_keys:
                         ref_table = fk_ref.column.table.name
                         ref_col = fk_ref.column.name
-                        if (col_name, ref_table, ref_col) not in existing_fks:
+                        if col_name in existing_fks:
+                            old_ref_table, old_ref_col, old_fk_name = existing_fks[col_name]
+                            if old_ref_table != ref_table or old_ref_col != ref_col:
+                                sys.stdout.write(f"[Schema] 更新外键: {table_name}.{col_name} 从 {old_ref_table}.{old_ref_col} 改为 {ref_table}.{ref_col}\n")
+                                sys.stdout.flush()
+                                try:
+                                    if old_fk_name:
+                                        conn.execute(text(f"ALTER TABLE {table_name} DROP FOREIGN KEY {old_fk_name}"))
+                                    else:
+                                        conn.execute(text(f"ALTER TABLE {table_name} DROP FOREIGN KEY fk_{table_name}_{col_name}"))
+                                except Exception:
+                                    pass
+                                new_fk_name = f"fk_{table_name}_{col_name}"
+                                try:
+                                    conn.execute(text(f"ALTER TABLE {table_name} ADD CONSTRAINT {new_fk_name} FOREIGN KEY ({col_name}) REFERENCES {ref_table}({ref_col})"))
+                                except Exception:
+                                    pass
+                        elif (col_name, ref_table, ref_col) not in {(k, v[0], v[1]) for k, v in existing_fks.items()}:
                             fk_name = f"fk_{table_name}_{col_name}"
                             fk_sql = f"ALTER TABLE {table_name} ADD CONSTRAINT {fk_name} FOREIGN KEY ({col_name}) REFERENCES {ref_table}({ref_col})"
                             sys.stdout.write(f"[Schema] 添加缺失外键: {table_name}.{col_name} -> {ref_table}.{ref_col}\n")

@@ -102,7 +102,7 @@ class Reservation(db.Model):
     status = db.Column(db.String(20), default="待部门领导指定审批人", index=True, comment='状态：待部门领导指定审批人, 待审核, 已同意, 已拒绝, 已核销, 已完成, 已取消')
     reject_reason = db.Column(db.Text, comment='拒绝原因/审批意见')
     verified_at = db.Column(db.DateTime, comment='核销时间')
-    verified_by = db.Column(db.Integer, db.ForeignKey("admin.id"), nullable=True, comment='核销人ID')
+    verified_by = db.Column(db.Integer, db.ForeignKey("approval_staff.id"), nullable=True, comment='核销人ID')
     approval_teacher_id = db.Column(db.Integer, db.ForeignKey("approval_staff.id"), nullable=True, comment='指定审批教师ID')
     leader_id = db.Column(db.Integer, db.ForeignKey("approval_staff.id"), nullable=True, comment='处理部门领导ID')
     leader_opinion = db.Column(db.Text, comment='部门领导审批意见')
@@ -116,6 +116,7 @@ class Reservation(db.Model):
     venue = db.relationship("Venue", backref=db.backref("reservations", lazy=True))
     approval_teacher = db.relationship("ApprovalStaff", foreign_keys=[approval_teacher_id], backref=db.backref("assigned_reservations", lazy=True))
     leader = db.relationship("ApprovalStaff", foreign_keys=[leader_id], backref=db.backref("handled_reservations", lazy=True))
+    verifier = db.relationship("ApprovalStaff", foreign_keys=[verified_by], backref=db.backref("verified_reservations", lazy=True))
 
 class VenueTimeSlot(db.Model):
     """场馆时段表"""
