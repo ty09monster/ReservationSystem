@@ -534,6 +534,10 @@
                             <label class="form-label">手机号</label>
                             <input type="text" class="form-control" value="{{ user.phone }}" disabled>
                         </div>
+                        <div class="form-group">
+                            <label class="form-label">邮箱</label>
+                            <input type="text" class="form-control" value="{{ user.email or '未填写' }}" disabled>
+                        </div>
 
                         <div class="form-group">
                             <label class="form-label">选择场馆</label>

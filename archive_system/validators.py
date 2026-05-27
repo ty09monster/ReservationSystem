@@ -101,6 +101,16 @@ def validate_phone(phone):
         
     return True, "校验通过"
 
+def validate_email(email):
+    """
+    校验邮箱地址格式
+    """
+    if not email:
+        return True, ""
+    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+        return False, "请输入有效的邮箱地址"
+    return True, "校验通过"
+
 def validate_visit_date(visit_date_str, advance_days=None):
     """
     校验访问日期：

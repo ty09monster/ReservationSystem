@@ -509,6 +509,10 @@
                                 <div class="info-label">手机号</div>
                                 <div class="info-value">{{ user.phone[:3] }}****{{ user.phone[-4:] }}</div>
                             </div>
+                            <div class="user-info-item">
+                                <div class="info-label">邮箱</div>
+                                <div class="info-value">{{ user.email or '未填写' }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>

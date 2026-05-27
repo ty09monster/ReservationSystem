@@ -9,7 +9,7 @@ import os
 import uuid
 from ..extensions import db
 from ..models import User, SystemConfig, Announcement, Reservation, Venue, VenueTimeSlot, Attachment, ArchiveRequest, VenueTimeSlotDisabledDate, CancelRequest
-from ..validators import validate_certificate, validate_phone, validate_visit_date
+from ..validators import validate_certificate, validate_phone, validate_email, validate_visit_date
 from ..decorators import login_required
 
 logger = logging.getLogger(__name__)
@@ -129,28 +129,36 @@ def login():
         id_card = request.form.get("id_card", "").upper().strip()
         name = request.form.get("name", "").strip()
         phone = request.form.get("phone", "").strip()
+        email = request.form.get("email", "").strip()
 
         is_phone_valid, phone_msg = validate_phone(phone)
         config = SystemConfig.query.first()
         if not is_phone_valid:
             flash(f"手机号错误：{phone_msg}")
-            return render_template("h5_login.html", prev_name=name, prev_phone=phone, prev_id_card=id_card, prev_id_type=id_type, privacy_policy=config.privacy_policy)
+            return render_template("h5_login.html", prev_name=name, prev_phone=phone, prev_id_card=id_card, prev_id_type=id_type, prev_email=email, privacy_policy=config.privacy_policy)
+        
+        if email:
+            is_email_valid, email_msg = validate_email(email)
+            if not is_email_valid:
+                flash(f"邮箱错误：{email_msg}")
+                return render_template("h5_login.html", prev_name=name, prev_phone=phone, prev_id_card=id_card, prev_id_type=id_type, prev_email=email, privacy_policy=config.privacy_policy)
         
         is_valid, err_msg = validate_certificate(id_type, id_card)
         if not is_valid:
             flash(f"证件错误：{err_msg}")
-            return render_template("h5_login.html", prev_name=name, prev_phone=phone, prev_id_card=id_card, prev_id_type=id_type, privacy_policy=config.privacy_policy)
+            return render_template("h5_login.html", prev_name=name, prev_phone=phone, prev_id_card=id_card, prev_id_type=id_type, prev_email=email, privacy_policy=config.privacy_policy)
         
         user = User.query.filter_by(id_card=id_card).first()
 
         if not user:
-            user = User(id_type=id_type, id_card=id_card, name=name, phone=phone)
+            user = User(id_type=id_type, id_card=id_card, name=name, phone=phone, email=email or None)
             db.session.add(user)
             db.session.commit()
         else:
             user.name = name
             user.phone = phone
             user.id_type = id_type
+            user.email = email or None
             db.session.commit()
 
         session["user_id"] = user.id
@@ -613,14 +621,22 @@ def profile():
     if request.method == "POST":
         name = request.form.get("name")
         phone = request.form.get("phone")
+        email = request.form.get("email", "").strip()
         
         is_phone_valid, phone_msg = validate_phone(phone)
         if not is_phone_valid:
             flash(f"手机号错误：{phone_msg}")
             return render_template("h5_profile.html", user=user)
         
+        if email:
+            is_email_valid, email_msg = validate_email(email)
+            if not is_email_valid:
+                flash(f"邮箱错误：{email_msg}")
+                return render_template("h5_profile.html", user=user)
+        
         user.name = name
         user.phone = phone
+        user.email = email or None
         db.session.commit()
         flash("个人信息已更新")
         return redirect(url_for("h5.home"))

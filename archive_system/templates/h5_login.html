@@ -140,6 +140,13 @@
                         <div class="invalid-feedback" id="phoneError">手机号格式错误</div>
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label">邮箱（选填）</label>
+                        <input type="email" name="email" id="email" class="form-control"
+                            value="{{ prev_email or '' }}" placeholder="用于接收预约通知（选填）">
+                        <div class="invalid-feedback" id="emailError">邮箱格式错误</div>
+                    </div>
+
                     <div class="policy-row">
                         <input type="checkbox" id="agreeCheck" onchange="toggleSubmit()">
                         <label for="agreeCheck">
@@ -288,9 +295,10 @@
         function validateForm() {
             const isIdValid = checkIdCard(); // 校验身份证
             const isPhoneValid = checkPhone(); // 校验手机号
+            const isEmailValid = checkEmail(); // 校验邮箱
             
             // 只有两个都为 true 时才提交
-            return isIdValid && isPhoneValid;
+            return isIdValid && isPhoneValid && isEmailValid;
         }
 
         // 新增：手机号校验函数
@@ -311,6 +319,33 @@
                 input.classList.remove('is-valid');
                 input.classList.add('is-invalid');
                 errorDiv.innerText = "请输入有效的11位手机号";
+                errorDiv.style.display = 'block';
+                return false;
+            }
+        }
+
+        function checkEmail() {
+            const input = document.getElementById('email');
+            const errorDiv = document.getElementById('emailError');
+            const val = input.value.trim();
+
+            if (!val) {
+                input.classList.remove('is-valid', 'is-invalid');
+                errorDiv.style.display = 'none';
+                return true;
+            }
+
+            const isValid = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val);
+
+            if (isValid) {
+                input.classList.remove('is-invalid');
+                input.classList.add('is-valid');
+                errorDiv.style.display = 'none';
+                return true;
+            } else {
+                input.classList.remove('is-valid');
+                input.classList.add('is-invalid');
+                errorDiv.innerText = "请输入有效的邮箱地址";
                 errorDiv.style.display = 'block';
                 return false;
             }
