@@ -341,7 +341,7 @@ def api_stats():
         filters = [date_cond, teacher_cond]
         if extra_cond is not None:
             filters.append(extra_cond)
-        return db.session.query(func.count(Reservation.id)).filter(*filters).scalar() or 0
+        return db.session.query(func.count(Reservation.id)).join(Venue).filter(*filters).scalar() or 0
 
     total_count = _count()
     pending_count = _count(Reservation.status == '待审核')
@@ -382,7 +382,7 @@ def archive_reservation_trend():
         result = db.session.query(
             func.date(Reservation.created_at).label('date'),
             func.count(Reservation.id).label('count')
-        ).filter(teacher_cond).group_by(
+        ).join(Venue).filter(teacher_cond).group_by(
             func.date(Reservation.created_at)
         ).order_by('date').all()
         data = {
@@ -393,7 +393,7 @@ def archive_reservation_trend():
         result = db.session.query(
             func.date_format(Reservation.created_at, '%Y-%u').label('week'),
             func.count(Reservation.id).label('count')
-        ).filter(teacher_cond).group_by('week').order_by('week').all()
+        ).join(Venue).filter(teacher_cond).group_by('week').order_by('week').all()
         data = {
             "labels": [item.week for item in result],
             "values": [item.count for item in result]
@@ -402,7 +402,7 @@ def archive_reservation_trend():
         result = db.session.query(
             func.date_format(Reservation.created_at, '%Y-%m').label('month'),
             func.count(Reservation.id).label('count')
-        ).filter(teacher_cond).group_by('month').order_by('month').all()
+        ).join(Venue).filter(teacher_cond).group_by('month').order_by('month').all()
         data = {
             "labels": [item.month for item in result],
             "values": [item.count for item in result]
