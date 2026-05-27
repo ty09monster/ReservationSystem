@@ -186,41 +186,42 @@ def init_data():
         )
         logger.info("已创建默认公告")
 
-    # 创建默认场馆（如果没有任何场馆）
-    if not Venue.query.first():
-        venues_data = [
-            ("校史馆（龙子湖校区）", "校史馆", "龙子湖校区", "龙子湖校区图书馆二楼"),
-            ("校史馆（文化路校区）", "校史馆", "文化路校区", "文化路校区行政楼一楼"),
-            ("标本馆（龙子湖校区）", "标本馆", "龙子湖校区", "龙子湖校区理科实验楼"),
-            ("标本馆（文化路校区）", "标本馆", "文化路校区", "文化路校区生物楼"),
-            ("档案馆（龙子湖校区）", "档案馆", "龙子湖校区", "龙子湖校区图书馆三楼"),
-            ("档案馆（文化路校区）", "档案馆", "文化路校区", "文化路校区行政楼二楼"),
-        ]
-        all_venues = []
-        for name, category, campus, address in venues_data:
+    # 按分类检查并补充缺失的默认场馆
+    time_slots = ["09:00-10:30", "10:30-12:00", "14:00-15:30", "15:30-17:00"]
+
+    default_venues_by_category = {
+        "校史馆": [
+            ("校史馆（龙子湖校区）", "龙子湖校区", "龙子湖校区图书馆二楼"),
+            ("校史馆（文化路校区）", "文化路校区", "文化路校区行政楼一楼"),
+        ],
+        "标本馆": [
+            ("标本馆（龙子湖校区）", "龙子湖校区", "龙子湖校区理科实验楼"),
+            ("标本馆（文化路校区）", "文化路校区", "文化路校区生物楼"),
+        ],
+        "档案馆": [
+            ("档案馆（龙子湖校区）", "龙子湖校区", "龙子湖校区图书馆三楼"),
+            ("档案馆（文化路校区）", "文化路校区", "文化路校区行政楼二楼"),
+        ],
+    }
+
+    for category, venues_data in default_venues_by_category.items():
+        if Venue.query.filter_by(category=category).first():
+            continue
+
+        for name, campus, address in venues_data:
             v = Venue(name=name, category=category, campus=campus, address=address,
                       advance_days=7, cutoff_time="16:00", is_active=True)
             db.session.add(v)
-            all_venues.append(v)
-        db.session.flush()
+            db.session.flush()
 
-        # 为所有场馆创建工作日时段（day_of_week: 0=周日, 1=周一, ..., 5=周五, 6=周六）
-        time_slots = ["09:00-10:30", "10:30-12:00", "14:00-15:30", "15:30-17:00"]
-
-        for venue in all_venues:
-            for dow in range(1, 6):  # 周一(1)到周五(5)
+            for dow in range(1, 6):
                 for ts in time_slots:
-                    slot = VenueTimeSlot(
-                        venue_id=venue.id,
-                        day_of_week=dow,
-                        time_slot=ts,
-                        individual_capacity=20,
-                        is_group_active=True,
-                        is_active=True
-                    )
-                    db.session.add(slot)
+                    db.session.add(VenueTimeSlot(
+                        venue_id=v.id, day_of_week=dow, time_slot=ts,
+                        individual_capacity=20, is_group_active=True, is_active=True
+                    ))
 
-        logger.info("已创建默认场馆和时段数据")
+        logger.info("已创建默认%s场馆和时段数据", category)
 
     # 创建默认审批人员账号
     if not ApprovalStaff.query.first():
