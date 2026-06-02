@@ -149,14 +149,6 @@
                     </select>
                 </div>
                 <div class="col-4">
-                    <label class="form-label small text-muted mb-1">查阅方式</label>
-                    <select name="type" class="form-select form-select-sm">
-                        <option value="">全部</option>
-                        <option value="线上" {% if curr_type=='线上' %}selected{% endif %}>线上查阅</option>
-                        <option value="线下" {% if curr_type=='线下' %}selected{% endif %}>线下查阅</option>
-                    </select>
-                </div>
-                <div class="col-4">
                     <label class="form-label small text-muted mb-1">开始日期</label>
                     <input type="date" name="start_date" class="form-control form-control-sm" value="{{ curr_start_date }}">
                 </div>
@@ -209,14 +201,10 @@
                 <div class="info">
                     <div class="date">{{ res.visit_date }}</div>
                     <div class="archive-info">
-                        {% if res.visit_type == '线上' %}
-                        <span class="badge bg-primary me-1" style="font-size:11px;">线上</span>
-                        {% else %}
-                        <span class="badge bg-success me-1" style="font-size:11px;">线下</span>
-                        {% endif %}
-                        {{ res.archive_name or '档案查阅' }}
+                        <span class="badge bg-success me-1" style="font-size:11px;">线下查阅</span>
+                        {{ res.venue.name if res.venue else '-' }}
                     </div>
-                    <div class="time-info">{{ res.visit_time }} | {{ res.visit_type }}查阅</div>
+                    <div class="time-info">{{ res.visit_time }} | {{ res.campus or '-' }}</div>
                 </div>
                 <div>
                     {% if res.status == '待部门领导指定审批人' %}
@@ -239,7 +227,7 @@
             <div class="detail-panel" id="detail-{{ res.id }}">
                 <div class="detail-row">
                     <span class="detail-label">查阅方式</span>
-                    <span class="detail-value">{{ res.visit_type }}查阅</span>
+                    <span class="detail-value">线下查阅</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">预约人</span>
@@ -254,15 +242,19 @@
                     <span class="detail-value">{{ res.user.phone }}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">档案名称</span>
+                    <span class="detail-label">专业</span>
                     <span class="detail-value">{{ res.archive_name or '-' }}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">档号</span>
+                    <span class="detail-label">年级</span>
                     <span class="detail-value">{{ res.archive_number or '-' }}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">查阅目的</span>
+                    <span class="detail-label">学历类别</span>
+                    <span class="detail-value">{{ res.education_level or '-' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">查询内容</span>
                     <span class="detail-value">{{ res.archive_purpose or '-' }}</span>
                 </div>
                 <div class="detail-row">

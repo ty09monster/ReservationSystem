@@ -342,7 +342,7 @@
             </div>
             {% endif %}
 
-            {% if res.status == '待审核' %}
+            {% if res.status not in ('已取消', '已核销', '已拒绝') %}
             <div class="mt-3 text-end">
                 <button type="button" class="btn btn-outline-danger btn-sm cancel-btn"
                     onclick="cancelReservation({{ res.id }}, event)">

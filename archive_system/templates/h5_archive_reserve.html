@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>档案馆预约 - {% if visit_type == '线上' %}线上查阅{% else %}线下查阅{% endif %}</title>
+    <title>预约查询档案</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/font_who/iconfont.css') }}" rel="stylesheet">
@@ -283,9 +283,9 @@
             flex-shrink: 0;
         }
 
-        .face-photo-preview {
-            width: 96px;
-            height: 150px;
+        .id-card-photo-preview {
+            width: 320px;
+            height: 200px;
             border-radius: 8px;
             overflow: hidden;
             margin: 0 auto 12px;
@@ -296,13 +296,13 @@
             justify-content: center;
         }
 
-        .face-photo-preview img {
+        .id-card-photo-preview img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
         }
 
-        .face-photo-preview.has-photo {
+        .id-card-photo-preview.has-photo {
             border: 2px solid #67C23A;
         }
 
@@ -463,7 +463,7 @@
         <div class="back-btn" onclick="window.history.back()">
             <i class="icon icon-back"></i>
         </div>
-        <h1>档案馆预约</h1>
+        <h1>预约查询档案</h1>
         <div class="nav-right"></div>
     </nav>
 
@@ -489,7 +489,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h3>个人信息</h3>
-                        <span class="visit-type-badge">{{ '线上查阅' if visit_type == '线上' else '线下查阅' }}</span>
+                        <span class="visit-type-badge">线下查阅</span>
                     </div>
                     <div class="card-body">
                         <div class="user-info-row">
@@ -517,26 +517,25 @@
                     </div>
                 </div>
 
-                {% if visit_type == '线下' %}
-                <!-- 人脸照片区（仅线下） -->
+                <!-- 身份证正面照 -->
                 <div class="card">
                     <div class="card-header">
-                        <h3>人脸照片</h3>
+                        <h3>身份证正面照</h3>
                     </div>
                     <div class="card-body">
-                        <div class="face-photo-preview" id="facePhotoPreview">
-                            <span style="color:#C0C4CC;font-size:14px;">点击上传照片</span>
+                        <div class="id-card-photo-preview" id="idCardPhotoPreview">
+                            <span style="color:#C0C4CC;font-size:14px;">点击上传身份证正面照</span>
                         </div>
-                        <div class="upload-container" onclick="document.getElementById('facePhotoInput').click()">
-                            <div class="upload-icon">📷</div>
-                            <div class="upload-text">点击上传人脸照片</div>
-                            <div class="upload-hint">请上传清晰的正面人脸照片</div>
+                        <div class="upload-container" onclick="document.getElementById('idCardPhotoInput').click()">
+                            <div class="upload-icon">🪪</div>
+                            <div class="upload-text">点击上传身份证正面照</div>
+                            <div class="upload-hint">请上传清晰的身份证正面照片</div>
                         </div>
-                        <input type="file" id="facePhotoInput" name="face_photo" accept="image/*" style="display:none;" onchange="handleFacePhotoSelect(event)">
+                        <input type="file" id="idCardPhotoInput" name="id_card_photo" accept="image/*" style="display:none;" onchange="handleIdCardPhotoSelect(event)">
                     </div>
                 </div>
 
-                <!-- 车辆信息区（仅线下，可选） -->
+                <!-- 车辆信息区（可选） -->
                 <div class="card">
                     <div class="card-header">
                         <h3>车辆信息（选填）</h3>
@@ -548,7 +547,6 @@
                         </div>
                     </div>
                 </div>
-                {% endif %}
 
                 <!-- 预约信息区 -->
                 <div class="card">
@@ -571,18 +569,30 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label"><span class="required">*</span> 档案名称</label>
-                            <input type="text" name="archive_name" class="form-control" placeholder="请输入需要查阅的档案名称" required>
+                            <label class="form-label"><span class="required">*</span> 专业</label>
+                            <input type="text" name="major" class="form-control" placeholder="请输入您的专业" required>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label"><span class="required">*</span> 档号</label>
-                            <input type="text" name="archive_number" class="form-control" placeholder="请输入档案编号" required>
+                            <label class="form-label"><span class="required">*</span> 年级</label>
+                            <input type="text" name="grade" class="form-control" placeholder="请输入您的年级，如2021级" required>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label"><span class="required">*</span> 查阅目的</label>
-                            <textarea name="archive_purpose" class="form-control" rows="3" placeholder="请说明查阅档案的目的" required></textarea>
+                            <label class="form-label"><span class="required">*</span> 查询学历类别</label>
+                            <select name="education_level" class="form-control" required>
+                                <option value="">请选择学历类别</option>
+                                <option value="专科">专科</option>
+                                <option value="本科">本科</option>
+                                <option value="实用人才">实用人才</option>
+                                <option value="继续教育">继续教育</option>
+                                <option value="研究生">研究生</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label"><span class="required">*</span> 查询内容</label>
+                            <textarea name="query_content" class="form-control" rows="3" placeholder="请说明需要查询的档案内容" required></textarea>
                         </div>
 
                         <div class="form-group">
@@ -732,7 +742,7 @@
 
                         data.slots.forEach(slot => {
                             const timeSlot = document.createElement('div');
-                            const available = slot.available_individual;
+                            const available = slot.available;
 
                             timeSlot.className = `time-slot ${available ? '' : 'disabled'}`;
                             timeSlot.dataset.time = slot.time_slot;
@@ -742,10 +752,10 @@
                                     <div>${slot.time_slot}</div>
                                     <div class="text-xs text-danger" style="font-size:11px;">无法预约</div>
                                 `;
-                            } else if (slot.is_expired) {
+                            } else if (!available) {
                                 timeSlot.innerHTML = `
                                     <div>${slot.time_slot}</div>
-                                    <div class="text-xs text-muted" style="font-size:11px;">已过时</div>
+                                    <div class="text-xs text-muted" style="font-size:11px;">已约满</div>
                                 `;
                             } else {
                                 timeSlot.innerHTML = `
@@ -802,7 +812,7 @@
             }
         }
 
-        function handleFacePhotoSelect(event) {
+        function handleIdCardPhotoSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
             if (file.size > 15 * 1024 * 1024) {
@@ -813,9 +823,9 @@
 
             const reader = new FileReader();
             reader.onload = function (e) {
-                const preview = document.getElementById('facePhotoPreview');
+                const preview = document.getElementById('idCardPhotoPreview');
                 preview.classList.add('has-photo');
-                preview.innerHTML = `<img src="${e.target.result}" alt="人脸照片">`;
+                preview.innerHTML = `<img src="${e.target.result}" alt="身份证正面照">`;
             };
             reader.readAsDataURL(file);
         }
