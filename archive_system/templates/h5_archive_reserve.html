@@ -580,14 +580,17 @@
 
                         <div class="form-group">
                             <label class="form-label"><span class="required">*</span> 查询学历类别</label>
-                            <select name="education_level" class="form-control" required>
+                            <select name="education_level" class="form-control" required id="educationLevelSelect">
                                 <option value="">请选择学历类别</option>
                                 <option value="专科">专科</option>
                                 <option value="本科">本科</option>
                                 <option value="实用人才">实用人才</option>
                                 <option value="继续教育">继续教育</option>
                                 <option value="研究生">研究生</option>
+                                <option value="其他">其他</option>
                             </select>
+                            <input type="text" name="custom_education_level" class="form-control mt-2" 
+                                id="customEducationLevel" placeholder="请填写学历类别" style="display:none;">
                         </div>
 
                         <div class="form-group">
@@ -649,6 +652,22 @@
             generateDateCards();
             bindEvents();
             initFormGuard();
+
+            // 学历类别"其他"切换
+            const eduSelect = document.getElementById('educationLevelSelect');
+            const customEdu = document.getElementById('customEducationLevel');
+            if (eduSelect && customEdu) {
+                eduSelect.addEventListener('change', function () {
+                    if (this.value === '其他') {
+                        customEdu.style.display = 'block';
+                        customEdu.required = true;
+                    } else {
+                        customEdu.style.display = 'none';
+                        customEdu.required = false;
+                        customEdu.value = '';
+                    }
+                });
+            }
         };
 
         function generateDateCards() {

@@ -239,7 +239,7 @@ def _reserve_base(template_key, render_res_type="个人", visit_type="线下"):
 
         group_name = request.form.get("group_name", "").strip()
         group_contact = request.form.get("group_contact", "").strip()
-        visiting_unit = request.form.get("visiting_unit", "").strip()
+        id_number = request.form.get("id_number", "").strip()
         contact_phone = request.form.get("contact_phone", "").strip()
 
         if visitor_count < 1:
@@ -268,10 +268,10 @@ def _reserve_base(template_key, render_res_type="个人", visit_type="线下"):
         # 验证单位信息
         if res_type == "单位":
             if not group_name:
-                flash("请输入预约单位")
+                flash("请输入预约人单位")
                 return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
-            if not visiting_unit:
-                flash("请输入参观单位")
+            if not id_number:
+                flash("请输入预约人身份证号")
                 return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
             if not group_contact:
                 flash("请输入单位联系人")
@@ -362,11 +362,12 @@ def _reserve_base(template_key, render_res_type="个人", visit_type="线下"):
                 visit_type=visit_type,
                 group_name=group_name if res_type == "单位" else None,
                 group_contact=group_contact if res_type == "单位" else None,
+                id_number=id_number if res_type == "单位" else None,
                 group_size=visitor_count if res_type == "单位" else 1,
                 visitor_count=visitor_count,
                 license_plate=license_plate or None,
                 need_guide=need_guide,
-                visiting_unit=visiting_unit if res_type == "单位" else None,
+                visiting_unit=None,
                 contact_phone=contact_phone if res_type == "单位" else None,
                 campus=venue.campus,
                 status="待审核",
@@ -606,7 +607,7 @@ def cancel_archive_reservation(res_id):
         flash("无权操作此预约")
         return redirect(url_for("h5.archive_history"))
 
-    if reservation.status != "待部门领导指定审批人":
+    if reservation.status != "待审核":
         flash("当前状态不可取消，已进入审批流程，如需取消请联系档案馆工作人员")
         return redirect(url_for("h5.archive_history"))
 
@@ -798,6 +799,12 @@ def archive_reserve(visit_type):
         major = request.form.get("major", "").strip()
         grade = request.form.get("grade", "").strip()
         education_level = request.form.get("education_level", "").strip()
+        custom_education_level = request.form.get("custom_education_level", "").strip()
+        if education_level == "其他":
+            if not custom_education_level:
+                flash("请填写学历类别")
+                return _render()
+            education_level = custom_education_level
         query_content = request.form.get("query_content", "").strip()
         license_plate = request.form.get("license_plate", "").strip()
 
@@ -897,6 +904,12 @@ def archive_reserve(visit_type):
                     flash("所选时段未开放，请选择其他时段")
                     return _render()
 
+            # ID card photo is required
+            id_card_file = request.files.get('id_card_photo')
+            if not id_card_file or not id_card_file.filename:
+                flash("请上传身份证正面照")
+                return _render()
+
             res = Reservation(
                 user_id=session["user_id"],
                 venue_id=campus_venue_id,
@@ -911,7 +924,7 @@ def archive_reserve(visit_type):
                 license_plate=license_plate or None,
                 visitor_count=1,
                 campus=venue.campus,
-                status="待部门领导指定审批人",
+                status="待审核",
             )
             db.session.add(res)
             db.session.flush()

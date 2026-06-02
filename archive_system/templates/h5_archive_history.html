@@ -140,7 +140,6 @@
                     <label class="form-label small text-muted mb-1">审核状态</label>
                     <select name="status" class="form-select form-select-sm">
                         <option value="">全部</option>
-                        <option value="待部门领导指定审批人" {% if curr_status=='待部门领导指定审批人' %}selected{% endif %}>待部门领导指定审批人</option>
                         <option value="待审核" {% if curr_status=='待审核' %}selected{% endif %}>待审核</option>
                         <option value="已同意" {% if curr_status=='已同意' %}selected{% endif %}>已同意</option>
                         <option value="已拒绝" {% if curr_status=='已拒绝' %}selected{% endif %}>已拒绝</option>
@@ -207,10 +206,8 @@
                     <div class="time-info">{{ res.visit_time }} | {{ res.campus or '-' }}</div>
                 </div>
                 <div>
-                    {% if res.status == '待部门领导指定审批人' %}
-                    <span class="badge bg-secondary">待指定审批人</span>
-                    {% elif res.status == '待审核' %}
-                    <span class="badge bg-warning text-dark">待审核</span>
+                    {% if res.status == '待审核' %}
+                    <span class="badge bg-warning">待审核</span>
                     {% elif res.status == '已同意' %}
                     <span class="badge bg-success">已同意</span>
                     {% elif res.status == '已核销' %}
@@ -276,9 +273,7 @@
                 <div class="detail-row">
                     <span class="detail-label">审批状态</span>
                     <span class="detail-value">
-                        {% if res.status == '待部门领导指定审批人' %}
-                        <span class="text-secondary">待部门领导指定审批人</span>
-                        {% elif res.status == '待审核' %}
+                        {% if res.status == '待审核' %}
                         <span class="text-warning">待审核</span>
                         {% elif res.status == '已同意' %}
                         <span class="text-success">已同意</span>
@@ -330,7 +325,7 @@
                 </div>
                 {% endif %}
 
-                {% if res.status == '待部门领导指定审批人' %}
+                {% if res.status == '待审核' %}
                 <div class="mt-3 text-end">
                     <button type="button" class="btn btn-outline-danger btn-sm cancel-btn"
                         onclick="cancelReservation({{ res.id }}, event)">

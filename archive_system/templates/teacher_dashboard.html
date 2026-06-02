@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,61 +8,184 @@
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        body { background: #F5F0E8; }
-        .navbar { background: linear-gradient(135deg, #1B3B22 0%, #2A6338 100%) !important; }
-        .navbar-brand { font-weight: 700; letter-spacing: 1px; }
+        body {
+            background: #F5F0E8;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #1B3B22 0%, #2A6338 100%) !important;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
         .stat-card {
-            border: none; border-radius: 12px;
+            border: none;
+            border-radius: 12px;
             box-shadow: 0 2px 12px rgba(27, 59, 34, 0.08);
             transition: transform 0.2s;
         }
-        .stat-card:hover { transform: translateY(-2px); }
-        .stat-card .card-body { padding: 18px 20px; }
-        .stat-card .stat-label { font-size: 0.82rem; color: #888; margin-bottom: 4px; }
-        .stat-card .stat-value { font-size: 1.8rem; font-weight: 700; }
-        .stat-card.border-primary { border-color: #2E7D32 !important; }
-        .stat-card.border-warning { border-color: #D4AF5A !important; }
-        .stat-card.border-success { border-color: #388E3C !important; }
-        .stat-card.border-danger { border-color: #c0392b !important; }
-        .stat-card.border-dark { border-color: #1B3B22 !important; }
-        .stat-card.border-info { border-color: #2A6338 !important; }
-        .stat-value.text-primary { color: #2E7D32 !important; }
-        .stat-value.text-warning { color: #D4AF5A !important; }
-        .stat-value.text-success { color: #388E3C !important; }
-        .stat-value.text-dark { color: #1B3B22 !important; }
-        .stat-value.text-info { color: #2A6338 !important; }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-card .card-body {
+            padding: 18px 20px;
+        }
+
+        .stat-card .stat-label {
+            font-size: 0.82rem;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .stat-card .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .stat-card.border-primary {
+            border-color: #2E7D32 !important;
+        }
+
+        .stat-card.border-warning {
+            border-color: #D4AF5A !important;
+        }
+
+        .stat-card.border-success {
+            border-color: #388E3C !important;
+        }
+
+        .stat-card.border-danger {
+            border-color: #c0392b !important;
+        }
+
+        .stat-card.border-dark {
+            border-color: #1B3B22 !important;
+        }
+
+        .stat-card.border-info {
+            border-color: #2A6338 !important;
+        }
+
+        .stat-value.text-primary {
+            color: #2E7D32 !important;
+        }
+
+        .stat-value.text-warning {
+            color: #D4AF5A !important;
+        }
+
+        .stat-value.text-success {
+            color: #388E3C !important;
+        }
+
+        .stat-value.text-dark {
+            color: #1B3B22 !important;
+        }
+
+        .stat-value.text-info {
+            color: #2A6338 !important;
+        }
+
         .filter-bar {
-            background: #fff; border-radius: 12px; padding: 20px 24px;
-            box-shadow: 0 2px 12px rgba(27, 59, 34, 0.06); margin-bottom: 20px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px 24px;
+            box-shadow: 0 2px 12px rgba(27, 59, 34, 0.06);
+            margin-bottom: 20px;
             border-left: 4px solid #D4AF5A;
         }
+
         .table-card {
-            background: #fff; border-radius: 12px; padding: 0;
-            box-shadow: 0 2px 12px rgba(27, 59, 34, 0.06); overflow: hidden;
+            background: #fff;
+            border-radius: 12px;
+            padding: 0;
+            box-shadow: 0 2px 12px rgba(27, 59, 34, 0.06);
+            overflow: hidden;
         }
-        .table-card .table { margin-bottom: 0; }
+
+        .table-card .table {
+            margin-bottom: 0;
+        }
+
         .table thead th {
-            background: #F5F0E8; border-bottom: 2px solid #D4AF5A;
-            font-size: 0.85rem; color: #2A6338; font-weight: 600;
-            padding: 14px 16px; white-space: nowrap;
+            background: #F5F0E8;
+            border-bottom: 2px solid #D4AF5A;
+            font-size: 0.85rem;
+            color: #2A6338;
+            font-weight: 600;
+            padding: 14px 16px;
+            white-space: nowrap;
         }
-        .table tbody td { padding: 14px 16px; vertical-align: middle; font-size: 0.9rem; }
-        .table tbody tr:hover { background: #FAF7F2; }
-        .status-badge { font-size: 0.8rem; padding: 5px 12px; border-radius: 20px; }
-        .detail-label { font-weight: 600; color: #2A6338; font-size: 0.82rem; margin-bottom: 3px; }
-        .detail-value { margin-bottom: 10px; font-size: 0.95rem; word-break: break-all; }
-        .period-btn { font-size: 0.8rem; padding: 4px 14px; border-radius: 20px; }
-        .period-btn.active { background: #2E7D32; color: #fff; border-color: #2E7D32; }
-        .section-title { font-weight: 700; color: #1B3B22; margin-bottom: 16px; }
-        .pagination .page-link { color: #2E7D32; }
-        .pagination .page-item.active .page-link { background-color: #2E7D32; border-color: #2E7D32; }
+
+        .table tbody td {
+            padding: 14px 16px;
+            vertical-align: middle;
+            font-size: 0.9rem;
+        }
+
+        .table tbody tr:hover {
+            background: #FAF7F2;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 5px 12px;
+            border-radius: 20px;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #2A6338;
+            font-size: 0.82rem;
+            margin-bottom: 3px;
+        }
+
+        .detail-value {
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+            word-break: break-all;
+        }
+
+        .period-btn {
+            font-size: 0.8rem;
+            padding: 4px 14px;
+            border-radius: 20px;
+        }
+
+        .period-btn.active {
+            background: #2E7D32;
+            color: #fff;
+            border-color: #2E7D32;
+        }
+
+        .section-title {
+            font-weight: 700;
+            color: #1B3B22;
+            margin-bottom: 16px;
+        }
+
+        .pagination .page-link {
+            color: #2E7D32;
+        }
+
+        .pagination .page-item.active .page-link {
+            background-color: #2E7D32;
+            border-color: #2E7D32;
+        }
     </style>
 </head>
+
 <body>
     <nav class="navbar navbar-dark bg-dark px-4">
         <a class="navbar-brand" href="#">{% if area_label %}{{ area_label }}{% endif %}教师审批端</a>
         <div class="d-flex align-items-center gap-3">
-            <span class="text-white-50 small">{{ session.get('teacher_name', '') or session.get('teacher_username', '') or session.get('archive_name', '') or session.get('archive_username', '') }}</span>
+            <span class="text-white-50 small">{{ session.get('teacher_name', '') or session.get('teacher_username', '')
+                or session.get('archive_name', '') or session.get('archive_username', '') }}</span>
             <a href="{{ url_for(bp_name + '.stats_page') }}" class="btn btn-outline-info btn-sm">数据统计</a>
             <a href="{{ url_for(bp_name + '.logout') }}" class="btn btn-outline-light btn-sm">退出登录</a>
         </div>
@@ -146,13 +270,12 @@
                     <label class="form-label small text-muted mb-1">审批状态</label>
                     <select name="status" class="form-select">
                         <option value="">全部</option>
-                        <option value="待部门领导指定审批人" {% if curr_status == '待部门领导指定审批人' %}selected{% endif %}>待指定审批人</option>
-                        <option value="待审核" {% if curr_status == '待审核' %}selected{% endif %}>待审批</option>
-                        <option value="已同意" {% if curr_status == '已同意' %}selected{% endif %}>已通过</option>
-                        <option value="已拒绝" {% if curr_status == '已拒绝' %}selected{% endif %}>已拒绝</option>
-                        <option value="已核销" {% if curr_status == '已核销' %}selected{% endif %}>已核销</option>
-                        <option value="已完成" {% if curr_status == '已完成' %}selected{% endif %}>已完成</option>
-                        <option value="已取消" {% if curr_status == '已取消' %}selected{% endif %}>已取消</option>
+                        <option value="待审核" {% if curr_status=='待审核' %}selected{% endif %}>待审批</option>
+                        <option value="已同意" {% if curr_status=='已同意' %}selected{% endif %}>已通过</option>
+                        <option value="已拒绝" {% if curr_status=='已拒绝' %}selected{% endif %}>已拒绝</option>
+                        <option value="已核销" {% if curr_status=='已核销' %}selected{% endif %}>已核销</option>
+                        <option value="已完成" {% if curr_status=='已完成' %}selected{% endif %}>已完成</option>
+                        <option value="已取消" {% if curr_status=='已取消' %}selected{% endif %}>已取消</option>
                     </select>
                 </div>
                 {% if bp_name != 'archive' %}
@@ -160,8 +283,8 @@
                     <label class="form-label small text-muted mb-1">预约类型</label>
                     <select name="res_type" class="form-select">
                         <option value="">全部</option>
-                        <option value="个人" {% if curr_res_type == '个人' %}selected{% endif %}>个人预约</option>
-                        <option value="单位" {% if curr_res_type == '单位' %}selected{% endif %}>单位预约</option>
+                        <option value="个人" {% if curr_res_type=='个人' %}selected{% endif %}>个人预约</option>
+                        <option value="单位" {% if curr_res_type=='单位' %}selected{% endif %}>单位预约</option>
                     </select>
                 </div>
                 {% endif %}
@@ -169,18 +292,18 @@
                     <label class="form-label small text-muted mb-1">查阅方式</label>
                     <select name="visit_type" class="form-select">
                         <option value="">全部</option>
-                        <option value="线上" {% if curr_visit_type == '线上' %}selected{% endif %}>线上查阅</option>
-                        <option value="线下" {% if curr_visit_type == '线下' %}selected{% endif %}>线下查阅</option>
+                        <option value="线上" {% if curr_visit_type=='线上' %}selected{% endif %}>线上查阅</option>
+                        <option value="线下" {% if curr_visit_type=='线下' %}selected{% endif %}>线下查阅</option>
                     </select>
                 </div>
                 <div class="col-auto">
                     <label class="form-label small text-muted mb-1">申请时间</label>
                     <select name="time_range" class="form-select">
                         <option value="">全部</option>
-                        <option value="week" {% if curr_time_range == 'week' %}selected{% endif %}>近一周</option>
-                        <option value="month" {% if curr_time_range == 'month' %}selected{% endif %}>近一个月</option>
-                        <option value="quarter" {% if curr_time_range == 'quarter' %}selected{% endif %}>近三个月</option>
-                        <option value="custom" {% if curr_time_range == 'custom' %}selected{% endif %}>自定义</option>
+                        <option value="week" {% if curr_time_range=='week' %}selected{% endif %}>近一周</option>
+                        <option value="month" {% if curr_time_range=='month' %}selected{% endif %}>近一个月</option>
+                        <option value="quarter" {% if curr_time_range=='quarter' %}selected{% endif %}>近三个月</option>
+                        <option value="custom" {% if curr_time_range=='custom' %}selected{% endif %}>自定义</option>
                     </select>
                 </div>
                 <div class="col-auto">
@@ -193,7 +316,8 @@
                 </div>
                 <div class="col-auto">
                     <label class="form-label small text-muted mb-1">关键词</label>
-                    <input type="text" name="keyword" class="form-control" placeholder="姓名/手机号/单位" value="{{ curr_keyword }}">
+                    <input type="text" name="keyword" class="form-control" placeholder="姓名/手机号/单位"
+                        value="{{ curr_keyword }}">
                 </div>
                 <div class="col-auto">
                     <button type="submit" class="btn btn-primary">查询</button>
@@ -228,7 +352,8 @@
                         <td>{{ res.created_at.strftime('%m-%d %H:%M') }}</td>
                         <td>
                             {% if bp_name == 'archive' %}
-                            <span class="badge {% if res.visit_type == '线上' %}bg-primary{% else %}bg-secondary{% endif %}">
+                            <span
+                                class="badge {% if res.visit_type == '线上' %}bg-primary{% else %}bg-secondary{% endif %}">
                                 {{ '线上查阅' if res.visit_type == '线上' else '线下查阅' }}
                             </span>
                             {% else %}
@@ -247,9 +372,7 @@
                         <td>{{ res.venue.name }}</td>
                         <td>{{ res.visit_date }}<br><small class="text-muted">{{ res.visit_time }}</small></td>
                         <td>
-                            {% if res.status == '待部门领导指定审批人' %}
-                            <span class="badge bg-secondary status-badge">待指定审批人</span>
-                            {% elif res.status == '待审核' %}
+                            {% if res.status == '待审核' %}
                             <span class="badge bg-warning text-dark status-badge">待审批</span>
                             {% elif res.status == '已同意' %}
                             <span class="badge bg-success status-badge">已通过</span>
@@ -280,13 +403,15 @@
         <nav aria-label="Page navigation" class="mt-3">
             <ul class="pagination justify-content-center">
                 <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                    <a class="page-link" href="{{ url_for(dash_endpoint, page=pagination.prev_num, keyword=curr_keyword, status=curr_status, res_type=curr_res_type, time_range=curr_time_range, start_date=curr_start_date, end_date=curr_end_date) }}">上一页</a>
+                    <a class="page-link"
+                        href="{{ url_for(dash_endpoint, page=pagination.prev_num, keyword=curr_keyword, status=curr_status, res_type=curr_res_type, time_range=curr_time_range, start_date=curr_start_date, end_date=curr_end_date) }}">上一页</a>
                 </li>
                 <li class="page-item disabled">
                     <span class="page-link">第 {{ pagination.page }} / {{ pagination.pages }} 页</span>
                 </li>
                 <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                    <a class="page-link" href="{{ url_for(dash_endpoint, page=pagination.next_num, keyword=curr_keyword, status=curr_status, res_type=curr_res_type, time_range=curr_time_range, start_date=curr_start_date, end_date=curr_end_date) }}">下一页</a>
+                    <a class="page-link"
+                        href="{{ url_for(dash_endpoint, page=pagination.next_num, keyword=curr_keyword, status=curr_status, res_type=curr_res_type, time_range=curr_time_range, start_date=curr_start_date, end_date=curr_end_date) }}">下一页</a>
                 </li>
             </ul>
         </nav>
@@ -357,22 +482,48 @@
                     </div>
 
                     <div id="d-archive-info" style="display:none;" class="mb-2">
-                        <hr><h6 class="text-muted">档案信息</h6>
+                        <hr>
+                        <h6 class="text-muted">档案信息</h6>
                         <div class="row">
-                            <div class="col-md-4"><div class="detail-label">档案名称</div><div class="detail-value" id="d-archive-name"></div></div>
-                            <div class="col-md-4"><div class="detail-label">档号</div><div class="detail-value" id="d-archive-number"></div></div>
-                            <div class="col-md-4"><div class="detail-label">查阅目的</div><div class="detail-value" id="d-archive-purpose"></div></div>
+                            <div class="col-md-4">
+                                <div class="detail-label">档案名称</div>
+                                <div class="detail-value" id="d-archive-name"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-label">档号</div>
+                                <div class="detail-value" id="d-archive-number"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-label">查阅目的</div>
+                                <div class="detail-value" id="d-archive-purpose"></div>
+                            </div>
                         </div>
                     </div>
 
                     <div id="d-group-info" style="display:none;" class="mb-3">
-                        <hr><h6 class="text-muted">单位信息</h6>
+                        <hr>
+                        <h6 class="text-muted">单位信息</h6>
                         <div class="row">
-                            <div class="col-md-4"><div class="detail-label">预约单位</div><div class="detail-value" id="d-group-name"></div></div>
-                            <div class="col-md-4"><div class="detail-label">参观单位</div><div class="detail-value" id="d-visiting-unit"></div></div>
-                            <div class="col-md-4"><div class="detail-label">单位联系人</div><div class="detail-value" id="d-group-contact"></div></div>
-                            <div class="col-md-4"><div class="detail-label">单位人数</div><div class="detail-value" id="d-group-size"></div></div>
-                            <div class="col-md-4"><div class="detail-label">联系电话</div><div class="detail-value" id="d-contact-phone"></div></div>
+                            <div class="col-md-4">
+                                <div class="detail-label">预约单位</div>
+                                <div class="detail-value" id="d-group-name"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-label">参观单位</div>
+                                <div class="detail-value" id="d-visiting-unit"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-label">单位联系人</div>
+                                <div class="detail-value" id="d-group-contact"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-label">单位人数</div>
+                                <div class="detail-value" id="d-group-size"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-label">联系电话</div>
+                                <div class="detail-value" id="d-contact-phone"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -388,7 +539,9 @@
 
                     <div id="d-leader-display" style="display:none;" class="alert alert-info py-2">
                         <strong>部门领导：</strong><span id="d-leader-text"></span>
-                        <div id="d-leader-opinion-display" style="display:none;margin-top:4px;"><strong>领导意见：</strong><span id="d-leader-opinion-text"></span></div>
+                        <div id="d-leader-opinion-display" style="display:none;margin-top:4px;">
+                            <strong>领导意见：</strong><span id="d-leader-opinion-text"></span>
+                        </div>
                     </div>
 
                     <div id="d-guide-display" style="display:none;" class="alert alert-success py-2">
@@ -397,7 +550,8 @@
 
                     <div id="d-verify-display" style="display:none;" class="alert alert-info py-2">
                         <strong>核销时间：</strong><span id="d-verify-text"></span>
-                        <div id="d-verify-note-display" style="display:none;margin-top:4px;"><strong>核销备注：</strong><span id="d-verify-note-text"></span></div>
+                        <div id="d-verify-note-display" style="display:none;margin-top:4px;"><strong>核销备注：</strong><span
+                                id="d-verify-note-text"></span></div>
                     </div>
 
                     <div id="d-reject-display" style="display:none;" class="alert alert-danger py-2">
@@ -408,7 +562,8 @@
                         <input type="hidden" name="action" id="actionInput">
                         <div class="collapse mb-3" id="rejectArea">
                             <label class="form-label text-danger fw-bold">审批意见/拒绝理由（必填）：</label>
-                            <textarea name="reject_reason" id="rejectReasonText" class="form-control border-danger" rows="2" placeholder="请填写拒绝理由"></textarea>
+                            <textarea name="reject_reason" id="rejectReasonText" class="form-control border-danger"
+                                rows="2" placeholder="请填写拒绝理由"></textarea>
                         </div>
                         <div class="collapse mb-3" id="guideArea">
                             <label class="form-label text-success fw-bold">选择讲解员：</label>
@@ -418,7 +573,8 @@
                         </div>
                         <div class="collapse mb-3" id="verifyNoteArea">
                             <label class="form-label text-dark fw-bold">业务处理备注（选填）：</label>
-                            <textarea name="verify_note" id="verifyNoteText" class="form-control" rows="2" placeholder="可选填业务处理备注"></textarea>
+                            <textarea name="verify_note" id="verifyNoteText" class="form-control" rows="2"
+                                placeholder="可选填业务处理备注"></textarea>
                         </div>
                     </form>
                 </div>
@@ -426,15 +582,20 @@
                 <div class="modal-footer bg-light">
                     <div id="btn-pending" style="display:flex; gap:10px; width:100%; justify-content:flex-end;">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                        <button type="button" class="btn btn-danger" id="btnRejectTrigger" onclick="showReject()">拒绝</button>
-                        <button type="button" class="btn btn-danger" id="btnRejectConfirm" onclick="submitAudit('reject')" style="display:none;">确认拒绝</button>
-                        <button type="button" class="btn btn-success" id="btnApprove" onclick="handleApprove()">同意</button>
-                        <button type="button" class="btn btn-success" id="btnApproveConfirm" onclick="submitAudit('approve')" style="display:none;">确认同意</button>
+                        <button type="button" class="btn btn-danger" id="btnRejectTrigger"
+                            onclick="showReject()">拒绝</button>
+                        <button type="button" class="btn btn-danger" id="btnRejectConfirm"
+                            onclick="submitAudit('reject')" style="display:none;">确认拒绝</button>
+                        <button type="button" class="btn btn-success" id="btnApprove"
+                            onclick="handleApprove()">同意</button>
+                        <button type="button" class="btn btn-success" id="btnApproveConfirm"
+                            onclick="submitAudit('approve')" style="display:none;">确认同意</button>
                     </div>
                     <div id="btn-approved" style="display:none; gap:10px; width:100%; justify-content:flex-end;">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
                         <button type="button" class="btn btn-dark" id="btnVerify" onclick="showVerifyNote()">核销</button>
-                        <button type="button" class="btn btn-dark" id="btnVerifyConfirm" onclick="submitAudit('verify')" style="display:none;">确认核销</button>
+                        <button type="button" class="btn btn-dark" id="btnVerifyConfirm" onclick="submitAudit('verify')"
+                            style="display:none;">确认核销</button>
                     </div>
                     <div id="btn-done" style="display:none;">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
@@ -446,9 +607,15 @@
 
     <style>
         .reason-box {
-            background-color: #FAF7F2; border: 1px solid #e0d8c8;
-            border-radius: 6px; padding: 12px; min-height: 60px;
-            max-height: 150px; overflow-y: auto; font-size: 0.9rem; color: #495057;
+            background-color: #FAF7F2;
+            border: 1px solid #e0d8c8;
+            border-radius: 6px;
+            padding: 12px;
+            min-height: 60px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            color: #495057;
         }
     </style>
 
@@ -469,7 +636,7 @@
         function populateGuideSelect() {
             const select = document.getElementById('guideSelect');
             select.innerHTML = '<option value="">不分配讲解员</option>';
-            guideListData.forEach(function(g) {
+            guideListData.forEach(function (g) {
                 select.innerHTML += '<option value="' + g.name + '">' + g.name + '</option>';
             });
         }
@@ -522,7 +689,7 @@
                     const attDiv = document.getElementById('d-attachments');
                     if (data.attachments && data.attachments.length > 0) {
                         let html = '<div class="detail-label">证明材料/人脸照片</div><div class="row row-cols-3 g-2">';
-                        data.attachments.forEach(function(att) {
+                        data.attachments.forEach(function (att) {
                             const isImage = att.filename.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i);
                             if (isImage) {
                                 html += '<div class="col"><a href="/static/' + att.filepath + '" target="_blank"><img src="/static/' + att.filepath + '" class="img-thumbnail" style="max-height:120px;" alt="' + att.filename + '"><br><small class="text-truncate d-block">' + att.filename + '</small></a></div>';
@@ -629,7 +796,7 @@
 
                     detailModal.show();
                 })
-                .catch(function(err) { console.error(err); alert('加载详情失败'); });
+                .catch(function (err) { console.error(err); alert('加载详情失败'); });
         }
 
         function handleApprove() {
@@ -705,12 +872,12 @@
                     document.getElementById('stat-verified').innerText = data.verified_count;
                     document.getElementById('stat-completed').innerText = data.completed_count;
                 })
-                .catch(function(err) { console.error('加载统计数据失败', err); });
+                .catch(function (err) { console.error('加载统计数据失败', err); });
         }
 
-        document.querySelectorAll('#periodBtns .period-btn').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('#periodBtns .period-btn').forEach(function(b) { b.classList.remove('active'); });
+        document.querySelectorAll('#periodBtns .period-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('#periodBtns .period-btn').forEach(function (b) { b.classList.remove('active'); });
                 this.classList.add('active');
                 loadStats(this.dataset.period);
             });
@@ -719,4 +886,5 @@
         loadStats('today');
     </script>
 </body>
+
 </html>

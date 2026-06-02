@@ -309,7 +309,6 @@
                     <div class="row g-2 align-items-end">
                         <div class="col-auto"><select id="res-status-filter" class="form-select form-select-sm">
                                 <option value="">全部状态</option>
-                                <option value="待部门领导指定审批人">待指定审批人</option>
                                 <option value="待审核">待审核</option>
                                 <option value="已同意">已同意</option>
                                 <option value="已拒绝">已拒绝</option>
@@ -1195,7 +1194,7 @@
 <td>${r.user_name}</td><td class="small">${r.user_id_card}</td><td>${r.group_name || r.visiting_unit || '-'}</td>
 ${isArchive ? '' : '<td>' + r.venue_name + '</td>'}
 <td>${r.visit_date}<br><small class="text-muted">${r.visit_time}</small></td><td>${r.visitor_count || 1}</td>
-<td>${r.status === '待部门领导指定审批人' ? '<span class="badge bg-secondary status-badge">待指定审批人</span>' : r.status === '待审核' ? '<span class="badge bg-warning text-dark status-badge">待审核</span>' : r.status === '已同意' ? '<span class="badge bg-success status-badge">已同意</span>' : r.status === '已核销' ? '<span class="badge bg-dark status-badge">已核销</span>' : r.status === '已取消' ? '<span class="badge bg-secondary status-badge">已取消</span>' : '<span class="badge bg-danger status-badge">已拒绝</span>'}</td>
+<td>${r.status === '待审核' ? '<span class="badge bg-warning text-dark status-badge">待审核</span>' : r.status === '已同意' ? '<span class="badge bg-success status-badge">已同意</span>' : r.status === '已核销' ? '<span class="badge bg-dark status-badge">已核销</span>' : r.status === '已取消' ? '<span class="badge bg-secondary status-badge">已取消</span>' : '<span class="badge bg-danger status-badge">已拒绝</span>'}</td>
 <td>${r.guide_info || '-'}</td>
 <td><button class="btn btn-outline-info btn-sm" onclick="viewReservationDetail(${r.id})">详情</button>
 <button class="btn btn-outline-danger btn-sm" onclick="deleteReservation(${r.id})">删除</button></td></tr>`).join('') || '<tr><td colspan="' + totalCols + '" class="text-center text-muted py-3">没有匹配记录</td></tr>';
@@ -1254,7 +1253,7 @@ ${isArchive ? '' : '<td>' + r.venue_name + '</td>'}
                 document.getElementById('userHistoryTbody').innerHTML = data.reservations.map(r => `<tr>
 <td class="small">${r.created_at}</td><td>${r.venue_name}</td><td>${r.res_type === '单位' ? '单位' : '个人'}</td>
 <td>${r.visit_date} ${r.visit_time}</td><td>${r.visitor_count || 1}</td>
-<td>${r.status === '待部门领导指定审批人' ? '<span class="badge bg-secondary">待指定审批人</span>' : r.status === '待审核' ? '<span class="badge bg-warning text-dark">待审核</span>' : r.status === '已同意' ? '<span class="badge bg-success">已同意</span>' : r.status === '已核销' ? '<span class="badge bg-dark">已核销</span>' : r.status === '已取消' ? '<span class="badge bg-secondary">已取消</span>' : '<span class="badge bg-danger">已拒绝</span>'}</td></tr>`).join('') || '<tr><td colspan="6" class="text-center text-muted py-3">无预约记录</td></tr>';
+<td>${r.status === '待审核' ? '<span class="badge bg-warning text-dark">待审核</span>' : r.status === '已同意' ? '<span class="badge bg-success">已同意</span>' : r.status === '已核销' ? '<span class="badge bg-dark">已核销</span>' : r.status === '已取消' ? '<span class="badge bg-secondary">已取消</span>' : '<span class="badge bg-danger">已拒绝</span>'}</td></tr>`).join('') || '<tr><td colspan="6" class="text-center text-muted py-3">无预约记录</td></tr>';
                 new bootstrap.Modal(document.getElementById('userHistoryModal')).show();
             });
         }
@@ -1477,7 +1476,7 @@ ${isArchive ? '' : '<td>' + r.venue_name + '</td>'}
                 html += '<tr><th class="bg-light">申请时间</th><td>' + data.created_at + '</td></tr>';
                 html += '<tr><th class="bg-light">预约类型</th><td>' + (data.res_type === '单位' ? '<span class="badge bg-info">单位</span>' : '<span class="badge bg-secondary">个人</span>') + '</td></tr>';
                 html += '<tr><th class="bg-light">查阅类型</th><td>' + data.visit_type + '</td></tr>';
-                html += '<tr><th class="bg-light">状态</th><td>' + (data.status === '待部门领导指定审批人' ? '<span class="badge bg-secondary">待指定审批人</span>' : data.status === '待审核' ? '<span class="badge bg-warning text-dark">待审核</span>' : data.status === '已同意' ? '<span class="badge bg-success">已同意</span>' : data.status === '已核销' ? '<span class="badge bg-dark">已核销</span>' : data.status === '已取消' ? '<span class="badge bg-secondary">已取消</span>' : '<span class="badge bg-danger">已拒绝</span>') + '</td></tr>';
+                html += '<tr><th class="bg-light">状态</th><td>' + (data.status === '待审核' ? '<span class="badge bg-warning text-dark">待审核</span>' : data.status === '已同意' ? '<span class="badge bg-success">已同意</span>' : data.status === '已核销' ? '<span class="badge bg-dark">已核销</span>' : data.status === '已取消' ? '<span class="badge bg-secondary">已取消</span>' : '<span class="badge bg-danger">已拒绝</span>') + '</td></tr>';
                 html += '<tr><th class="bg-light">拒绝原因</th><td>' + (data.reject_reason || '-') + '</td></tr>';
                 html += '</tbody></table></div><div class="col-md-6"><table class="table table-sm table-bordered"><tbody>';
                 html += '<tr><th class="bg-light">申请人</th><td>' + data.user_name + '</td></tr>';

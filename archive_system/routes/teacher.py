@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 teacher_bp = Blueprint('teacher', __name__, url_prefix='/teacher')
 
 STATUS_LABEL_MAP = {
-    '待部门领导指定审批人': '待指定审批人',
     '待审核': '待审批',
     '已同意': '已通过',
     '已拒绝': '已拒绝',
@@ -257,15 +256,15 @@ def audit(res_id):
     staff = _get_current_staff()
 
     if action == "approve":
-        if res.status not in ('待审核', '待部门领导指定审批人'):
+        if res.status != '待审核':
             flash(f"操作被忽略：该预约已被处理 (当前状态: {res.status})")
             return redirect(url_for("teacher.dashboard"))
         res.status = "已同意"
-        res.approval_teacher_id = staff.id
+        res.approval_teacher_id = session.get("teacher_id")
         if guide_info:
             res.guide_info = guide_info
     elif action == "reject":
-        if res.status not in ('待审核', '待部门领导指定审批人'):
+        if res.status != '待审核':
             flash(f"操作被忽略：该预约已被处理 (当前状态: {res.status})")
             return redirect(url_for("teacher.dashboard"))
         if not reject_reason.strip():
