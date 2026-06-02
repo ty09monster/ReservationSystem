@@ -289,14 +289,6 @@
                 </div>
                 {% endif %}
                 <div class="col-auto">
-                    <label class="form-label small text-muted mb-1">查阅方式</label>
-                    <select name="visit_type" class="form-select">
-                        <option value="">全部</option>
-                        <option value="线上" {% if curr_visit_type=='线上' %}selected{% endif %}>线上查阅</option>
-                        <option value="线下" {% if curr_visit_type=='线下' %}selected{% endif %}>线下查阅</option>
-                    </select>
-                </div>
-                <div class="col-auto">
                     <label class="form-label small text-muted mb-1">申请时间</label>
                     <select name="time_range" class="form-select">
                         <option value="">全部</option>
@@ -331,7 +323,9 @@
                 <thead>
                     <tr>
                         <th>申请时间</th>
-                        <th>{% if bp_name == 'archive' %}查阅方式{% else %}预约类型{% endif %}</th>
+                        {% if bp_name != 'archive' %}
+                        <th>预约类型</th>
+                        {% endif %}
                         <th>申请人/单位</th>
                         <th>参观场馆</th>
                         <th>预约日期</th>
@@ -342,7 +336,8 @@
                 <tbody>
                     {% if reservations|length == 0 %}
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-5">
+                        <td colspan="{% if bp_name == 'archive' %}6{% else %}7{% endif %}"
+                            class="text-center text-muted py-5">
                             没有找到匹配的记录
                         </td>
                     </tr>
@@ -350,18 +345,13 @@
                     {% for res in reservations %}
                     <tr>
                         <td>{{ res.created_at.strftime('%m-%d %H:%M') }}</td>
+                        {% if bp_name != 'archive' %}
                         <td>
-                            {% if bp_name == 'archive' %}
-                            <span
-                                class="badge {% if res.visit_type == '线上' %}bg-primary{% else %}bg-secondary{% endif %}">
-                                {{ '线上查阅' if res.visit_type == '线上' else '线下查阅' }}
-                            </span>
-                            {% else %}
                             <span class="badge {% if res.res_type == '单位' %}bg-info{% else %}bg-secondary{% endif %}">
                                 {{ '单位预约' if res.res_type == '单位' else '个人预约' }}
                             </span>
-                            {% endif %}
                         </td>
+                        {% endif %}
                         <td>
                             {% if res.res_type == '单位' and res.group_name %}
                             {{ res.group_name }}
@@ -455,10 +445,12 @@
                             <div class="detail-label">预约类型</div>
                             <div class="detail-value" id="d-restype"></div>
                         </div>
+                        {% if bp_name != 'archive' %}
                         <div class="col-md-4">
-                            <div class="detail-label">查阅方式</div>
+                            <div class="detail-label">预约类型</div>
                             <div class="detail-value" id="d-visittype"></div>
                         </div>
+                        {% endif %}
                         <div class="col-md-4">
                             <div class="detail-label">参观人数</div>
                             <div class="detail-value" id="d-visitorcount"></div>
@@ -657,7 +649,8 @@
                     document.getElementById('d-idtype').innerText = data.user_id_type;
                     document.getElementById('d-idcard').innerText = data.user_id_card;
                     document.getElementById('d-restype').innerText = data.res_type === '单位' ? '单位预约' : '个人预约';
-                    document.getElementById('d-visittype').innerText = data.visit_type || '线下';
+                    var visitTypeEl = document.getElementById('d-visittype');
+                    if (visitTypeEl) visitTypeEl.innerText = data.visit_type || '线下';
                     document.getElementById('d-visitorcount').innerText = data.visitor_count || '1';
                     document.getElementById('d-licenseplate').innerText = data.license_plate || '无';
                     document.getElementById('d-needguide').innerText = data.need_guide ? '需要' : '不需要';
