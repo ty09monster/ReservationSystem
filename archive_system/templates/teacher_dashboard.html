@@ -533,7 +533,7 @@
                     </div>
 
                     <div id="d-attachments" class="mb-2">
-                        <div class="detail-label">证明材料/人脸照片</div>
+                        <div class="detail-label">证明材料</div>
                         <div class="text-muted small">无附件</div>
                     </div>
 
@@ -688,7 +688,7 @@
 
                     const attDiv = document.getElementById('d-attachments');
                     if (data.attachments && data.attachments.length > 0) {
-                        let html = '<div class="detail-label">证明材料/人脸照片</div><div class="row row-cols-3 g-2">';
+                        let html = '<div class="detail-label">证明材料</div><div class="row row-cols-3 g-2">';
                         data.attachments.forEach(function (att) {
                             const isImage = att.filename.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i);
                             if (isImage) {
@@ -700,7 +700,7 @@
                         html += '</div>';
                         attDiv.innerHTML = html;
                     } else {
-                        attDiv.innerHTML = '<div class="detail-label">证明材料/人脸照片</div><div class="text-muted small">无附件</div>';
+                        attDiv.innerHTML = '<div class="detail-label">证明材料</div><div class="text-muted small">无附件</div>';
                     }
 
                     const leaderDisplay = document.getElementById('d-leader-display');
