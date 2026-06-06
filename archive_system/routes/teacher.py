@@ -142,18 +142,18 @@ def dashboard():
         query = query.filter(Reservation.visit_type == visit_type_filter)
 
     if time_range == 'week':
-        query = query.filter(Reservation.created_at >= datetime.now() - timedelta(days=7))
+        query = query.filter(Reservation.visit_date >= date.today() - timedelta(days=7))
     elif time_range == 'month':
-        query = query.filter(Reservation.created_at >= datetime.now() - timedelta(days=30))
+        query = query.filter(Reservation.visit_date >= date.today() - timedelta(days=30))
     elif time_range == 'quarter':
-        query = query.filter(Reservation.created_at >= datetime.now() - timedelta(days=90))
+        query = query.filter(Reservation.visit_date >= date.today() - timedelta(days=90))
     elif time_range == 'custom':
         if custom_start:
-            query = query.filter(func.date(Reservation.created_at) >= custom_start)
+            query = query.filter(Reservation.visit_date >= custom_start)
         if custom_end:
-            query = query.filter(func.date(Reservation.created_at) <= custom_end)
+            query = query.filter(Reservation.visit_date <= custom_end)
 
-    query = query.order_by(Reservation.created_at.desc())
+    query = query.order_by(Reservation.visit_date.desc(), Reservation.visit_time.desc())
 
     pagination = query.paginate(page=page, per_page=15, error_out=False)
     reservations = pagination.items
@@ -228,6 +228,8 @@ def reservation_detail(res_id):
         "archive_name": res.archive_name or '',
         "archive_number": res.archive_number or '',
         "archive_purpose": res.archive_purpose or '',
+        "education_level": res.education_level or '',
+        "id_number": res.id_number or '',
         "visit_type": res.visit_type or '',
         "status": res.status,
         "reject_reason": res.reject_reason or '',
@@ -335,7 +337,6 @@ def api_stats():
     individual_count = _count(Reservation.res_type == '个人')
     verified_count = _count(Reservation.status == '已核销')
     rejected_count = _count(Reservation.status == '已拒绝')
-    completed_count = _count(Reservation.status == '已完成')
 
     return jsonify({
         "period": period,
@@ -348,7 +349,6 @@ def api_stats():
         "individual_count": individual_count,
         "verified_count": verified_count,
         "rejected_count": rejected_count,
-        "completed_count": completed_count,
     })
 
 

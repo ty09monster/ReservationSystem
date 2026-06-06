@@ -58,7 +58,6 @@ canvas{max-height:320px}
 <div class="col-xl-2 col-md-4 col-6"><div class="card stat-card border-success border-start border-4"><div class="card-body"><div class="stat-label">已同意</div><div class="stat-value text-success" id="card-approved">-</div></div></div></div>
 <div class="col-xl-2 col-md-4 col-6"><div class="card stat-card border-danger border-start border-4"><div class="card-body"><div class="stat-label">已拒绝</div><div class="stat-value text-danger" id="card-rejected">-</div></div></div></div>
 <div class="col-xl-2 col-md-4 col-6"><div class="card stat-card border-dark border-start border-4"><div class="card-body"><div class="stat-label">已核销</div><div class="stat-value text-dark" id="card-verified">-</div></div></div></div>
-<div class="col-xl-2 col-md-4 col-6"><div class="card stat-card border-info border-start border-4"><div class="card-body"><div class="stat-label">已完成</div><div class="stat-value text-info" id="card-completed">-</div></div></div></div>
 </div>
 <div class="row g-3">
 <div class="col-lg-6"><div class="chart-card"><h6>预约量趋势</h6><select id="trend-time-range" class="form-select form-select-sm mb-2 w-auto" onchange="updateTrendChart()"><option value="day">按日</option><option value="week">按周</option><option value="month" selected>按月</option></select><canvas id="trendChart"></canvas></div></div>
@@ -88,7 +87,6 @@ function updateAllCharts() {
         document.getElementById('card-approved').innerText = d.approved_count;
         document.getElementById('card-rejected').innerText = d.rejected_count;
         document.getElementById('card-verified').innerText = d.verified_count;
-        document.getElementById('card-completed').innerText = d.completed_count;
     });
     updateTrendChart();
     updateStatusChart();

@@ -64,7 +64,9 @@ canvas{max-height:320px}
 <div class="col-lg-6"><div class="chart-card"><h6>预约量趋势</h6><select id="trend-time-range" class="form-select form-select-sm mb-2 w-auto" onchange="updateTrendChart()"><option value="day">按日</option><option value="week">按周</option><option value="month" selected>按月</option></select><canvas id="trendChart"></canvas></div></div>
 <div class="col-lg-6"><div class="chart-card"><h6>预约状态分布</h6><canvas id="statusChart"></canvas></div></div>
 <div class="col-lg-6"><div class="chart-card"><h6>场馆对比</h6><canvas id="venueChart"></canvas></div></div>
+{% if management_area != 'archive' %}
 <div class="col-lg-6"><div class="chart-card"><h6>个人/团体比例</h6><canvas id="typeChart"></canvas></div></div>
+{% endif %}
 <div class="col-lg-6"><div class="chart-card"><h6>高峰时段分析</h6><canvas id="peakChart"></canvas></div></div>
 <div class="col-lg-6"><div class="chart-card"><h6>时段利用率</h6><canvas id="utilChart"></canvas></div></div>
 </div>
@@ -97,7 +99,7 @@ function updateAllCharts() {
     updateTrendChart();
     updateStatusChart();
     updateVenueChart();
-    updateTypeChart();
+    if (categories.indexOf('档案馆') === -1) { updateTypeChart(); }
     updatePeakChart();
     updateUtilChart();
 }
@@ -119,7 +121,16 @@ function updateTrendChart() {
 }
 function updateStatusChart() {
     fetch('/admin/stats/reservation-status').then(r => r.json()).then(d => {
-        createOrUpdateChart('statusChart', 'pie', d.labels, d.values, '状态分布');
+        // 过滤掉"待部门领导指定审批人"状态
+        const filteredLabels = [];
+        const filteredValues = [];
+        for (let i = 0; i < d.labels.length; i++) {
+            if (d.labels[i] !== '待部门领导指定审批人') {
+                filteredLabels.push(d.labels[i]);
+                filteredValues.push(d.values[i]);
+            }
+        }
+        createOrUpdateChart('statusChart', 'pie', filteredLabels, filteredValues, '状态分布');
     });
 }
 function updateVenueChart() {

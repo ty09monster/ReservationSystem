@@ -13,7 +13,7 @@ from ..models import (
     Admin, Role, Reservation, User, Announcement, SystemConfig,
     Venue, VenueTimeSlot, Attachment, ArchiveRequest,
     VenueTimeSlotDisabledDate, CancelRequest, ApprovalStaff, Guide,
-    SystemLog
+    SystemLog, HomeSection
 )
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,6 @@ AVAILABLE_PERMISSIONS = [
     ('notice', '公告管理'),
     ('venue', '场馆管理'),
     ('account', '账号管理'),
-    ('roles', '角色权限'),
     ('archive', '档案申请'),
     ('cancel', '撤销申请'),
     ('stats', '数据统计'),
@@ -156,14 +155,13 @@ def dashboard():
     categories = _get_area_categories()
 
     announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
+    home_sections = HomeSection.query.order_by(HomeSection.sort_order).all()
     config = SystemConfig.query.first()
     venues = Venue.query.filter(Venue.category.in_(categories)).order_by(Venue.id).all()
 
     admin_list = []
-    roles = []
     if session.get("is_super"):
         admin_list = Admin.query.all()
-        roles = Role.query.all()
 
     approval_staff_list = ApprovalStaff.query.order_by(ApprovalStaff.created_at.desc()).all()
     guide_list = Guide.query.order_by(Guide.created_at.desc()).all()
@@ -191,10 +189,10 @@ def dashboard():
     return render_template(
         "admin_dashboard.html",
         announcements=announcements,
+        home_sections=home_sections,
         config=config,
         venues=venues,
         admin_list=admin_list,
-        roles=roles,
         active_tab=active_tab,
         cancel_requests=cancel_requests if active_tab == "cancel" else [],
         pending_archive_count=pending_archive_count,
@@ -204,7 +202,6 @@ def dashboard():
         guide_list=guide_list,
         management_area=area,
         area_label=_get_area_label(),
-        available_permissions=AVAILABLE_PERMISSIONS,
         xiaoshi_categories=json.dumps(XIAOSHI_CATEGORIES),
         archive_categories=json.dumps(ARCHIVE_CATEGORIES),
     )
@@ -362,12 +359,21 @@ def export_reservations():
     ws = wb.active
     ws.title = "预约记录"
 
-    headers = [
-        '序号', '申请时间', '查阅方式', '预约类型', '申请人姓名', '证件类型', '证件号码',
-        '手机号', '单位名称', '参观单位', '参观场馆', '校区', '参观日期',
-        '参观时间', '参观人数', '需要讲解', '讲解员', '车牌号', '审批状态',
-        '拒绝原因', '核销时间', '申请理由'
-    ]
+    is_archive = ('档案馆' in categories)
+
+    if is_archive:
+        headers = [
+            '序号', '申请时间', '姓名', '证件号码', '手机号',
+            '专业', '年级', '查询学历类别', '查询内容',
+            '车牌号', '参观日期', '参观时间', '状态'
+        ]
+    else:
+        headers = [
+            '序号', '申请时间', '查阅方式', '预约类型', '申请人姓名', '证件类型', '证件号码',
+            '手机号', '单位名称', '参观单位', '参观场馆', '校区', '参观日期',
+            '参观时间', '参观人数', '需要讲解', '讲解员', '车牌号', '审批状态',
+            '拒绝原因', '核销时间', '申请理由'
+        ]
 
     header_fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
     header_font = Font(color='FFFFFF', bold=True, size=11)
@@ -387,56 +393,59 @@ def export_reservations():
         cell.border = thin_border
 
     for idx, r in enumerate(reservations, 1):
-        row_data = [
-            idx,
-            r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else '',
-            '线上查阅' if r.visit_type == '线上' else '线下查阅',
-            '单位预约' if r.res_type == '单位' else '个人预约',
-            r.user.name if r.user else '',
-            r.user.id_type if r.user else '',
-            r.user.id_card if r.user else '',
-            r.user.phone if r.user else '',
-            r.group_name or '',
-            r.visiting_unit or '',
-            r.venue.name,
-            r.campus or '',
-            r.visit_date.strftime('%Y-%m-%d') if r.visit_date else '',
-            r.visit_time or '',
-            r.group_size or r.visitor_count or 1,
-            '是' if r.need_guide else '否',
-            r.guide_info or '',
-            r.license_plate or '',
-            r.status,
-            r.reject_reason or '',
-            r.verified_at.strftime('%Y-%m-%d %H:%M') if r.verified_at else '',
-            r.reason or '',
-        ]
+        if is_archive:
+            row_data = [
+                idx,
+                r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else '',
+                r.user.name if r.user else '',
+                r.user.id_card if r.user else '',
+                r.user.phone if r.user else '',
+                r.archive_name or '',
+                r.archive_number or '',
+                r.education_level or '',
+                r.archive_purpose or '',
+                r.license_plate or '',
+                r.visit_date.strftime('%Y-%m-%d') if r.visit_date else '',
+                r.visit_time or '',
+                r.status,
+            ]
+        else:
+            row_data = [
+                idx,
+                r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else '',
+                '线上查阅' if r.visit_type == '线上' else '线下查阅',
+                '单位预约' if r.res_type == '单位' else '个人预约',
+                r.user.name if r.user else '',
+                r.user.id_type if r.user else '',
+                r.user.id_card if r.user else '',
+                r.user.phone if r.user else '',
+                r.group_name or '',
+                r.visiting_unit or '',
+                r.venue.name,
+                r.campus or '',
+                r.visit_date.strftime('%Y-%m-%d') if r.visit_date else '',
+                r.visit_time or '',
+                r.group_size or r.visitor_count or 1,
+                '是' if r.need_guide else '否',
+                r.guide_info or '',
+                r.license_plate or '',
+                r.status,
+                r.reject_reason or '',
+                r.verified_at.strftime('%Y-%m-%d %H:%M') if r.verified_at else '',
+                r.reason or '',
+            ]
         for col, val in enumerate(row_data, 1):
             cell = ws.cell(row=idx + 1, column=col, value=val)
             cell.border = thin_border
             cell.alignment = Alignment(vertical='center')
 
-    ws.column_dimensions['A'].width = 6
-    ws.column_dimensions['B'].width = 18
-    ws.column_dimensions['C'].width = 10
-    ws.column_dimensions['D'].width = 10
-    ws.column_dimensions['E'].width = 10
-    ws.column_dimensions['F'].width = 20
-    ws.column_dimensions['G'].width = 14
-    ws.column_dimensions['H'].width = 20
-    ws.column_dimensions['I'].width = 20
-    ws.column_dimensions['J'].width = 22
-    ws.column_dimensions['K'].width = 14
-    ws.column_dimensions['L'].width = 12
-    ws.column_dimensions['M'].width = 14
-    ws.column_dimensions['N'].width = 10
-    ws.column_dimensions['O'].width = 10
-    ws.column_dimensions['P'].width = 12
-    ws.column_dimensions['Q'].width = 10
-    ws.column_dimensions['R'].width = 10
-    ws.column_dimensions['S'].width = 16
-    ws.column_dimensions['T'].width = 18
-    ws.column_dimensions['U'].width = 30
+    if is_archive:
+        column_widths = [6, 18, 10, 20, 14, 12, 12, 14, 20, 12, 14, 14, 12]
+    else:
+        column_widths = [6, 18, 10, 10, 10, 20, 14, 20, 20, 22, 14, 12, 14, 10, 10, 12, 10, 10, 16, 18, 30]
+
+    for i, width in enumerate(column_widths):
+        ws.column_dimensions[chr(65 + i)].width = width
 
     output = BytesIO()
     wb.save(output)
@@ -537,8 +546,8 @@ def config():
     if "publish_notice" in request.form:
         title = request.form.get("title")
         content = request.form.get("content")
-        if len(content) > 5000:
-            flash("公告内容不能超过5000字符")
+        if len(content) > 10000:
+            flash("公告内容不能超过10000字符")
             return redirect(url_for("admin.dashboard", active_tab="notice"))
         new_notice = Announcement(title=title, content=content)
         db.session.add(new_notice)
@@ -616,6 +625,20 @@ def config():
             VenueTimeSlotDisabledDate.query.filter_by(venue_id=venue_id).delete()
             db.session.delete(venue)
             flash(f"场馆 {venue.name} 已删除")
+
+    if "save_home_section" in request.form:
+        section_id = request.form.get("section_id", type=int)
+        title = request.form.get("title")
+        content = request.form.get("content")
+        sort_order = request.form.get("sort_order", 0, type=int)
+        is_visible = request.form.get("is_visible") == "1"
+        section = db.session.get(HomeSection, section_id)
+        if section:
+            section.title = title
+            section.content = content
+            section.sort_order = sort_order
+            section.is_visible = is_visible
+            flash(f"模块 {section.section_key} 已更新")
 
     db.session.commit()
     return redirect(url_for("admin.dashboard", active_tab=active_tab))
@@ -754,8 +777,8 @@ def edit_announcement(ann_id):
     if announcement:
         title = request.form.get("title")
         content = request.form.get("content")
-        if len(content) > 5000:
-            flash("公告内容不能超过5000字符")
+        if len(content) > 10000:
+            flash("公告内容不能超过10000字符")
             return redirect(url_for("admin.dashboard", active_tab="notice"))
         announcement.title = title
         announcement.content = content
@@ -1696,6 +1719,8 @@ def api_reservation_detail(res_id):
         "archive_name": res.archive_name or '',
         "archive_number": res.archive_number or '',
         "archive_purpose": res.archive_purpose or '',
+        "education_level": res.education_level or '',
+        "id_number": res.id_number or '',
         "visit_type": res.visit_type or '线下',
         "status": res.status,
         "reject_reason": res.reject_reason or '',
@@ -1919,33 +1944,41 @@ def export_stats_report():
     group_by = request.args.get('group_by', 'month')
     start_date = request.args.get('start', '').strip()
     end_date = request.args.get('end', '').strip()
-    venue_id = request.args.get('venue_id', '').strip()
-    status_filter = request.args.get('status', '').strip()
-    res_type_filter = request.args.get('res_type', '').strip()
 
-    result = db.session.query(
-        func.date_format(Reservation.created_at, '%Y-%m').label('label'),
-        func.count(Reservation.id).label('count')
+    if group_by == 'day':
+        fmt = '%Y-%m-%d'
+        label_col = func.date(Reservation.visit_date)
+    elif group_by == 'week':
+        fmt = '%Y-%u'
+        label_col = func.date_format(Reservation.visit_date, '%Y-%u')
+    else:
+        fmt = '%Y-%m'
+        label_col = func.date_format(Reservation.visit_date, '%Y-%m')
+
+    base_query = db.session.query(
+        label_col.label('label'),
+        func.count(Reservation.id).label('total'),
+        func.sum(db.case((Reservation.status == '待审核', 1), else_=0)).label('pending'),
+        func.sum(db.case((Reservation.status == '已同意', 1), else_=0)).label('approved'),
+        func.sum(db.case((Reservation.status == '已拒绝', 1), else_=0)).label('rejected'),
+        func.sum(db.case((Reservation.status == '已核销', 1), else_=0)).label('verified'),
+        func.sum(db.case((Reservation.status == '已取消', 1), else_=0)).label('cancelled'),
     ).select_from(Reservation).join(Venue).filter(
         Venue.category.in_(categories)
-    )
+    ).group_by('label').order_by('label')
+
     if start_date:
-        result = result.filter(func.date(Reservation.created_at) >= start_date)
+        base_query = base_query.filter(func.date(Reservation.visit_date) >= start_date)
     if end_date:
-        result = result.filter(func.date(Reservation.created_at) <= end_date)
-    if venue_id:
-        result = result.filter(Reservation.venue_id == int(venue_id))
-    if status_filter:
-        result = result.filter(Reservation.status == status_filter)
-    if res_type_filter:
-        result = result.filter(Reservation.res_type == res_type_filter)
-    result = result.group_by('label').order_by('label').all()
+        base_query = base_query.filter(func.date(Reservation.visit_date) <= end_date)
+
+    result = base_query.all()
 
     wb = Workbook()
     ws = wb.active
     ws.title = "统计报表"
 
-    headers = ['时间维度', '预约数量']
+    headers = ['时间维度', '总预约量', '待审核', '已同意', '已拒绝', '已核销', '已取消']
     header_fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
     header_font = Font(color='FFFFFF', bold=True, size=11)
     header_alignment = Alignment(horizontal='center', vertical='center')
@@ -1962,12 +1995,17 @@ def export_stats_report():
         cell.border = thin_border
 
     for idx, r in enumerate(result, 1):
-        for col, val in enumerate([r.label, r.count], 1):
+        for col, val in enumerate([r.label, r.total, r.pending, r.approved, r.rejected, r.verified, r.cancelled], 1):
             cell = ws.cell(row=idx + 1, column=col, value=val)
             cell.border = thin_border
 
     ws.column_dimensions['A'].width = 18
-    ws.column_dimensions['B'].width = 14
+    ws.column_dimensions['B'].width = 12
+    ws.column_dimensions['C'].width = 10
+    ws.column_dimensions['D'].width = 10
+    ws.column_dimensions['E'].width = 10
+    ws.column_dimensions['F'].width = 10
+    ws.column_dimensions['G'].width = 10
 
     output = BytesIO()
     wb.save(output)

@@ -49,7 +49,7 @@ class Announcement(db.Model):
     __tablename__ = 'announcement'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String(100), nullable=False, comment='公告标题')
-    content = db.Column(db.Text, nullable=False, comment='公告内容，最大5000字符')
+    content = db.Column(db.Text, nullable=False, comment='公告内容，最大10000字符')
     is_pinned = db.Column(db.Boolean, default=False, index=True, comment='是否顶置')
     is_hidden = db.Column(db.Boolean, default=False, index=True, comment='是否隐藏')
     created_at = db.Column(db.DateTime, default=datetime.now, index=True, comment='创建时间')
@@ -228,6 +228,19 @@ class ApprovalStaff(db.Model):
             return json.loads(self.assigned_venue_ids) if self.assigned_venue_ids else []
         except (json.JSONDecodeError, TypeError):
             return []
+
+
+class HomeSection(db.Model):
+    """首页信息模块表"""
+    __tablename__ = 'home_section'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    section_key = db.Column(db.String(50), unique=True, nullable=False, index=True, comment='模块标识: museum_intro, archive_intro, contact')
+    title = db.Column(db.String(200), nullable=False, comment='模块标题')
+    content = db.Column(db.Text, nullable=True, comment='模块内容（纯文本，换行分段）')
+    sort_order = db.Column(db.Integer, default=0, comment='排序')
+    is_visible = db.Column(db.Boolean, default=True, comment='是否显示')
+    created_at = db.Column(db.DateTime, default=datetime.now, comment='创建时间')
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, comment='更新时间')
 
 
 class SystemLog(db.Model):

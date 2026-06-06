@@ -86,13 +86,8 @@ def login():
 
 
 def _get_assigned_venue_ids():
-    staff_id = session.get("archive_staff_id")
-    if not staff_id:
-        return []
-    staff = db.session.get(ApprovalStaff, staff_id)
-    if not staff:
-        return []
-    return staff.get_assigned_venue_ids()
+    """档案馆：所有老师看到相同数据，返回所有档案馆场馆ID"""
+    return [v.id for v in Venue.query.filter_by(category='档案馆').all()]
 
 
 def _get_current_staff():
@@ -144,18 +139,18 @@ def dashboard():
         query = query.filter(Reservation.res_type == res_type_filter)
 
     if time_range == 'week':
-        query = query.filter(Reservation.created_at >= datetime.now() - timedelta(days=7))
+        query = query.filter(Reservation.visit_date >= date.today() - timedelta(days=7))
     elif time_range == 'month':
-        query = query.filter(Reservation.created_at >= datetime.now() - timedelta(days=30))
+        query = query.filter(Reservation.visit_date >= date.today() - timedelta(days=30))
     elif time_range == 'quarter':
-        query = query.filter(Reservation.created_at >= datetime.now() - timedelta(days=90))
+        query = query.filter(Reservation.visit_date >= date.today() - timedelta(days=90))
     elif time_range == 'custom':
         if custom_start:
-            query = query.filter(func.date(Reservation.created_at) >= custom_start)
+            query = query.filter(Reservation.visit_date >= custom_start)
         if custom_end:
-            query = query.filter(func.date(Reservation.created_at) <= custom_end)
+            query = query.filter(Reservation.visit_date <= custom_end)
 
-    query = query.order_by(Reservation.created_at.desc())
+    query = query.order_by(Reservation.visit_date.desc(), Reservation.visit_time.desc())
 
     pagination = query.paginate(page=page, per_page=15, error_out=False)
     reservations = pagination.items
@@ -317,10 +312,11 @@ def api_stats():
     else:
         date_cond = func.date(Reservation.created_at).between(start, end)
 
-    teacher_cond = and_(Reservation.approval_teacher_id == staff_id, Venue.category == '档案馆')
+    venue_ids = _get_assigned_venue_ids()
+    venue_cond = and_(Reservation.venue_id.in_(venue_ids), Venue.category == '档案馆')
 
     def _count(extra_cond=None):
-        filters = [date_cond, teacher_cond]
+        filters = [date_cond, venue_cond]
         if extra_cond is not None:
             filters.append(extra_cond)
         return db.session.query(func.count(Reservation.id)).join(Venue).filter(*filters).scalar() or 0
@@ -332,7 +328,6 @@ def api_stats():
     individual_count = _count(Reservation.res_type == '个人')
     verified_count = _count(Reservation.status == '已核销')
     rejected_count = _count(Reservation.status == '已拒绝')
-    completed_count = _count(Reservation.status == '已完成')
 
     return jsonify({
         "period": period,
@@ -345,7 +340,6 @@ def api_stats():
         "individual_count": individual_count,
         "verified_count": verified_count,
         "rejected_count": rejected_count,
-        "completed_count": completed_count,
     })
 
 
@@ -357,8 +351,8 @@ def stats_page():
 @archive_bp.route("/stats/reservation-trend")
 def archive_reservation_trend():
     time_range = request.args.get("time_range", "month")
-    staff_id = session.get("archive_staff_id")
-    teacher_cond = and_(Reservation.approval_teacher_id == staff_id, Venue.category == '档案馆')
+    venue_ids = _get_assigned_venue_ids()
+    teacher_cond = and_(Reservation.venue_id.in_(venue_ids), Venue.category == '档案馆') if venue_ids else False
 
     if time_range == "day":
         result = db.session.query(

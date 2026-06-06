@@ -8,7 +8,7 @@ from datetime import datetime, date, timedelta
 import os
 import uuid
 from ..extensions import db
-from ..models import User, SystemConfig, Announcement, Reservation, Venue, VenueTimeSlot, Attachment, ArchiveRequest, VenueTimeSlotDisabledDate, CancelRequest
+from ..models import User, SystemConfig, Announcement, Reservation, Venue, VenueTimeSlot, Attachment, ArchiveRequest, VenueTimeSlotDisabledDate, CancelRequest, HomeSection
 from ..validators import validate_certificate, validate_phone, validate_email, validate_visit_date
 from ..decorators import login_required
 from sqlalchemy import func
@@ -88,8 +88,9 @@ def index():
         Announcement.is_pinned.desc(),
         Announcement.created_at.desc()
     ).limit(2).all()
+    home_sections = HomeSection.query.filter_by(is_visible=True).order_by(HomeSection.sort_order).all()
     is_logged_in = "user_id" in session
-    return render_template("index.html", config=config, announcements=announcements, is_logged_in=is_logged_in)
+    return render_template("index.html", config=config, announcements=announcements, home_sections=home_sections, is_logged_in=is_logged_in)
 
 @h5_bp.route("/announcements")
 def announcements():

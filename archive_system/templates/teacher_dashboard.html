@@ -252,14 +252,6 @@
                     </div>
                 </div>
             </div>
-            <div class="col-xl-2 col-md-4 col-6">
-                <div class="card stat-card border-info border-start border-4">
-                    <div class="card-body">
-                        <div class="stat-label">已完成</div>
-                        <div class="stat-value text-info" id="stat-completed">-</div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <h5 class="section-title">审批列表</h5>
@@ -274,7 +266,6 @@
                         <option value="已同意" {% if curr_status=='已同意' %}selected{% endif %}>已通过</option>
                         <option value="已拒绝" {% if curr_status=='已拒绝' %}selected{% endif %}>已拒绝</option>
                         <option value="已核销" {% if curr_status=='已核销' %}selected{% endif %}>已核销</option>
-                        <option value="已完成" {% if curr_status=='已完成' %}selected{% endif %}>已完成</option>
                         <option value="已取消" {% if curr_status=='已取消' %}selected{% endif %}>已取消</option>
                     </select>
                 </div>
@@ -289,7 +280,7 @@
                 </div>
                 {% endif %}
                 <div class="col-auto">
-                    <label class="form-label small text-muted mb-1">申请时间</label>
+                    <label class="form-label small text-muted mb-1">预约日期</label>
                     <select name="time_range" class="form-select">
                         <option value="">全部</option>
                         <option value="week" {% if curr_time_range=='week' %}selected{% endif %}>近一周</option>
@@ -368,8 +359,6 @@
                             <span class="badge bg-success status-badge">已通过</span>
                             {% elif res.status == '已核销' %}
                             <span class="badge bg-dark status-badge">已核销</span>
-                            {% elif res.status == '已完成' %}
-                            <span class="badge bg-primary status-badge">已完成</span>
                             {% elif res.status == '已取消' %}
                             <span class="badge bg-secondary status-badge">已取消</span>
                             {% else %}
@@ -478,15 +467,19 @@
                         <h6 class="text-muted">档案信息</h6>
                         <div class="row">
                             <div class="col-md-4">
-                                <div class="detail-label">档案名称</div>
+                                <div class="detail-label">专业</div>
                                 <div class="detail-value" id="d-archive-name"></div>
                             </div>
                             <div class="col-md-4">
-                                <div class="detail-label">档号</div>
+                                <div class="detail-label">年级</div>
                                 <div class="detail-value" id="d-archive-number"></div>
                             </div>
                             <div class="col-md-4">
-                                <div class="detail-label">查阅目的</div>
+                                <div class="detail-label">查询学历类别</div>
+                                <div class="detail-value" id="d-education-level"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="detail-label">查询内容</div>
                                 <div class="detail-value" id="d-archive-purpose"></div>
                             </div>
                         </div>
@@ -497,12 +490,12 @@
                         <h6 class="text-muted">单位信息</h6>
                         <div class="row">
                             <div class="col-md-4">
-                                <div class="detail-label">预约单位</div>
+                                <div class="detail-label">预约人单位</div>
                                 <div class="detail-value" id="d-group-name"></div>
                             </div>
                             <div class="col-md-4">
-                                <div class="detail-label">参观单位</div>
-                                <div class="detail-value" id="d-visiting-unit"></div>
+                                <div class="detail-label">预约人身份证号</div>
+                                <div class="detail-value" id="d-id-number"></div>
                             </div>
                             <div class="col-md-4">
                                 <div class="detail-label">单位联系人</div>
@@ -657,19 +650,20 @@
                     document.getElementById('d-venue').innerText = data.venue_name;
                     document.getElementById('d-visitdate').innerText = data.visit_date + ' ' + data.visit_time;
 
-                    if (data.archive_name || data.archive_number || data.archive_purpose) {
+                    if (data.archive_name || data.archive_number || data.archive_purpose || data.education_level) {
                         document.getElementById('d-archive-info').style.display = 'block';
                         document.getElementById('d-archive-name').innerText = data.archive_name || '-';
                         document.getElementById('d-archive-number').innerText = data.archive_number || '-';
+                        document.getElementById('d-education-level').innerText = data.education_level || '-';
                         document.getElementById('d-archive-purpose').innerText = data.archive_purpose || '-';
                     } else {
                         document.getElementById('d-archive-info').style.display = 'none';
                     }
 
-                    if (data.res_type === '单位') {
+                    if (data.res_type === '单位' && bpPrefix !== '/archive') {
                         document.getElementById('d-group-info').style.display = 'block';
                         document.getElementById('d-group-name').innerText = data.group_name || '-';
-                        document.getElementById('d-visiting-unit').innerText = data.visiting_unit || '-';
+                        document.getElementById('d-id-number').innerText = data.id_number || '-';
                         document.getElementById('d-group-contact').innerText = data.group_contact || '-';
                         document.getElementById('d-group-size').innerText = data.group_size || '-';
                         document.getElementById('d-contact-phone').innerText = data.contact_phone || '-';
@@ -863,7 +857,6 @@
                     document.getElementById('stat-approved').innerText = data.approved_count;
                     document.getElementById('stat-rejected').innerText = data.rejected_count;
                     document.getElementById('stat-verified').innerText = data.verified_count;
-                    document.getElementById('stat-completed').innerText = data.completed_count;
                 })
                 .catch(function (err) { console.error('加载统计数据失败', err); });
         }

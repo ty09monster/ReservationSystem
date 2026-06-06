@@ -285,13 +285,13 @@
                 href="?active_tab=guides">讲解员管理</a>{% endif %}
             <div class="section-label">内容管理</div>
             <a class="nav-link {% if active_tab == 'notice' %}active{% endif %}" href="?active_tab=notice">公告管理</a>
+            <a class="nav-link {% if active_tab == 'home_sections' %}active{% endif %}"
+                href="?active_tab=home_sections">首页信息</a>
             {% if management_area != 'archive' %}<a class="nav-link {% if active_tab == 'venue' %}active{% endif %}"
                 href="?active_tab=venue">场馆管理</a>{% endif %}
             {% if session.get('is_super') %}
             <div class="section-label">系统管理</div>
             <a class="nav-link {% if active_tab == 'account' %}active{% endif %}" href="?active_tab=account">账号管理</a>
-            <a class="nav-link {% if active_tab == 'roles' %}active{% endif %}" href="?active_tab=roles">角色权限</a>
-            <a class="nav-link {% if active_tab == 'settings' %}active{% endif %}" href="?active_tab=settings">系统设置</a>
             <a class="nav-link {% if active_tab == 'logs' %}active{% endif %}" href="?active_tab=logs">日志管理</a>
             {% endif %}
             <a class="nav-link" href="{{ url_for('admin.stats') }}">数据统计</a>
@@ -315,16 +315,13 @@
                                 <option value="已核销">已核销</option>
                                 <option value="已取消">已取消</option>
                             </select></div>
+                        {% if management_area != 'archive' %}
                         <div class="col-auto"><select id="res-type-filter" class="form-select form-select-sm">
                                 <option value="">全部类型</option>
-                                {% if management_area == 'archive' %}
-                                <option value="线上">线上查阅</option>
-                                <option value="线下">线下查阅</option>
-                                {% else %}
                                 <option value="个人">个人</option>
                                 <option value="单位">单位</option>
-                                {% endif %}
                             </select></div>
+                        {% endif %}
                         {% if management_area != 'archive' %}
                         <div class="col-auto"><select id="res-venue-filter" class="form-select form-select-sm">
                                 <option value="">全部场馆</option>{% for v in venues %}<option value="{{ v.id }}">{{ v.name
@@ -349,17 +346,23 @@
                             <thead>
                                 <tr>
                                     <th>申请时间</th>
+                                    {% if management_area != 'archive' %}
                                     <th>类型</th>
+                                    {% endif %}
                                     <th>姓名</th>
                                     <th>证件号</th>
+                                    {% if management_area != 'archive' %}
                                     <th>团体/单位</th>
+                                    {% endif %}
                                     {% if management_area != 'archive' %}
                                     <th>场馆</th>
                                     {% endif %}
                                     <th>参观日期</th>
                                     <th>人数</th>
                                     <th>状态</th>
+                                    {% if management_area != 'archive' %}
                                     <th>讲解员</th>
+                                    {% endif %}
                                     <th>操作</th>
                                 </tr>
                             </thead>
@@ -520,7 +523,7 @@
                             <div class="mb-2"><input type="text" name="title" class="form-control" placeholder="公告标题"
                                     required maxlength="100"></div>
                             <div class="mb-2"><textarea name="content" class="form-control" rows="3"
-                                    placeholder="公告内容（最多5000字符）" maxlength="5000"></textarea></div>
+                                    placeholder="公告内容（最多10000字符）" maxlength="10000"></textarea></div>
                             <button type="submit" class="btn btn-primary btn-sm">发布公告</button>
                         </form>
                     </div>
@@ -568,6 +571,45 @@
                                 </tr>
                                 {% endfor %}{% if not announcements %}<tr>
                                     <td colspan="6" class="text-center text-muted py-3">暂无公告</td>
+                                </tr>{% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content-section {% if active_tab == 'home_sections' %}active{% endif %}"
+                id="tab-home-sections">
+                <h5 class="mb-3">首页信息管理</h5>
+                <div class="card-custom">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>排序</th>
+                                    <th>模块标识</th>
+                                    <th>标题</th>
+                                    <th>显示</th>
+                                    <th>更新时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in home_sections %}
+                                <tr>
+                                    <td>{{ s.sort_order }}</td>
+                                    <td>{{ s.section_key }}</td>
+                                    <td>{{ s.title }}</td>
+                                    <td>{% if s.is_visible %}<span class="badge bg-success">是</span>{% else %}<span
+                                            class="badge bg-secondary">否</span>{% endif %}</td>
+                                    <td>{{ s.updated_at.strftime('%Y-%m-%d %H:%M') if s.updated_at else '-' }}</td>
+                                    <td>
+                                        <button class="btn btn-outline-primary btn-sm"
+                                            onclick="editHomeSection({{ s.id }}, '{{ s.title|e }}', `{{ s.content|e }}`, {{ s.sort_order }}, {{ 'true' if s.is_visible else 'false' }})">编辑</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}{% if not home_sections %}<tr>
+                                    <td colspan="6" class="text-center text-muted py-3">暂无模块</td>
                                 </tr>{% endif %}
                             </tbody>
                         </table>
@@ -693,119 +735,6 @@
                                 {% endfor %}
                             </tbody>
                         </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="tab-content-section {% if active_tab == 'roles' %}active{% endif %}" id="tab-roles">
-                <h5 class="mb-3">角色权限管理 <button class="btn btn-primary btn-sm ms-2" onclick="openRoleModal()">+
-                        添加角色</button></h5>
-                <div class="card-custom">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>角色名称</th>
-                                    <th>权限</th>
-                                    <th>管理员数</th>
-                                    <th>操作</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for role in roles %}
-                                <tr>
-                                    <td><strong>{{ role.name }}</strong></td>
-                                    <td>{% for p in role.get_permissions() %}<span class="badge bg-info me-1">{{ p
-                                            }}</span>{% endfor %}{% if not role.get_permissions() %}<span
-                                            class="text-muted">无权限</span>{% endif %}</td>
-                                    <td>{{ role.admins|length }}</td>
-                                    <td><button class="btn btn-outline-primary btn-sm"
-                                            onclick="editRole({{ role.id }},'{{ role.name }}',{{ role.get_permissions()|tojson }})">编辑</button>
-                                        <button class="btn btn-outline-danger btn-sm"
-                                            onclick="deleteRole({{ role.id }})">删除</button>
-                                    </td>
-                                </tr>
-                                {% endfor %}{% if not roles %}<tr>
-                                    <td colspan="4" class="text-center text-muted py-3">暂无自定义角色</td>
-                                </tr>{% endif %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="tab-content-section {% if active_tab == 'settings' %}active{% endif %}" id="tab-settings">
-                <h5 class="mb-3">基本参数设置</h5>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="card-custom">
-                            <div class="card-header">预约时间段</div>
-                            <div class="card-body">
-                                <form method="POST" action="{{ url_for('admin.system_settings') }}">
-                                    <input type="hidden" name="action" value="update_time_slots">
-                                    <input type="hidden" name="active_tab" value="settings">
-                                    <div class="mb-2"><label
-                                            class="form-label small">可预约时段（逗号分隔，如：09:00-11:00,14:00-16:00）</label>
-                                        <input type="text" name="visit_times"
-                                            value="{{ config.visit_times if config else '09:00-11:00,14:00-16:00' }}"
-                                            class="form-control form-control-sm">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary btn-sm">保存</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card-custom">
-                            <div class="card-header">档案类型设置</div>
-                            <div class="card-body">
-                                <form method="POST" action="{{ url_for('admin.system_settings') }}">
-                                    <input type="hidden" name="action" value="update_archive_types">
-                                    <input type="hidden" name="active_tab" value="settings">
-                                    <div class="mb-2"><label
-                                            class="form-label small">档案类型列表（逗号分隔，如：学籍档案,人事档案,财务档案,基建档案）</label>
-                                        <input type="text" name="archive_types"
-                                            value="{{ config.archive_types if config and config.archive_types else '' }}"
-                                            class="form-control form-control-sm">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary btn-sm">保存</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card-custom">
-                            <div class="card-header">可参观校区</div>
-                            <div class="card-body">
-                                <form method="POST" action="{{ url_for('admin.system_settings') }}">
-                                    <input type="hidden" name="action" value="update_campuses">
-                                    <input type="hidden" name="active_tab" value="settings">
-                                    <div class="mb-2"><label class="form-label small">校区列表（逗号分隔）</label>
-                                        <input type="text" name="campuses"
-                                            value="{{ config.campuses if config else '主校区,新校区' }}"
-                                            class="form-control form-control-sm">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary btn-sm">保存</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card-custom">
-                            <div class="card-header">每日限额</div>
-                            <div class="card-body">
-                                <form method="POST" action="{{ url_for('admin.system_settings') }}">
-                                    <input type="hidden" name="action" value="update_daily_limit">
-                                    <input type="hidden" name="active_tab" value="settings">
-                                    <div class="mb-2"><label class="form-label small">每日预约限额</label>
-                                        <input type="number" name="daily_limit"
-                                            value="{{ config.daily_limit if config else 50 }}"
-                                            class="form-control form-control-sm">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary btn-sm">保存</button>
-                                </form>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1001,30 +930,6 @@
                 </div>
             </div>
 
-            <div class="modal fade" id="roleModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="roleModalTitle">添加角色</h5><button type="button" class="btn-close"
-                                data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form method="POST" action="{{ url_for('admin.role_management') }}" id="roleForm"><input
-                                    type="hidden" name="action" id="roleAction" value="create"><input type="hidden"
-                                    name="role_id" id="roleEditId">
-                                <div class="mb-3"><label class="form-label">角色名称</label><input type="text" name="name"
-                                        id="roleName" class="form-control" required></div>
-                                <div class="mb-2 fw-bold small text-muted">权限分配：</div>
-                                <div class="permission-check-list" id="rolePermsList"></div>
-                            </form>
-                        </div>
-                        <div class="modal-footer"><button type="button" class="btn btn-secondary"
-                                data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary"
-                                onclick="document.getElementById('roleForm').submit()">保存</button></div>
-                    </div>
-                </div>
-            </div>
-
             <div class="modal fade" id="approvalStaffModal" tabindex="-1">
                 <div class="modal-dialog">
                     <div class="modal-content">
@@ -1165,7 +1070,6 @@
 
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script>
-        const AVAILABLE_PERMISSIONS = {{ available_permissions| tojson }};
         const MANAGEMENT_AREA = '{{ management_area }}';
         let venueListData = [];
 
@@ -1179,23 +1083,23 @@
                 end_date: document.getElementById('res-end-date').value
             });
             if (isArchive) {
-                params.set('visit_type', document.getElementById('res-type-filter').value);
+                // 档案馆不再需要类型筛选
             } else {
                 params.set('res_type', document.getElementById('res-type-filter').value);
                 params.set('venue_id', document.getElementById('res-venue-filter').value);
             }
             fetch('/admin/api/reservations?' + params).then(r => r.json()).then(data => {
                 const badge = (r) => isArchive
-                    ? (r.visit_type === '线上' ? '<span class="badge bg-success">线上</span>' : '<span class="badge bg-secondary">线下</span>')
+                    ? ''
                     : (r.res_type === '单位' ? '<span class="badge bg-info">单位</span>' : '<span class="badge bg-secondary">个人</span>');
-                const totalCols = isArchive ? 10 : 11;
+                const totalCols = isArchive ? 7 : 11;
                 document.getElementById('reservations-tbody').innerHTML = data.reservations.map(r => `<tr>
-<td class="small">${r.created_at}</td><td>${badge(r)}</td>
-<td>${r.user_name}</td><td class="small">${r.user_id_card}</td><td>${r.group_name || r.visiting_unit || '-'}</td>
+<td class="small">${r.created_at}</td>${isArchive ? '' : '<td>' + badge(r) + '</td>'}
+<td>${r.user_name}</td><td class="small">${r.user_id_card}</td>${isArchive ? '' : '<td>' + (r.group_name || r.visiting_unit || '-') + '</td>'}
 ${isArchive ? '' : '<td>' + r.venue_name + '</td>'}
 <td>${r.visit_date}<br><small class="text-muted">${r.visit_time}</small></td><td>${r.visitor_count || 1}</td>
 <td>${r.status === '待审核' ? '<span class="badge bg-warning text-dark status-badge">待审核</span>' : r.status === '已同意' ? '<span class="badge bg-success status-badge">已同意</span>' : r.status === '已核销' ? '<span class="badge bg-dark status-badge">已核销</span>' : r.status === '已取消' ? '<span class="badge bg-secondary status-badge">已取消</span>' : '<span class="badge bg-danger status-badge">已拒绝</span>'}</td>
-<td>${r.guide_info || '-'}</td>
+${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
 <td><button class="btn btn-outline-info btn-sm" onclick="viewReservationDetail(${r.id})">详情</button>
 <button class="btn btn-outline-danger btn-sm" onclick="deleteReservation(${r.id})">删除</button></td></tr>`).join('') || '<tr><td colspan="' + totalCols + '" class="text-center text-muted py-3">没有匹配记录</td></tr>';
                 const pg = data.pagination;
@@ -1215,7 +1119,7 @@ ${isArchive ? '' : '<td>' + r.venue_name + '</td>'}
                 end_date: document.getElementById('res-end-date').value
             });
             if (isArchive) {
-                params.set('visit_type', document.getElementById('res-type-filter').value);
+                // 档案馆不再需要类型筛选
             } else {
                 params.set('res_type', document.getElementById('res-type-filter').value);
                 params.set('venue_id', document.getElementById('res-venue-filter').value);
@@ -1319,35 +1223,6 @@ ${isArchive ? '' : '<td>' + r.venue_name + '</td>'}
                 document.getElementById('disabledDateList').innerHTML = data.disabled_dates.length === 0 ? '<p class="text-muted">暂无禁用日期</p>' :
                     '<table class="table table-sm"><thead><tr><th>时段</th><th>日期</th><th>操作</th></tr></thead><tbody>' + data.disabled_dates.map(dd => '<tr><td>' + dd.time_slot + '</td><td>' + dd.disabled_date + '</td><td><form method="POST" action="/admin/disabled-date" style="display:inline"><input type="hidden" name="action" value="delete"><input type="hidden" name="venue_id" value="' + venueId + '"><input type="hidden" name="disabled_id" value="' + dd.id + '"><input type="hidden" name="active_tab" value="venue"><button class="btn btn-outline-danger btn-sm">删除</button></form></td></tr>').join('') + '</tbody></table>';
             });
-        }
-
-        function openRoleModal() {
-            document.getElementById('roleAction').value = 'create';
-            document.getElementById('roleEditId').value = '';
-            document.getElementById('roleName').value = '';
-            document.getElementById('roleModalTitle').innerText = '添加角色';
-            populateRolePerms([]);
-            new bootstrap.Modal(document.getElementById('roleModal')).show();
-        }
-
-        function editRole(id, name, perms) {
-            document.getElementById('roleAction').value = 'edit';
-            document.getElementById('roleEditId').value = id;
-            document.getElementById('roleName').value = name;
-            document.getElementById('roleModalTitle').innerText = '编辑角色';
-            populateRolePerms(perms);
-            new bootstrap.Modal(document.getElementById('roleModal')).show();
-        }
-
-        function deleteRole(id) {
-            if (!confirm('确定删除此角色？相关管理员将失去角色绑定。')) return;
-            const f = document.createElement('form'); f.method = 'POST'; f.action = '/admin/role';
-            f.innerHTML = '<input type="hidden" name="action" value="delete"><input type="hidden" name="role_id" value="' + id + '"><input type="hidden" name="active_tab" value="roles">';
-            document.body.appendChild(f); f.submit();
-        }
-
-        function populateRolePerms(selected) {
-            document.getElementById('rolePermsList').innerHTML = AVAILABLE_PERMISSIONS.map(p => `<div class="form-check"><input type="checkbox" name="permissions" value="${p[0]}" class="form-check-input" ${selected.includes(p[0]) ? 'checked' : ''}><label class="form-check-label small">${p[1]}</label></div>`).join('');
         }
 
         function openApprovalStaffModal() {
@@ -1457,11 +1332,20 @@ ${isArchive ? '' : '<td>' + r.venue_name + '</td>'}
 
         function editAnnouncement(id, title, content) {
             const htmlDiv = document.createElement('div');
-            htmlDiv.innerHTML = `<div class="modal fade" id="editAnnModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">编辑公告</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form method="POST" action="/admin/announcement/${id}/edit" id="editAnnForm"><div class="mb-2"><input type="text" name="title" class="form-control" value="${title.replace(/"/g, '&quot;')}" required></div><div class="mb-2"><textarea name="content" class="form-control" rows="5" maxlength="5000">${content.replace(/"/g, '&quot;')}</textarea></div></form></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary" onclick="document.getElementById('editAnnForm').submit()">保存</button></div></div></div></div>`;
+            htmlDiv.innerHTML = `<div class="modal fade" id="editAnnModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">编辑公告</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form method="POST" action="/admin/announcement/${id}/edit" id="editAnnForm"><div class="mb-2"><input type="text" name="title" class="form-control" value="${title.replace(/"/g, '&quot;')}" required></div><div class="mb-2"><textarea name="content" class="form-control" rows="5" maxlength="10000">${content.replace(/"/g, '&quot;')}</textarea></div></form></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary" onclick="document.getElementById('editAnnForm').submit()">保存</button></div></div></div></div>`;
             document.body.appendChild(htmlDiv);
             const modal = new bootstrap.Modal(document.getElementById('editAnnModal'));
             modal.show();
             document.getElementById('editAnnModal').addEventListener('hidden.bs.modal', function () { this.remove(); });
+        }
+
+        function editHomeSection(id, title, content, sortOrder, isVisible) {
+            const htmlDiv = document.createElement('div');
+            htmlDiv.innerHTML = `<div class="modal fade" id="editHSModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">编辑首页信息</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form method="POST" action="{{ url_for('admin.config') }}"><input type="hidden" name="save_home_section" value="1"><input type="hidden" name="active_tab" value="home_sections"><input type="hidden" name="section_id" value="${id}"><div class="mb-2"><label class="form-label">标题</label><input type="text" name="title" class="form-control" value="${title.replace(/"/g, '&quot;')}" required></div><div class="mb-2"><label class="form-label">内容</label><textarea name="content" class="form-control" rows="12" placeholder="输入纯文本内容，换行自动分段">${content.replace(/"/g, '&quot;')}</textarea></div><div class="row mb-2"><div class="col-6"><label class="form-label">排序</label><input type="number" name="sort_order" class="form-control" value="${sortOrder}"></div><div class="col-6"><label class="form-label">是否显示</label><select name="is_visible" class="form-select"><option value="1" ${isVisible ? 'selected' : ''}>显示</option><option value="0" ${isVisible ? '' : 'selected'}>隐藏</option></select></div></div></form></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary" onclick="document.getElementById('editHSModal').querySelector('form').submit()">保存</button></div></div></div></div>`;
+            document.body.appendChild(htmlDiv);
+            const modal = new bootstrap.Modal(document.getElementById('editHSModal'));
+            modal.show();
+            document.getElementById('editHSModal').addEventListener('hidden.bs.modal', function () { this.remove(); });
         }
 
         if (document.getElementById('tab-reservation') && document.getElementById('tab-reservation').classList.contains('active')) loadReservations();
@@ -1475,7 +1359,9 @@ ${isArchive ? '' : '<td>' + r.venue_name + '</td>'}
                 html += '<tr><th class="bg-light">预约编号</th><td>#' + data.id + '</td></tr>';
                 html += '<tr><th class="bg-light">申请时间</th><td>' + data.created_at + '</td></tr>';
                 html += '<tr><th class="bg-light">预约类型</th><td>' + (data.res_type === '单位' ? '<span class="badge bg-info">单位</span>' : '<span class="badge bg-secondary">个人</span>') + '</td></tr>';
-                html += '<tr><th class="bg-light">查阅类型</th><td>' + data.visit_type + '</td></tr>';
+                if (MANAGEMENT_AREA !== 'archive') {
+                    html += '<tr><th class="bg-light">查阅类型</th><td>' + data.visit_type + '</td></tr>';
+                }
                 html += '<tr><th class="bg-light">状态</th><td>' + (data.status === '待审核' ? '<span class="badge bg-warning text-dark">待审核</span>' : data.status === '已同意' ? '<span class="badge bg-success">已同意</span>' : data.status === '已核销' ? '<span class="badge bg-dark">已核销</span>' : data.status === '已取消' ? '<span class="badge bg-secondary">已取消</span>' : '<span class="badge bg-danger">已拒绝</span>') + '</td></tr>';
                 html += '<tr><th class="bg-light">拒绝原因</th><td>' + (data.reject_reason || '-') + '</td></tr>';
                 html += '</tbody></table></div><div class="col-md-6"><table class="table table-sm table-bordered"><tbody>';
@@ -1492,18 +1378,23 @@ ${isArchive ? '' : '<td>' + r.venue_name + '</td>'}
                 html += '<tr><th class="bg-light">参观日期</th><td>' + data.visit_date + '</td></tr>';
                 html += '<tr><th class="bg-light">参观时间</th><td>' + (data.visit_time || '-') + '</td></tr>';
                 html += '<tr><th class="bg-light">参观人数</th><td>' + (data.visitor_count || 1) + '</td></tr>';
-                html += '</tbody></table></div><div class="col-md-6"><table class="table table-sm table-bordered"><tbody>';
-                html += '<tr><th class="bg-light">团体名称</th><td>' + (data.group_name || '-') + '</td></tr>';
-                html += '<tr><th class="bg-light">参观单位</th><td>' + (data.visiting_unit || '-') + '</td></tr>';
-                html += '<tr><th class="bg-light">联系人</th><td>' + (data.group_contact || '-') + '</td></tr>';
-                html += '<tr><th class="bg-light">联系电话</th><td>' + (data.contact_phone || '-') + '</td></tr>';
-                html += '<tr><th class="bg-light">讲解员</th><td>' + (data.guide_info || '-') + '</td></tr>';
-                html += '</tbody></table></div></div>';
-                if (data.archive_name || data.archive_number) {
+                html += '</tbody></table></div>';
+                if (MANAGEMENT_AREA !== 'archive') {
+                    html += '<div class="col-md-6"><table class="table table-sm table-bordered"><tbody>';
+                    html += '<tr><th class="bg-light">预约人单位</th><td>' + (data.group_name || '-') + '</td></tr>';
+                    html += '<tr><th class="bg-light">预约人身份证号</th><td>' + (data.id_number || '-') + '</td></tr>';
+                    html += '<tr><th class="bg-light">联系人</th><td>' + (data.group_contact || '-') + '</td></tr>';
+                    html += '<tr><th class="bg-light">联系电话</th><td>' + (data.contact_phone || '-') + '</td></tr>';
+                    html += '<tr><th class="bg-light">讲解员</th><td>' + (data.guide_info || '-') + '</td></tr>';
+                    html += '</tbody></table></div>';
+                }
+                html += '</div>';
+                if (data.archive_name || data.archive_number || data.education_level || data.archive_purpose) {
                     html += '<h6 class="mt-3">档案查阅信息</h6><div class="row"><div class="col-md-6"><table class="table table-sm table-bordered"><tbody>';
-                    html += '<tr><th class="bg-light">档案名称</th><td>' + (data.archive_name || '-') + '</td></tr>';
-                    html += '<tr><th class="bg-light">档号</th><td>' + (data.archive_number || '-') + '</td></tr>';
-                    html += '<tr><th class="bg-light">查阅目的</th><td>' + (data.archive_purpose || '-') + '</td></tr>';
+                    html += '<tr><th class="bg-light">专业</th><td>' + (data.archive_name || '-') + '</td></tr>';
+                    html += '<tr><th class="bg-light">年级</th><td>' + (data.archive_number || '-') + '</td></tr>';
+                    html += '<tr><th class="bg-light">查询学历类别</th><td>' + (data.education_level || '-') + '</td></tr>';
+                    html += '<tr><th class="bg-light">查询内容</th><td>' + (data.archive_purpose || '-') + '</td></tr>';
                     html += '</tbody></table></div></div>';
                 }
                 html += '<h6 class="mt-3">预约原因</h6><p class="bg-light p-2 rounded">' + (data.reason || '无') + '</p>';

@@ -136,32 +136,15 @@
         </section>
         {% endif %}
 
+        {% for section in home_sections %}
         <section class="info-section">
-            <h3>校史馆介绍</h3>
+            <h3>{{ section.title }}</h3>
             <div class="card">
-                <h4>河南农业大学校史馆</h4>
-                <p>河南农业大学源自1902年创办的河南大学堂，至今已有百余年办学历史。校史馆是展示学校历史沿革、办学成就和文化传承的重要窗口，馆内珍藏了大量历史照片、文献资料和实物展品，生动再现了学校从河南大学堂到河南农业大学的辉煌发展历程。
-                </p>
-                <p>校史馆通过丰富的展览内容与现代化展陈手段，向师生校友和社会各界展示学校的光辉历史，是爱国主义教育和文化传承的重要基地。</p>
+                {% for line in section.content.split('\n') %}{% if line.strip() %}<p>{{ line.strip() }}</p>{% endif %}{%
+                endfor %}
             </div>
         </section>
-
-        <section class="info-section">
-            <h3>档案馆介绍</h3>
-            <div class="card">
-                <h4>河南农业大学档案馆</h4>
-                <p>档案馆是学校档案管理的专门机构，负责收集、整理、保管和利用学校各类档案资料，涵盖文书档案、教学档案、科研档案等。档案馆通过数字化建设和现代化管理，为学校教学、科研和管理提供优质的档案服务。</p>
-            </div>
-        </section>
-
-        <section class="contact-section">
-            <h3>联系方式</h3>
-            <div class="card">
-                <p><strong>地址：</strong>河南省郑州市郑东新区龙子湖高校园区</p>
-                <p><strong>电话：</strong>0371-63558927</p>
-                <p><strong>邮箱：</strong>archives@henau.edu.cn</p>
-            </div>
-        </section>
+        {% endfor %}
     </div>
 
     <nav class="bottom-nav">
