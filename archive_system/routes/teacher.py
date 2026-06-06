@@ -153,7 +153,7 @@ def dashboard():
         if custom_end:
             query = query.filter(Reservation.visit_date <= custom_end)
 
-    query = query.order_by(Reservation.visit_date.desc(), Reservation.visit_time.desc())
+    query = query.order_by(Reservation.created_at.desc())
 
     pagination = query.paginate(page=page, per_page=15, error_out=False)
     reservations = pagination.items
@@ -318,9 +318,9 @@ def api_stats():
         end = today
 
     if start == end:
-        date_cond = func.date(Reservation.created_at) == start
+        date_cond = func.date(Reservation.visit_date) == start
     else:
-        date_cond = func.date(Reservation.created_at).between(start, end)
+        date_cond = func.date(Reservation.visit_date).between(start, end)
 
     teacher_cond = and_(Reservation.venue_id.in_(_get_assigned_venue_ids()), Venue.category.in_(['校史馆', '标本馆'])) if _get_assigned_venue_ids() else False
 
@@ -337,6 +337,7 @@ def api_stats():
     individual_count = _count(Reservation.res_type == '个人')
     verified_count = _count(Reservation.status == '已核销')
     rejected_count = _count(Reservation.status == '已拒绝')
+    cancelled_count = _count(Reservation.status == '已取消')
 
     return jsonify({
         "period": period,
@@ -349,12 +350,8 @@ def api_stats():
         "individual_count": individual_count,
         "verified_count": verified_count,
         "rejected_count": rejected_count,
+        "cancelled_count": cancelled_count,
     })
-
-
-@teacher_bp.route("/stats")
-def stats_page():
-    return render_template("teacher_stats.html", area_label="校史馆/标本馆", bp_prefix="/teacher", bp_name="teacher")
 
 
 @teacher_bp.route("/stats/reservation-trend")
@@ -365,10 +362,10 @@ def teacher_reservation_trend():
 
     if time_range == "day":
         result = db.session.query(
-            func.date(Reservation.created_at).label('date'),
+            func.date(Reservation.visit_date).label('date'),
             func.count(Reservation.id).label('count')
         ).join(Venue).filter(teacher_cond).group_by(
-            func.date(Reservation.created_at)
+            func.date(Reservation.visit_date)
         ).order_by('date').all()
         data = {
             "labels": [item.date.strftime('%Y-%m-%d') for item in result],
@@ -376,7 +373,7 @@ def teacher_reservation_trend():
         }
     elif time_range == "week":
         result = db.session.query(
-            func.date_format(Reservation.created_at, '%Y-%u').label('week'),
+            func.date_format(Reservation.visit_date, '%Y-%u').label('week'),
             func.count(Reservation.id).label('count')
         ).join(Venue).filter(teacher_cond).group_by('week').order_by('week').all()
         data = {
@@ -385,7 +382,7 @@ def teacher_reservation_trend():
         }
     else:
         result = db.session.query(
-            func.date_format(Reservation.created_at, '%Y-%m').label('month'),
+            func.date_format(Reservation.visit_date, '%Y-%m').label('month'),
             func.count(Reservation.id).label('count')
         ).join(Venue).filter(teacher_cond).group_by('month').order_by('month').all()
         data = {

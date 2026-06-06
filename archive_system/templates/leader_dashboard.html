@@ -253,7 +253,7 @@
             <div class="col-xl-2 col-md-4 col-6">
                 <div class="card stat-card border-success border-start border-4">
                     <div class="card-body">
-                        <div class="stat-label">已审批</div>
+                        <div class="stat-label">已同意</div>
                         <div class="stat-value text-success" id="stat-approved">-</div>
                     </div>
                 </div>
@@ -271,6 +271,14 @@
                     <div class="card-body">
                         <div class="stat-label">线下预约</div>
                         <div class="stat-value text-dark" id="stat-offline">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card stat-card border-info border-start border-4">
+                    <div class="card-body">
+                        <div class="stat-label">已取消</div>
+                        <div class="stat-value text-info" id="stat-cancelled">-</div>
                     </div>
                 </div>
             </div>
@@ -568,6 +576,7 @@
                     document.getElementById('stat-approved').innerText = data.approved_count;
                     document.getElementById('stat-online').innerText = data.online_count;
                     document.getElementById('stat-offline').innerText = data.offline_count;
+                    document.getElementById('stat-cancelled').innerText = data.cancelled_count || 0;
                 })
                 .catch(err => console.error('加载统计数据失败', err));
         }

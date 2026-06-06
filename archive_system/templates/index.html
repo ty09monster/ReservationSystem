@@ -156,10 +156,6 @@
             <i class="icon icon-news"></i>
             <span>公告</span>
         </a>
-        <a href="{{ url_for('h5.about') }}" class="bottom-nav-item">
-            <i class="icon icon-about"></i>
-            <span>关于</span>
-        </a>
         <a href="{{ url_for('h5.home') if is_logged_in else url_for('h5.login') }}" class="bottom-nav-item">
             <i class="icon icon-user"></i>
             <span>{{ '我的' if is_logged_in else '登录' }}</span>

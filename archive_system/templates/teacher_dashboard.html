@@ -186,7 +186,6 @@
         <div class="d-flex align-items-center gap-3">
             <span class="text-white-50 small">{{ session.get('teacher_name', '') or session.get('teacher_username', '')
                 or session.get('archive_name', '') or session.get('archive_username', '') }}</span>
-            <a href="{{ url_for(bp_name + '.stats_page') }}" class="btn btn-outline-info btn-sm">数据统计</a>
             <a href="{{ url_for(bp_name + '.logout') }}" class="btn btn-outline-light btn-sm">退出登录</a>
         </div>
     </nav>
@@ -231,7 +230,7 @@
             <div class="col-xl-2 col-md-4 col-6">
                 <div class="card stat-card border-success border-start border-4">
                     <div class="card-body">
-                        <div class="stat-label">已审批</div>
+                        <div class="stat-label">已同意</div>
                         <div class="stat-value text-success" id="stat-approved">-</div>
                     </div>
                 </div>
@@ -249,6 +248,14 @@
                     <div class="card-body">
                         <div class="stat-label">已核销</div>
                         <div class="stat-value text-dark" id="stat-verified">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-4 col-6">
+                <div class="card stat-card border-info border-start border-4">
+                    <div class="card-body">
+                        <div class="stat-label">已取消</div>
+                        <div class="stat-value text-info" id="stat-cancelled">-</div>
                     </div>
                 </div>
             </div>
@@ -857,6 +864,7 @@
                     document.getElementById('stat-approved').innerText = data.approved_count;
                     document.getElementById('stat-rejected').innerText = data.rejected_count;
                     document.getElementById('stat-verified').innerText = data.verified_count;
+                    document.getElementById('stat-cancelled').innerText = data.cancelled_count || 0;
                 })
                 .catch(function (err) { console.error('加载统计数据失败', err); });
         }

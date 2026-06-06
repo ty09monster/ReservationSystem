@@ -60,12 +60,11 @@ def submit_reservation(user_id):
             "visit_date": TEST_DATE,
             "visit_time": TEST_TIME_SLOT,
             "reason": f"测试预约{user_id}",
-            "identity": "校内师生",
-            "group_size": 1
+            "visitor_count": 1
         }
         
         # 提交预约
-        response = session.post(f"{BASE_URL}/h5/reserve/xiaoshi/individual", data=reservation_data)
+        response = session.post(f"{BASE_URL}/h5/reserve/xiaoshi", data=reservation_data)
         
         if response.status_code == 200:
             if "预约提交成功" in response.text:

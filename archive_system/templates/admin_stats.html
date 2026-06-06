@@ -155,14 +155,17 @@ function updateUtilChart() {
 }
 function exportStatsExcel() {
     const params = new URLSearchParams();
-    const trendRange = document.getElementById('trend-time-range')?.value || 'month';
-    params.set('group_by', trendRange);
     const start = document.getElementById('stats-custom-start')?.value || '';
     const end = document.getElementById('stats-custom-end')?.value || '';
     if (start && end) {
+        // 自定义日期范围：强制按天分组，精确到每条记录
+        params.set('group_by', 'day');
         params.set('start', start);
         params.set('end', end);
     } else {
+        // 预设时间段：使用趋势图的当前统计维度（日/周/月）
+        const trendRange = document.getElementById('trend-time-range')?.value || 'month';
+        params.set('group_by', trendRange);
         params.set('period', document.getElementById('stats-time-range')?.value || 'month');
     }
     window.open('/admin/stats/export-report?' + params.toString(), '_blank');

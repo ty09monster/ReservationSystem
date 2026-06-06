@@ -24,6 +24,33 @@ MIN_PASSWORD_LENGTH = 8
 XIAOSHI_CATEGORIES = ['校史馆', '标本馆']
 ARCHIVE_CATEGORIES = ['档案馆']
 
+# 新建场馆时自动填充的默认时段（与用户预约页面对齐，30 分钟一段）
+DEFAULT_VENUE_TIME_SLOTS = [
+    "09:00-09:30", "09:30-10:00", "10:00-10:30", "10:30-11:00", "11:00-11:30",
+    "15:00-15:30", "15:30-16:00", "16:00-16:30", "16:30-17:00", "17:00-17:30"
+]
+
+# 时段存储占位：day_of_week=0 表示"场馆级全局时段"（简化版，不再区分星期/容量/启用/团体）
+GLOBAL_SLOT_DOW = 0
+
+
+def _seed_default_time_slots(venue_id):
+    """场馆从未配置时段时，自动填充与预约页面对齐的默认 30 分钟段"""
+    exists = VenueTimeSlot.query.filter_by(
+        venue_id=venue_id, day_of_week=GLOBAL_SLOT_DOW
+    ).first()
+    if exists:
+        return
+    for ts in DEFAULT_VENUE_TIME_SLOTS:
+        db.session.add(VenueTimeSlot(
+            venue_id=venue_id,
+            day_of_week=GLOBAL_SLOT_DOW,
+            time_slot=ts,
+            individual_capacity=20,
+            is_group_active=True,
+            is_active=True
+        ))
+
 AVAILABLE_PERMISSIONS = [
     ('reservation', '预约记录'),
     ('users', '预约人员'),
@@ -598,20 +625,9 @@ def config():
         db.session.add(new_venue)
         db.session.flush()
 
-        default_time_slots = ["09:00-10:30", "10:30-12:00", "14:00-15:30", "15:30-17:00"]
-        for dow in range(1, 6):
-            for ts in default_time_slots:
-                slot = VenueTimeSlot(
-                    venue_id=new_venue.id,
-                    day_of_week=dow,
-                    time_slot=ts,
-                    individual_capacity=20,
-                    is_group_active=True,
-                    is_active=True
-                )
-                db.session.add(slot)
+        _seed_default_time_slots(new_venue.id)
 
-        flash(f"场馆 {name} 已添加，已自动创建工作日时段")
+        flash(f"场馆 {name} 已添加，已自动创建默认时段")
 
     if "delete_venue" in request.form:
         venue_id = request.form.get("venue_id", type=int)
@@ -972,8 +988,8 @@ def approval_staff_management():
             staff.phone = request.form.get("phone", "").strip()
             staff.assigned_venue_ids = json.dumps([int(v) for v in request.form.getlist("assigned_venues") if v])
             staff.is_active = "is_active" in request.form
-            if target_type:
-                staff.staff_type = target_type
+            if request.form.get("staff_type"):
+                staff.staff_type = request.form.get("staff_type")
             db.session.commit()
             type_label = '部门领导' if staff.staff_type == 'leader' else '审批教师'
             _write_log('operation', '人员管理', '编辑人员', f'编辑{type_label} {staff.name}')
@@ -1171,67 +1187,133 @@ def stats():
 
 @admin_bp.route("/time-slot-config", methods=["POST"])
 def time_slot_config():
+    """管理场馆的时段列表（简化版：不分星期、不设容量、不勾选启用/团体）
+    支持的 action:
+      - add:    新增时段（venue_id, time_slot）
+      - delete: 删除时段（venue_id, slot_id）
+      - update: 修改时段（venue_id, slot_id, time_slot）
+    """
     venue_id = request.form.get("venue_id", type=int)
     active_tab = request.form.get("active_tab", "venue")
+    action = request.form.get("action", "").strip()
+
     if not venue_id:
         flash("场馆ID无效")
         return redirect(url_for("admin.dashboard", active_tab=active_tab))
 
-    form_data = request.form
+    venue = db.session.get(Venue, venue_id)
+    if not venue:
+        flash("场馆不存在")
+        return redirect(url_for("admin.dashboard", active_tab=active_tab))
 
-    time_slot_values = set()
-    for key in form_data:
-        if key.startswith('individual_capacity_'):
-            parts = key.split('_')
-            if len(parts) > 3:
-                time_slot = '_'.join(parts[2:-1])
-                time_slot_values.add(time_slot)
+    if not action:
+        flash("操作类型不能为空")
+        return redirect(url_for("admin.dashboard", active_tab=active_tab))
 
-    VenueTimeSlot.query.filter_by(venue_id=venue_id).delete()
-
-    for time_slot in time_slot_values:
-        for day in range(7):
-            individual_capacity_key = f"individual_capacity_{time_slot}_{day}"
-            active_key = f"active_{time_slot}_{day}"
-            is_group_active_key = f"is_group_active_{time_slot}_{day}"
-
-            individual_capacity = request.form.get(individual_capacity_key, type=int)
-            if individual_capacity_key in request.form and individual_capacity is None:
-                individual_capacity = 20
-            is_active = active_key in request.form
-            is_group_active = is_group_active_key in request.form
-
-            if individual_capacity is not None:
-                new_slot = VenueTimeSlot(
+    if action == "add":
+        new_slot = (request.form.get("time_slot", "") or "").strip()
+        if not new_slot:
+            flash("时段不能为空")
+        elif "-" not in new_slot:
+            flash("时段格式错误，应为 HH:MM-HH:MM")
+        else:
+            try:
+                start, end = [s.strip() for s in new_slot.split("-", 1)]
+                _validate_hhmm(start, "开始时间")
+                _validate_hhmm(end, "结束时间")
+            except ValueError as e:
+                flash(str(e))
+            else:
+                dup = VenueTimeSlot.query.filter_by(
                     venue_id=venue_id,
-                    day_of_week=day,
-                    time_slot=time_slot,
-                    individual_capacity=individual_capacity,
-                    is_group_active=is_group_active,
-                    is_active=is_active
-                )
-                db.session.add(new_slot)
+                    day_of_week=GLOBAL_SLOT_DOW,
+                    time_slot=new_slot,
+                ).first()
+                if dup:
+                    flash(f"时段 {new_slot} 已存在")
+                else:
+                    db.session.add(VenueTimeSlot(
+                        venue_id=venue_id,
+                        day_of_week=GLOBAL_SLOT_DOW,
+                        time_slot=new_slot,
+                        individual_capacity=20,
+                        is_group_active=True,
+                        is_active=True,
+                    ))
+                    db.session.commit()
+                    flash(f"已新增时段 {new_slot}")
 
-    db.session.commit()
-    flash("时段设置更新成功")
+    elif action == "delete":
+        slot_id = request.form.get("slot_id", type=int)
+        slot = db.session.get(VenueTimeSlot, slot_id) if slot_id else None
+        if not slot or slot.venue_id != venue_id or slot.day_of_week != GLOBAL_SLOT_DOW:
+            flash("时段不存在或不属于该场馆")
+        else:
+            db.session.delete(slot)
+            db.session.commit()
+            flash(f"已删除时段 {slot.time_slot}")
+
+    elif action == "update":
+        slot_id = request.form.get("slot_id", type=int)
+        new_slot = (request.form.get("time_slot", "") or "").strip()
+        slot = db.session.get(VenueTimeSlot, slot_id) if slot_id else None
+        if not slot or slot.venue_id != venue_id or slot.day_of_week != GLOBAL_SLOT_DOW:
+            flash("时段不存在或不属于该场馆")
+        elif not new_slot or "-" not in new_slot:
+            flash("时段格式错误，应为 HH:MM-HH:MM")
+        else:
+            try:
+                start, end = [s.strip() for s in new_slot.split("-", 1)]
+                _validate_hhmm(start, "开始时间")
+                _validate_hhmm(end, "结束时间")
+            except ValueError as e:
+                flash(str(e))
+            else:
+                dup = VenueTimeSlot.query.filter(
+                    VenueTimeSlot.venue_id == venue_id,
+                    VenueTimeSlot.day_of_week == GLOBAL_SLOT_DOW,
+                    VenueTimeSlot.time_slot == new_slot,
+                    VenueTimeSlot.id != slot_id,
+                ).first()
+                if dup:
+                    flash(f"时段 {new_slot} 已被其他记录占用")
+                else:
+                    old = slot.time_slot
+                    slot.time_slot = new_slot
+                    slot.updated_at = datetime.now()
+                    db.session.commit()
+                    flash(f"已将时段 {old} 修改为 {new_slot}")
+
+    else:
+        flash(f"不支持的操作: {action}")
+
     return redirect(url_for("admin.dashboard", active_tab=active_tab))
+
+
+def _validate_hhmm(value, label):
+    parts = value.split(":")
+    if len(parts) != 2:
+        raise ValueError(f"{label}格式错误，应为 HH:MM")
+    h, m = int(parts[0]), int(parts[1])
+    if not (0 <= h <= 23 and 0 <= m <= 59):
+        raise ValueError(f"{label}数值超出范围")
 
 
 @admin_bp.route("/get-time-slots/<int:venue_id>")
 def get_time_slots(venue_id):
-    time_slots = VenueTimeSlot.query.filter_by(venue_id=venue_id).all()
+    """返回场馆的简化时段列表（仅 day_of_week=0 的记录，按时间顺序）"""
+    time_slots = VenueTimeSlot.query.filter_by(
+        venue_id=venue_id, day_of_week=GLOBAL_SLOT_DOW
+    ).all()
 
-    slot_data = {}
-    for slot in time_slots:
-        if slot.time_slot not in slot_data:
-            slot_data[slot.time_slot] = {}
-        slot_data[slot.time_slot][slot.day_of_week] = {
-            "individual_capacity": slot.individual_capacity,
-            "is_active": slot.is_active,
-            "is_group_active": slot.is_group_active
-        }
-
-    return {"slots": slot_data}
+    items = sorted(
+        [
+            {"id": s.id, "time_slot": s.time_slot}
+            for s in time_slots
+        ],
+        key=lambda x: x["time_slot"].split("-")[0],
+    )
+    return {"slots": items}
 
 
 @admin_bp.route("/get-attachments/<int:res_id>")
@@ -1600,7 +1682,10 @@ def handle_archive_request(req_id):
 
 @admin_bp.route("/get-disabled-dates/<int:venue_id>")
 def get_disabled_dates(venue_id):
-    disabled_dates = VenueTimeSlotDisabledDate.query.filter_by(venue_id=venue_id).all()
+    disabled_dates = VenueTimeSlotDisabledDate.query.filter_by(venue_id=venue_id).order_by(
+        VenueTimeSlotDisabledDate.disabled_date.asc(),
+        VenueTimeSlotDisabledDate.time_slot.asc()
+    ).all()
     disabled_list = []
     for item in disabled_dates:
         disabled_list.append({
@@ -1944,15 +2029,29 @@ def export_stats_report():
     group_by = request.args.get('group_by', 'month')
     start_date = request.args.get('start', '').strip()
     end_date = request.args.get('end', '').strip()
+    period = request.args.get('period', '').strip()
+
+    # 预设时间段时，自动补全日期范围（与 api_stats 逻辑一致）
+    if not start_date and not end_date and period:
+        today = date.today()
+        if period == 'today':
+            start_date = end_date = today.strftime('%Y-%m-%d')
+            group_by = 'day'
+        elif period == 'week':
+            start_date = (today - timedelta(days=today.weekday())).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+        elif period == 'month':
+            start_date = today.replace(day=1).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+        elif period == 'year':
+            start_date = today.replace(month=1, day=1).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
 
     if group_by == 'day':
-        fmt = '%Y-%m-%d'
         label_col = func.date(Reservation.visit_date)
     elif group_by == 'week':
-        fmt = '%Y-%u'
         label_col = func.date_format(Reservation.visit_date, '%Y-%u')
     else:
-        fmt = '%Y-%m'
         label_col = func.date_format(Reservation.visit_date, '%Y-%m')
 
     base_query = db.session.query(
@@ -1995,7 +2094,10 @@ def export_stats_report():
         cell.border = thin_border
 
     for idx, r in enumerate(result, 1):
-        for col, val in enumerate([r.label, r.total, r.pending, r.approved, r.rejected, r.verified, r.cancelled], 1):
+        label = r.label
+        if isinstance(label, date):
+            label = label.strftime('%Y-%m-%d')
+        for col, val in enumerate([label, r.total, r.pending, r.approved, r.rejected, r.verified, r.cancelled], 1):
             cell = ws.cell(row=idx + 1, column=col, value=val)
             cell.border = thin_border
 

@@ -341,6 +341,22 @@
                 <span class="detail-value text-success">{{ res.guide_info }}</span>
             </div>
             {% endif %}
+            {% if res.attachments %}
+            <div class="detail-row">
+                <span class="detail-label">提交材料</span>
+                <span class="detail-value">
+                    <div class="d-flex flex-wrap gap-2 mt-1">
+                        {% for att in res.attachments %}
+                        <a href="{{ url_for('static', filename=att.filepath) }}" target="_blank">
+                            <div style="width:60px;height:60px;border-radius:6px;overflow:hidden;border:1px solid #eee;">
+                                <img src="{{ url_for('static', filename=att.filepath) }}" style="width:100%;height:100%;object-fit:cover;" alt="{{ att.filename }}">
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </span>
+            </div>
+            {% endif %}
 
             {% if res.status not in ('已取消', '已核销', '已拒绝') %}
             <div class="mt-3 text-end">

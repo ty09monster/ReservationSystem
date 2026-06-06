@@ -122,7 +122,7 @@ def submit_reservation(user_id):
         ).with_for_update().all()
         
         # 计算已预约人数
-        reserved = sum(res.group_size for res in existing_reservations)
+        reserved = sum(res.visitor_count or res.group_size for res in existing_reservations)
         
         if reserved + 1 > venue_slot.individual_capacity:
             db.session.rollback()
@@ -138,8 +138,7 @@ def submit_reservation(user_id):
             visit_time=TEST_TIME_SLOT,
             reason=f"测试预约{user_id}",
             res_type="个人",
-            group_size=1,
-            identity="校内师生",
+            visitor_count=1,
             campus="文化路校区"
         )
         db.session.add(reservation)

@@ -30,6 +30,19 @@ ALLOWED_TAGS = {
 }
 ALLOWED_ATTRS = {'a': {'href', 'title', 'target'}, 'span': {'style'}, 'div': {'style'}}
 
+# 公告列表页默认预览字符数（超过该长度需点击"展开"才能查看完整内容）
+ANNOUNCEMENT_PREVIEW_LENGTH = 80
+
+
+def _plain_text_preview(raw_html, limit):
+    """从 HTML 字符串中提取纯文本预览，长度达到 limit 即截断"""
+    import re
+    text = re.sub(r"<[^>]+>", "", raw_html or "")
+    text = re.sub(r"\s+", " ", text).strip()
+    if len(text) > limit:
+        return text[:limit]
+    return text
+
 
 def sanitize_html(raw_html):
     """简易 HTML 白名单过滤，移除不在白名单内的标签和危险属性。
@@ -104,18 +117,12 @@ def announcements():
     ).all()
     for ann in announcements:
         ann._safe_content = sanitize_html(ann.content)
+        # 公告列表页：每条公告默认只展示前一段，展开后展示全部
+        ann._is_long = len(ann.content or "") > ANNOUNCEMENT_PREVIEW_LENGTH
+        ann._is_collapsed = True
+        ann._short_text = _plain_text_preview(ann.content or "", ANNOUNCEMENT_PREVIEW_LENGTH)
     is_logged_in = "user_id" in session
     return render_template("announcements.html", announcements=announcements, is_logged_in=is_logged_in)
-
-@h5_bp.route("/about")
-def about():
-    """
-    关于我们（A页面）
-    无需登录即可访问
-    """
-    config = SystemConfig.query.first()
-    is_logged_in = "user_id" in session
-    return render_template("about.html", config=config, is_logged_in=is_logged_in)
 
 @h5_bp.route("/h5/login", methods=["GET", "POST"])
 def login():
@@ -282,7 +289,7 @@ def _reserve_base(template_key, render_res_type="个人", visit_type="线下"):
                 return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
 
 
-        MUSEUM_SLOTS = [
+        MUSEUM_DEFAULT_SLOTS = [
             "09:00-09:30", "09:30-10:00", "10:00-10:30", "10:30-11:00", "11:00-11:30",
             "15:00-15:30", "15:30-16:00", "16:00-16:30", "16:30-17:00", "17:00-17:30"
         ]
@@ -294,21 +301,26 @@ def _reserve_base(template_key, render_res_type="个人", visit_type="线下"):
             disabled_date=visit_date_obj
         ).all()
 
+        # 时段来自 VenueTimeSlot 表中 day_of_week=0 的"全局时段"记录（管理员后台管理的列表）。
+        # 校史馆/标本馆若未配置过任何时段，回退到默认 30 分钟段；其他场馆未配置则用 SystemConfig.visit_times。
+        configured_slots = VenueTimeSlot.query.filter_by(
+            venue_id=campus_venue_id, day_of_week=0
+        ).all()
+        configured_slot_set = {s.time_slot for s in configured_slots}
+
         if is_museum_venue:
-            if visit_time not in MUSEUM_SLOTS:
-                flash("所选时段未开放，请选择其他时段")
-                return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
+            valid_slots = configured_slot_set or set(MUSEUM_DEFAULT_SLOTS)
         else:
-            day_of_week = (visit_date_obj.weekday() + 1) % 7
-            time_slot_config = VenueTimeSlot.query.filter_by(
-                venue_id=campus_venue_id,
-                day_of_week=day_of_week,
-                time_slot=visit_time,
-                is_active=True
-            ).first()
-            if not time_slot_config:
-                flash("所选时段未开放，请选择其他时段")
-                return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
+            if not configured_slot_set:
+                config = SystemConfig.query.first()
+                global_times = config.visit_times if config else "09:00-11:00,14:00-16:00"
+                valid_slots = {t.strip() for t in global_times.split(",") if t.strip()}
+            else:
+                valid_slots = configured_slot_set
+
+        if visit_time not in valid_slots:
+            flash("所选时段未开放，请选择其他时段")
+            return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
 
         for disabled in disabled_list:
             disabled_start = disabled.time_slot.split('-')[0]
@@ -321,19 +333,15 @@ def _reserve_base(template_key, render_res_type="个人", visit_type="线下"):
 
         # 使用事务确保并发安全
         from sqlalchemy.exc import SQLAlchemyError
-        
+
         try:
-            if is_museum_venue:
-                pass
-            else:
-                day_of_week = (visit_date_obj.weekday() + 1) % 7
+            if not is_museum_venue:
                 time_slot_config = VenueTimeSlot.query.filter_by(
                     venue_id=campus_venue_id,
-                    day_of_week=day_of_week,
+                    day_of_week=0,
                     time_slot=visit_time,
-                    is_active=True
                 ).with_for_update().first()
-                
+
                 if not time_slot_config:
                     db.session.rollback()
                     flash("所选时段未开放，请选择其他时段")
@@ -669,11 +677,11 @@ def profile():
 @login_required
 def get_available_slots():
     """获取可用时段和剩余名额"""
-    MUSEUM_SLOTS = [
+    MUSEUM_DEFAULT_SLOTS = [
         "09:00-09:30", "09:30-10:00", "10:00-10:30", "10:30-11:00", "11:00-11:30",
         "15:00-15:30", "15:30-16:00", "16:00-16:30", "16:30-17:00", "17:00-17:30"
     ]
-    MUSEUM_CAPACITY = 30
+    MUSEUM_DEFAULT_CAPACITY = 30
 
     try:
         venue_id = request.args.get("venue_id", type=int)
@@ -695,23 +703,24 @@ def get_available_slots():
 
         is_museum = venue.category in ('校史馆', '标本馆')
 
-        if is_museum:
-            slots_to_check = MUSEUM_SLOTS
-            slot_capacity = MUSEUM_CAPACITY
+        # 时段来自 VenueTimeSlot 表中 day_of_week=0 的"全局时段"记录。
+        # 若场馆从未配置过时段（极少见），校史馆/标本馆回退到默认 30 分钟段，其他场馆读 SystemConfig.visit_times。
+        configured_slots = VenueTimeSlot.query.filter_by(
+            venue_id=venue_id, day_of_week=0
+        ).all()
+        if configured_slots:
+            slots_to_check = sorted(
+                [s.time_slot for s in configured_slots],
+                key=lambda x: x.split("-")[0],
+            )
         else:
-            day_of_week = (visit_date_obj.weekday() + 1) % 7
-            time_slots = VenueTimeSlot.query.filter_by(
-                venue_id=venue_id,
-                day_of_week=day_of_week,
-                is_active=True
-            ).all()
-            if time_slots:
-                slots_to_check = [s.time_slot for s in time_slots]
+            if is_museum:
+                slots_to_check = MUSEUM_DEFAULT_SLOTS
             else:
                 config = SystemConfig.query.first()
                 global_times = config.visit_times if config else "09:00-11:00,14:00-16:00"
                 slots_to_check = [t.strip() for t in global_times.split(",") if t.strip()]
-            slot_capacity = None
+        slot_capacity = MUSEUM_DEFAULT_CAPACITY if is_museum else None
 
         existing_counts = {}
         if is_museum:
@@ -744,6 +753,9 @@ def get_available_slots():
                 "is_disabled": is_disabled,
                 "is_museum": is_museum,
             })
+
+        # 按开始时间升序排序（所有场馆都按时间顺序展示）
+        available_slots.sort(key=lambda s: s["time_slot"].split("-")[0])
 
         return {"slots": available_slots, "is_museum": is_museum}
     except Exception as e:
@@ -852,10 +864,9 @@ def archive_reserve(visit_type):
             except ValueError:
                 pass
 
-        day_of_week = (visit_date_obj.weekday() + 1) % 7
         time_slot_config = VenueTimeSlot.query.filter_by(
             venue_id=campus_venue_id,
-            day_of_week=day_of_week,
+            day_of_week=0,
             time_slot=visit_time,
             is_active=True
         ).first()
@@ -895,7 +906,7 @@ def archive_reserve(visit_type):
             if has_any_slots:
                 time_slot_config = VenueTimeSlot.query.filter_by(
                     venue_id=campus_venue_id,
-                    day_of_week=day_of_week,
+                    day_of_week=0,
                     time_slot=visit_time,
                     is_active=True
                 ).with_for_update().first()

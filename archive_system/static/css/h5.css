@@ -357,6 +357,23 @@ body {
   line-height: 1.5;
   margin: 0;
 }
+.announcement-content .ann-short {
+  display: inline;
+  word-break: break-all;
+}
+.announcement-content .ann-full {
+  word-break: break-word;
+}
+.announcement-item .ann-toggle {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: var(--primary-color, #2c7be5);
+  text-decoration: none;
+}
+.announcement-item .ann-toggle:active {
+  opacity: 0.6;
+}
 
 /* ---------- Information Card Section ---------- */
 .info-section {

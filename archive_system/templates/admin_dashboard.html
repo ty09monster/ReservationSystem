@@ -561,8 +561,9 @@
                                             action="{{ url_for('admin.toggle_announcement_hide', ann_id=a.id) }}"
                                             style="display:inline"><button class="btn btn-outline-secondary btn-sm">{%
                                                 if a.is_hidden %}显示{% else %}隐藏{% endif %}</button></form>
-                                        <button class="btn btn-outline-primary btn-sm"
-                                            onclick="editAnnouncement({{ a.id }},'{{ a.title|e }}','{{ a.content|e }}')">编辑</button>
+                                        <button class="btn btn-outline-primary btn-sm edit-ann-btn"
+                                            data-ann-id="{{ a.id }}" data-ann-title="{{ a.title|e }}"
+                                            data-ann-content="{{ a.content|e }}">编辑</button>
                                         <form method="POST"
                                             action="{{ url_for('admin.delete_announcement', ann_id=a.id) }}"
                                             style="display:inline" onsubmit="return confirm('确定删除？')"><button
@@ -884,22 +885,63 @@
             </div>
 
             <div class="modal fade" id="timeSlotModal" tabindex="-1">
-                <div class="modal-dialog modal-xl">
+                <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title">时段设置</h5><button type="button" class="btn-close"
                                 data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
-                            <form method="POST" action="{{ url_for('admin.time_slot_config') }}" id="timeSlotForm">
-                                <input type="hidden" name="venue_id" id="timeSlotVenueId"><input type="hidden"
-                                    name="active_tab" value="venue">
-                                <div id="timeSlotTableContainer"></div>
+                            <p class="text-muted small mb-3">可在此新增、修改、删除该场馆的预约时段，格式为
+                                <code>HH:MM-HH:MM</code>。预约表单的时段选项与本列表完全一致。
+                            </p>
+
+                            <form id="timeSlotAddForm" class="row g-2 align-items-end mb-3"
+                                onsubmit="return timeSlotAdd(event)">
+                                <input type="hidden" name="venue_id" id="timeSlotAddVenueId">
+                                <input type="hidden" name="active_tab" value="venue">
+                                <input type="hidden" name="action" value="add">
+                                <div class="col-auto"><label class="form-label small mb-0">新增时段</label></div>
+                                <div class="col-auto">
+                                    <input type="text" name="time_slot" id="timeSlotAddInput"
+                                        class="form-control form-control-sm" placeholder="例如 14:30-15:00"
+                                        pattern="^\d{1,2}:\d{2}-\d{1,2}:\d{2}$" required>
+                                </div>
+                                <div class="col-auto">
+                                    <button type="submit" class="btn btn-success btn-sm">添加</button>
+                                </div>
+                                <div class="col-auto">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                        onclick="timeSlotFillFromInputs()">使用起止时间</button>
+                                </div>
+                                <div class="col-12 small text-muted mt-1">
+                                    <span>快捷输入：</span>
+                                    <input type="time" id="timeSlotQuickStart"
+                                        class="form-control form-control-sm d-inline-block" style="width:110px">
+                                    <span>至</span>
+                                    <input type="time" id="timeSlotQuickEnd"
+                                        class="form-control form-control-sm d-inline-block" style="width:110px">
+                                </div>
                             </form>
+
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:60%">时段</th>
+                                            <th style="width:40%" class="text-end">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="timeSlotListBody">
+                                        <tr>
+                                            <td colspan="2" class="text-center text-muted py-3">加载中…</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                         <div class="modal-footer"><button type="button" class="btn btn-secondary"
-                                data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary"
-                                onclick="document.getElementById('timeSlotForm').submit()">保存时段</button></div>
+                                data-bs-dismiss="modal">关闭</button></div>
                     </div>
                 </div>
             </div>
@@ -916,8 +958,8 @@
                                 class="row g-2 align-items-end mb-3"><input type="hidden" name="action"
                                     value="add"><input type="hidden" name="venue_id" id="ddVenueId"><input type="hidden"
                                     name="active_tab" value="venue">
-                                <div class="col-auto"><input type="text" name="time_slot"
-                                        class="form-control form-control-sm" placeholder="时段" required></div>
+                                <div class="col-auto"><select name="time_slot" id="ddTimeSlotSelect"
+                                        class="form-select form-select-sm" required></select></div>
                                 <div class="col-auto"><input type="date" name="disabled_date"
                                         class="form-control form-control-sm" required></div>
                                 <div class="col-auto"><button class="btn btn-primary btn-sm">添加禁用日期</button></div>
@@ -965,11 +1007,6 @@
                                             name="phone" id="asPhone" class="form-control form-control-sm"></div>
                                 </div>
                                 <div class="row g-2 mt-1">
-                                    <div class="col-md-6"><label class="form-label small">人员类型</label><select
-                                            name="staff_type" id="asStaffType" class="form-select form-select-sm">
-                                            <option value="approval">审批教师</option>
-                                            <option value="leader">部门领导</option>
-                                        </select></div>
                                 </div>
                                 <div class="mt-2"><label class="form-label small">负责场馆</label>
                                     <div class="row" id="asVenueList"></div>
@@ -1186,36 +1223,153 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
         }
 
         function openTimeSlotModal(venueId) {
-            document.getElementById('timeSlotVenueId').value = venueId;
+            document.getElementById('timeSlotAddVenueId').value = venueId;
+            document.getElementById('timeSlotAddInput').value = '';
+            document.getElementById('timeSlotQuickStart').value = '';
+            document.getElementById('timeSlotQuickEnd').value = '';
+            loadTimeSlotList(venueId);
+            new bootstrap.Modal(document.getElementById('timeSlotModal')).show();
+        }
+
+        function loadTimeSlotList(venueId) {
+            const tbody = document.getElementById('timeSlotListBody');
+            tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted py-3">加载中…</td></tr>';
             fetch('/admin/get-time-slots/' + venueId).then(r => r.json()).then(data => {
-                const slots = data.slots;
-                const timeSlotValues = Object.keys(slots);
-                if (timeSlotValues.length === 0) {
-                    timeSlotValues.push('09:00-10:30', '10:30-12:00', '14:00-15:30', '15:30-17:00');
+                const slots = data.slots || [];
+                if (slots.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted py-3">该场馆暂无任何时段，请在上方添加。</td></tr>';
+                    return;
                 }
-                const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-                let html = '<table class="table table-sm table-bordered"><thead><tr><th>时段</th>' + dayNames.map(d => '<th>' + d + '</th>').join('') + '</tr></thead><tbody>';
-                timeSlotValues.forEach(ts => {
-                    html += '<tr><td>' + ts + '</td>';
-                    for (let day = 0; day < 7; day++) {
-                        const slotInfo = slots[ts] && slots[ts][day];
-                        const cap = slotInfo ? slotInfo.individual_capacity : 20;
-                        const active = slotInfo ? slotInfo.is_active : true;
-                        const groupActive = slotInfo ? slotInfo.is_group_active : true;
-                        html += '<td class="small"><input type="number" name="individual_capacity_' + ts + '_' + day + '" class="form-control form-control-sm mb-1" value="' + cap + '" placeholder="容量" style="width:65px" min="0"><div class="form-check form-check-inline"><input type="checkbox" name="active_' + ts + '_' + day + '" class="form-check-input" ' + (active ? 'checked' : '') + '><label class="form-check-label small">启用</label></div><div class="form-check form-check-inline"><input type="checkbox" name="is_group_active_' + ts + '_' + day + '" class="form-check-input" ' + (groupActive ? 'checked' : '') + '><label class="form-check-label small">团体</label></div></td>';
-                    }
-                    html += '</tr>';
-                });
-                html += '</tbody></table>';
-                document.getElementById('timeSlotTableContainer').innerHTML = html;
-                new bootstrap.Modal(document.getElementById('timeSlotModal')).show();
+                tbody.innerHTML = slots.map(s => (
+                    '<tr data-slot-id="' + s.id + '">' +
+                    '<td class="slot-text">' + escapeHtml(s.time_slot) + '</td>' +
+                    '<td class="text-end">' +
+                    '<button type="button" class="btn btn-outline-primary btn-sm me-1" onclick="timeSlotBeginEdit(' + s.id + ', \'' + escapeAttr(s.time_slot) + '\')">修改</button>' +
+                    '<button type="button" class="btn btn-outline-danger btn-sm" onclick="timeSlotDelete(' + venueId + ', ' + s.id + ', \'' + escapeAttr(s.time_slot) + '\')">删除</button>' +
+                    '</td>' +
+                    '</tr>'
+                )).join('');
+            }).catch(err => {
+                tbody.innerHTML = '<tr><td colspan="2" class="text-center text-danger py-3">加载失败：' + err + '</td></tr>';
             });
         }
 
+        function timeSlotFillFromInputs() {
+            const s = document.getElementById('timeSlotQuickStart').value;
+            const e = document.getElementById('timeSlotQuickEnd').value;
+            if (!s || !e) {
+                alert('请选择开始和结束时间');
+                return;
+            }
+            document.getElementById('timeSlotAddInput').value = s + '-' + e;
+        }
+
+        function timeSlotAdd(event) {
+            event.preventDefault();
+            const form = event.target;
+            const venueId = form.venue_id.value;
+            const timeSlot = form.time_slot.value.trim();
+            if (!timeSlot) { return false; }
+            const fd = new FormData();
+            fd.append('action', 'add');
+            fd.append('venue_id', venueId);
+            fd.append('time_slot', timeSlot);
+            fd.append('active_tab', 'venue');
+            fetch('/admin/time-slot-config', { method: 'POST', body: fd }).then(() => {
+                form.time_slot.value = '';
+                loadTimeSlotList(venueId);
+            });
+            return false;
+        }
+
+        function timeSlotBeginEdit(slotId, oldValue) {
+            const tr = document.querySelector('tr[data-slot-id="' + slotId + '"]');
+            if (!tr) return;
+            tr.querySelector('.slot-text').innerHTML =
+                '<div class="d-flex gap-1">' +
+                '<input type="text" class="form-control form-control-sm" value="' + escapeAttr(oldValue) + '" pattern="^\\d{1,2}:\\d{2}-\\d{1,2}:\\d{2}$">' +
+                '<button type="button" class="btn btn-success btn-sm" onclick="timeSlotSaveEdit(' + slotId + ', this)">保存</button>' +
+                '<button type="button" class="btn btn-secondary btn-sm" onclick="loadTimeSlotList(document.getElementById(\'timeSlotAddVenueId\').value)">取消</button>' +
+                '</div>';
+        }
+
+        function timeSlotSaveEdit(slotId, btn) {
+            const tr = document.querySelector('tr[data-slot-id="' + slotId + '"]');
+            const input = tr.querySelector('input[type="text"]');
+            const newValue = input.value.trim();
+            if (!newValue) { alert('时段不能为空'); return; }
+            const venueId = document.getElementById('timeSlotAddVenueId').value;
+            const fd = new FormData();
+            fd.append('action', 'update');
+            fd.append('venue_id', venueId);
+            fd.append('slot_id', slotId);
+            fd.append('time_slot', newValue);
+            fd.append('active_tab', 'venue');
+            fetch('/admin/time-slot-config', { method: 'POST', body: fd }).then(() => {
+                loadTimeSlotList(venueId);
+            });
+        }
+
+        function timeSlotDelete(venueId, slotId, label) {
+            if (!confirm('确认删除时段 ' + label + ' 吗？该操作不可撤销。')) return;
+            const fd = new FormData();
+            fd.append('action', 'delete');
+            fd.append('venue_id', venueId);
+            fd.append('slot_id', slotId);
+            fd.append('active_tab', 'venue');
+            fetch('/admin/time-slot-config', { method: 'POST', body: fd }).then(() => {
+                loadTimeSlotList(venueId);
+            });
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+        function escapeAttr(s) { return escapeHtml(s); }
+
         function openDisabledDateModal(venueId) {
             document.getElementById('ddVenueId').value = venueId;
+            loadTimeSlotOptions(venueId);
             loadDisabledDates(venueId);
             new bootstrap.Modal(document.getElementById('disabledDateModal')).show();
+        }
+
+        function loadTimeSlotOptions(venueId) {
+            const defaultSlots = ['09:00-09:30', '09:30-10:00', '10:00-10:30', '10:30-11:00', '11:00-11:30', '15:00-15:30', '15:30-16:00', '16:00-16:30', '16:30-17:00', '17:00-17:30'];
+            const select = document.getElementById('ddTimeSlotSelect');
+            select.innerHTML = '<option value="" disabled selected>请选择时段</option>';
+            fetch('/admin/get-time-slots/' + venueId).then(r => r.json()).then(data => {
+                const slots = data.slots || {};
+                const seen = new Set();
+                const sortedKeys = Object.keys(slots).sort((a, b) => a.split('-')[0].localeCompare(b.split('-')[0]));
+                sortedKeys.forEach(ts => {
+                    if (!seen.has(ts)) {
+                        seen.add(ts);
+                        const opt = document.createElement('option');
+                        opt.value = ts;
+                        opt.textContent = ts;
+                        select.appendChild(opt);
+                    }
+                });
+                if (seen.size === 0) {
+                    defaultSlots.forEach(ts => {
+                        if (!seen.has(ts)) {
+                            seen.add(ts);
+                            const opt = document.createElement('option');
+                            opt.value = ts;
+                            opt.textContent = ts;
+                            select.appendChild(opt);
+                        }
+                    });
+                }
+            }).catch(() => {
+                defaultSlots.forEach(ts => {
+                    const opt = document.createElement('option');
+                    opt.value = ts;
+                    opt.textContent = ts;
+                    select.appendChild(opt);
+                });
+            });
         }
 
         function loadDisabledDates(venueId) {
@@ -1254,7 +1408,6 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
             document.getElementById('asPassword').required = false;
             document.getElementById('asPasswordCol').style.display = 'block';
             document.getElementById('asName').value = name;
-            document.getElementById('asStaffType').value = staffType || 'approval';
             document.getElementById('asStaffId').value = staffId;
             document.getElementById('asDepartment').value = department;
             document.getElementById('asPhone').value = phone;
@@ -1274,7 +1427,9 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
 
         function populateAsVenueCheckboxes(selected) {
             fetch('/admin/get-all-venues').then(r => r.json()).then(data => {
-                document.getElementById('asVenueList').innerHTML = data.venues.map(v => `<div class="col-6"><div class="form-check"><input type="checkbox" name="assigned_venues" value="${v.id}" class="form-check-input" ${selected.includes(v.id) ? 'checked' : ''}><label class="form-check-label small">${v.name}</label></div></div>`).join('');
+                document.getElementById('asVenueList').innerHTML = data.venues
+                    .filter(v => v.name !== '档案馆（文化路校区）')
+                    .map(v => `<div class="col-6"><div class="form-check"><input type="checkbox" name="assigned_venues" value="${v.id}" class="form-check-input" ${selected.includes(v.id) ? 'checked' : ''}><label class="form-check-label small">${v.name}</label></div></div>`).join('');
             });
         }
 
@@ -1331,13 +1486,49 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
         }
 
         function editAnnouncement(id, title, content) {
-            const htmlDiv = document.createElement('div');
-            htmlDiv.innerHTML = `<div class="modal fade" id="editAnnModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">编辑公告</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form method="POST" action="/admin/announcement/${id}/edit" id="editAnnForm"><div class="mb-2"><input type="text" name="title" class="form-control" value="${title.replace(/"/g, '&quot;')}" required></div><div class="mb-2"><textarea name="content" class="form-control" rows="5" maxlength="10000">${content.replace(/"/g, '&quot;')}</textarea></div></form></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary" onclick="document.getElementById('editAnnForm').submit()">保存</button></div></div></div></div>`;
-            document.body.appendChild(htmlDiv);
-            const modal = new bootstrap.Modal(document.getElementById('editAnnModal'));
+            // 移除旧模态框（如果存在）
+            const old = document.getElementById('editAnnModal');
+            if (old) old.remove();
+
+            // 使用 DOM API 构建，避免 innerHTML 解析问题
+            const wrapper = document.createElement('div');
+            const modalDiv = document.createElement('div');
+            modalDiv.className = 'modal fade';
+            modalDiv.id = 'editAnnModal';
+            modalDiv.tabIndex = -1;
+            modalDiv.innerHTML =
+                '<div class="modal-dialog">' +
+                '<div class="modal-content">' +
+                '<div class="modal-header"><h5 class="modal-title">编辑公告</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>' +
+                '<div class="modal-body"><form method="POST" action="/admin/announcement/' + id + '/edit" id="editAnnForm">' +
+                '<div class="mb-2"><input type="text" name="title" id="editAnnTitle" class="form-control" required></div>' +
+                '<div class="mb-2"><textarea name="content" id="editAnnContent" class="form-control" rows="8" maxlength="10000"></textarea></div>' +
+                '<input type="hidden" name="active_tab" value="notice">' +
+                '</form></div>' +
+                '<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>' +
+                '<button type="button" class="btn btn-primary" onclick="document.getElementById(\'editAnnForm\').submit()">保存</button></div>' +
+                '</div></div>';
+            document.body.appendChild(modalDiv);
+
+            // 用 textContent / value 赋值，绝对安全
+            document.getElementById('editAnnTitle').value = title;
+            document.getElementById('editAnnContent').value = content;
+
+            const modal = new bootstrap.Modal(modalDiv);
             modal.show();
-            document.getElementById('editAnnModal').addEventListener('hidden.bs.modal', function () { this.remove(); });
+            modalDiv.addEventListener('hidden.bs.modal', function () { this.remove(); });
         }
+
+        // 事件委托：点击公告编辑按钮
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.edit-ann-btn');
+            if (!btn) return;
+            e.preventDefault();
+            const id = btn.getAttribute('data-ann-id');
+            const title = btn.getAttribute('data-ann-title');
+            const content = btn.getAttribute('data-ann-content');
+            editAnnouncement(id, title, content);
+        });
 
         function editHomeSection(id, title, content, sortOrder, isVisible) {
             const htmlDiv = document.createElement('div');

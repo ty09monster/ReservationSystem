@@ -52,10 +52,18 @@
             <div class="announcement-list">
                 {% if announcements %}
                 {% for announcement in announcements %}
-                <div class="announcement-item">
+                <div class="announcement-item" data-ann-id="{{ announcement.id }}">
                     <h4>{{ announcement.title }}</h4>
                     <span class="date">{{ announcement.created_at.strftime('%Y-%m-%d') }}</span>
-                    <p>{{ announcement._safe_content }}</p>
+                    <div class="announcement-content"
+                        data-short="{{ announcement._short_text|e }}"
+                        data-full="{{ announcement._safe_content|e }}">
+                        <span class="ann-short">{{ announcement._short_text }}{% if announcement._is_long %}...{% endif %}</span>
+                        <div class="ann-full" style="display:none;">{{ announcement._safe_content|safe }}</div>
+                    </div>
+                    {% if announcement._is_long %}
+                    <a href="javascript:void(0)" class="ann-toggle" onclick="toggleAnnouncement(this)">展开全文 ↓</a>
+                    {% endif %}
                 </div>
                 {% endfor %}
                 {% else %}
@@ -79,10 +87,6 @@
             <i class="icon icon-news"></i>
             <span>公告</span>
         </a>
-        <a href="{{ url_for('h5.about') }}" class="bottom-nav-item">
-            <i class="icon icon-about"></i>
-            <span>关于</span>
-        </a>
         <a href="{{ url_for('h5.home') if is_logged_in else url_for('h5.login') }}" class="bottom-nav-item">
             <i class="icon icon-user"></i>
             <span>{{ '我的' if is_logged_in else '登录' }}</span>
@@ -104,6 +108,22 @@
             // 设置当前年份
             document.getElementById('currentYear').textContent = new Date().getFullYear();
         };
+
+        function toggleAnnouncement(btn) {
+            const item = btn.closest('.announcement-item');
+            const shortEl = item.querySelector('.ann-short');
+            const fullEl = item.querySelector('.ann-full');
+            const isCollapsed = fullEl.style.display === 'none';
+            if (isCollapsed) {
+                fullEl.style.display = 'block';
+                shortEl.style.display = 'none';
+                btn.textContent = '收起 ↑';
+            } else {
+                fullEl.style.display = 'none';
+                shortEl.style.display = '';
+                btn.textContent = '展开全文 ↓';
+            }
+        }
     </script>
 </body>
 
