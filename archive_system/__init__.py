@@ -54,6 +54,53 @@ def ensure_table_schema():
     inspector = sa_inspect(db.engine)
     existing_tables = inspector.get_table_names()
 
+    # --- 数据层修复：统一 VenueTimeSlot.day_of_week = 0 ---
+    if 'venue_time_slot' in existing_tables:
+        with db.engine.connect() as conn:
+            # 将所有非 0 的 day_of_week 统一为 0
+            result = conn.execute(text(
+                "SELECT COUNT(*) FROM venue_time_slot WHERE day_of_week != 0"
+            ))
+            mismatch_count = result.scalar()
+            if mismatch_count and mismatch_count > 0:
+                sys.stdout.write(
+                    f"[DataFix] 检测到 {mismatch_count} 条 day_of_week != 0 的时段，"
+                    "正在统一为 day_of_week=0 …\n"
+                )
+                sys.stdout.flush()
+                conn.execute(text(
+                    "UPDATE venue_time_slot SET day_of_week = 0 WHERE day_of_week != 0"
+                ))
+                conn.commit()
+
+            # 删除重复记录：同一 (venue_id, day_of_week, time_slot) 只保留 id 最小的
+            dup_result = conn.execute(text(
+                "SELECT venue_id, day_of_week, time_slot, COUNT(*) AS cnt "
+                "FROM venue_time_slot GROUP BY venue_id, day_of_week, time_slot "
+                "HAVING cnt > 1"
+            ))
+            dup_rows = dup_result.fetchall()
+            if dup_rows:
+                total_removed = 0
+                for venue_id, dow, ts, cnt in dup_rows:
+                    conn.execute(text(
+                        "DELETE FROM venue_time_slot WHERE venue_id = :vid "
+                        "AND day_of_week = :dow AND time_slot = :ts "
+                        "AND id NOT IN ("
+                        "  SELECT * FROM ("
+                        "    SELECT MIN(id) FROM venue_time_slot"
+                        "    WHERE venue_id = :vid AND day_of_week = :dow AND time_slot = :ts"
+                        "  ) AS _sub"
+                        ")"
+                    ), {"vid": venue_id, "dow": dow, "ts": ts})
+                    total_removed += cnt - 1
+                conn.commit()
+                sys.stdout.write(
+                    f"[DataFix] 去除重复时段 {total_removed} 条\n"
+                )
+                sys.stdout.flush()
+    # --- 数据修复结束 ---
+
     for table_name in sorted(db.metadata.tables.keys()):
         if table_name not in existing_tables:
             continue
@@ -234,20 +281,19 @@ def init_data():
             db.session.add(v)
             db.session.flush()
 
-            for dow in range(1, 6):
-                for ts in time_slots:
-                    db.session.add(VenueTimeSlot(
-                        venue_id=v.id, day_of_week=dow, time_slot=ts,
-                        individual_capacity=20, is_group_active=True, is_active=True
-                    ))
+            for ts in time_slots:
+                db.session.add(VenueTimeSlot(
+                    venue_id=v.id, day_of_week=0, time_slot=ts,
+                    individual_capacity=20, is_group_active=True, is_active=True
+                ))
 
         logger.info("已创建默认%s场馆和时段数据", category)
 
     # 创建默认审批人员账号
     if not ApprovalStaff.query.first():
         import json
-        archive_venue_ids = [v.id for v in Venue.query.all()]
-        xiaoshi_venue_ids = [v.id for v in Venue.query.all()]
+        archive_venue_ids = [v.id for v in Venue.query.filter_by(category='档案馆').all()]
+        xiaoshi_venue_ids = [v.id for v in Venue.query.filter(Venue.category.in_(['校史馆', '标本馆'])).all()]
 
         default_staffs = [
             ApprovalStaff(
