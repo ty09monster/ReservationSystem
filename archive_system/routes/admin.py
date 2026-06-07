@@ -2040,6 +2040,7 @@ def export_stats_report():
         elif period == 'week':
             start_date = (today - timedelta(days=today.weekday())).strftime('%Y-%m-%d')
             end_date = today.strftime('%Y-%m-%d')
+            group_by = 'day'
         elif period == 'month':
             start_date = today.replace(day=1).strftime('%Y-%m-%d')
             end_date = today.strftime('%Y-%m-%d')
