@@ -210,7 +210,7 @@ def dashboard():
     pending_archive_count = ArchiveRequest.query.filter(
         ArchiveRequest.status.in_(['待审核', '待处理'])
     ).count()
-    pending_cancel_count = CancelRequest.query.join(Reservation).filter(
+    pending_cancel_count = CancelRequest.query.join(Reservation).join(Venue).filter(
         CancelRequest.status == '待处理', Venue.category.in_(categories)).count()
 
     return render_template(

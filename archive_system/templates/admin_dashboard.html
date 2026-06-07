@@ -424,7 +424,6 @@
                                     <th>用户名</th>
                                     <th>姓名</th>
                                     <th>类型</th>
-                                    <th>工号</th>
                                     <th>部门</th>
                                     <th>电话</th>
                                     <th>负责场馆</th>
@@ -440,7 +439,6 @@
                                     <td>{% if staff.staff_type == 'leader' %}<span
                                             class="badge bg-warning text-dark">部门领导</span>{% else %}<span
                                             class="badge bg-info">审批教师</span>{% endif %}</td>
-                                    <td>{{ staff.staff_id or '-' }}</td>
                                     <td>{{ staff.department or '-' }}</td>
                                     <td>{{ staff.phone or '-' }}</td>
                                     <td>{% for vid in staff.get_assigned_venue_ids() %}{% for v in venues %}{% if v.id
@@ -450,7 +448,7 @@
                                     <td>{% if staff.is_active %}<span class="badge bg-success">启用</span>{% else %}<span
                                             class="badge bg-secondary">停用</span>{% endif %}</td>
                                     <td><button class="btn btn-outline-primary btn-sm"
-                                            onclick="editApprovalStaff({{ staff.id }},'{{ staff.username }}','{{ staff.name }}','{{ staff.staff_type }}','{{ staff.staff_id or '' }}','{{ staff.department or '' }}','{{ staff.phone or '' }}',{{ staff.get_assigned_venue_ids()|tojson }},{{ 'true' if staff.is_active else 'false' }})">编辑</button>
+                                            onclick="editApprovalStaff({{ staff.id }},'{{ staff.username }}','{{ staff.name }}','{{ staff.staff_type }}','{{ staff.department or '' }}','{{ staff.phone or '' }}',{{ staff.get_assigned_venue_ids()|tojson }},{{ 'true' if staff.is_active else 'false' }})">编辑</button>
                                         <button class="btn btn-outline-danger btn-sm"
                                             onclick="deleteApprovalStaff({{ staff.id }})">删除</button>
                                     </td>
@@ -996,8 +994,6 @@
                                     <div class="col-md-6"><label class="form-label small">姓名 <span
                                                 class="text-danger">*</span></label><input type="text" name="name"
                                             id="asName" class="form-control form-control-sm" required></div>
-                                    <div class="col-md-6"><label class="form-label small">工号</label><input type="text"
-                                            name="staff_id" id="asStaffId" class="form-control form-control-sm"></div>
                                 </div>
                                 <div class="row g-2 mt-1">
                                     <div class="col-md-6"><label class="form-label small">所属部门</label><input type="text"
@@ -1388,8 +1384,6 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
             document.getElementById('asPassword').required = true;
             document.getElementById('asPasswordCol').style.display = 'block';
             document.getElementById('asName').value = '';
-            document.getElementById('asStaffType').value = 'approval';
-            document.getElementById('asStaffId').value = '';
             document.getElementById('asDepartment').value = '';
             document.getElementById('asPhone').value = '';
             document.getElementById('asIsActive').checked = true;
@@ -1399,7 +1393,7 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
             new bootstrap.Modal(document.getElementById('approvalStaffModal')).show();
         }
 
-        function editApprovalStaff(id, username, name, staffType, staffId, department, phone, venueIds, isActive) {
+        function editApprovalStaff(id, username, name, staffType, department, phone, venueIds, isActive) {
             document.getElementById('asAction').value = 'edit';
             document.getElementById('asEditId').value = id;
             document.getElementById('asUsername').value = username;
@@ -1408,7 +1402,6 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
             document.getElementById('asPassword').required = false;
             document.getElementById('asPasswordCol').style.display = 'block';
             document.getElementById('asName').value = name;
-            document.getElementById('asStaffId').value = staffId;
             document.getElementById('asDepartment').value = department;
             document.getElementById('asPhone').value = phone;
             document.getElementById('asIsActive').checked = isActive;

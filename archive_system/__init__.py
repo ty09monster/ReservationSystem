@@ -235,10 +235,63 @@ def ensure_runtime():
 def ensure_default_data():
     """填充缺失的默认数据（不会覆盖已有数据）"""
     import logging
+    import json as _json
     logger = logging.getLogger(__name__)
 
+    from .models import HomeSection as HS, Admin as Adm, SystemConfig as SC, Announcement as Ann, ApprovalStaff as AS, Venue as V
+
+    # 管理员
+    if not Adm.query.filter_by(username="admin").first():
+        db.session.add(Adm(
+            username="admin",
+            password_hash=generate_password_hash("admin"),
+            is_super=True
+        ))
+        db.session.commit()
+        logger.info("[Data] 已填充缺失的管理员")
+
+    # 系统配置
+    if not SC.query.first():
+        db.session.add(SC())
+        db.session.commit()
+        logger.info("[Data] 已填充缺失的系统配置")
+
+    # 公告
+    if not Ann.query.first():
+        db.session.add(Ann(
+            title="欢迎访问档案馆预约系统",
+            content="请各位访客遵守相关规定，提前预约。",
+        ))
+        db.session.commit()
+        logger.info("[Data] 已填充缺失的公告")
+
+    # 审批人员
+    if not AS.query.first():
+        archive_venue_ids = [v.id for v in V.query.filter_by(category='档案馆').all()]
+        xiaoshi_venue_ids = [v.id for v in V.query.filter(V.category.in_(['校史馆', '标本馆'])).all()]
+
+        db.session.add_all([
+            AS(username="admin", password_hash=generate_password_hash("admin"),
+               name="档案馆领导", staff_id="LD001", department="档案馆",
+               phone="13800000001", assigned_venue_ids=_json.dumps(archive_venue_ids),
+               staff_type="leader", is_active=True),
+            AS(username="archive", password_hash=generate_password_hash("admin"),
+               name="档案馆教师", staff_id="JS001", department="档案馆",
+               phone="13800000002", assigned_venue_ids=_json.dumps(archive_venue_ids),
+               staff_type="approval", is_active=True),
+            AS(username="xiaoshi_leader", password_hash=generate_password_hash("admin"),
+               name="校史馆领导", staff_id="LD002", department="校史馆",
+               phone="13800000003", assigned_venue_ids=_json.dumps(xiaoshi_venue_ids),
+               staff_type="leader", is_active=True),
+            AS(username="xiaoshi_teacher", password_hash=generate_password_hash("admin"),
+               name="校史馆教师", staff_id="JS002", department="校史馆",
+               phone="13800000004", assigned_venue_ids=_json.dumps(xiaoshi_venue_ids),
+               staff_type="approval", is_active=True),
+        ])
+        db.session.commit()
+        logger.info("[Data] 已填充缺失的审批人员")
+
     # HomeSection 默认记录
-    from .models import HomeSection as HS
     if not HS.query.first():
         default_sections = [
             HS(section_key="museum_intro", title="校史馆简介",
