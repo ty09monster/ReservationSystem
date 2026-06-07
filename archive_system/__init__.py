@@ -2,7 +2,7 @@ from flask import Flask
 from werkzeug.security import generate_password_hash
 from .config import Config
 from .extensions import db
-from .models import Admin, SystemConfig, Announcement, Venue, VenueTimeSlot, Attachment, ApprovalStaff
+from .models import Admin, SystemConfig, Announcement, Venue, VenueTimeSlot, Attachment, ApprovalStaff, HomeSection
 import os
 
 def create_app(config_class=Config):
@@ -27,6 +27,11 @@ def create_app(config_class=Config):
     if _is_init_enabled():
         with app.app_context():
             init_database_with_lock()
+
+    # 每次启动都运行轻量级数据修复（表结构补全 + 默认数据填充）
+    # 仅主进程（非gunicorn worker fork场景）或任意一个worker执行
+    with app.app_context():
+        ensure_runtime()
 
     return app
 
@@ -174,6 +179,83 @@ def ensure_table_schema():
             conn.commit()
 
 
+def ensure_runtime():
+    """每次启动时运行：补全缺失的表结构 + 填充缺失的默认数据。
+    使用原子锁文件，避免多 worker 重复执行。"""
+    import sys
+    import atexit
+    import time
+
+    runtime_lock = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        'data', 'runtime_ensure.lock'
+    )
+    os.makedirs(os.path.dirname(runtime_lock), exist_ok=True)
+
+    try:
+        with open(runtime_lock, 'x') as f:
+            f.write(str(os.getpid()))
+            f.flush()
+            os.fsync(f.fileno())
+
+        def cleanup_runtime_lock():
+            try:
+                if os.path.exists(runtime_lock):
+                    os.remove(runtime_lock)
+            except Exception:
+                pass
+        atexit.register(cleanup_runtime_lock)
+
+    except FileExistsError:
+        # 另一个 worker 正在执行或刚执行过，等待其完成
+        for _ in range(10):
+            if not os.path.exists(runtime_lock):
+                return
+            time.sleep(0.5)
+        # 10 秒后锁文件仍存在（可能是进程崩溃遗留），强制清理并继续
+        try:
+            os.remove(runtime_lock)
+        except Exception:
+            return
+
+    try:
+        ensure_table_schema()
+        ensure_default_data()
+    except Exception as e:
+        sys.stderr.write(f"[Runtime] 数据修复失败: {e}\n")
+        sys.stderr.flush()
+    finally:
+        try:
+            if os.path.exists(runtime_lock):
+                os.remove(runtime_lock)
+        except Exception:
+            pass
+
+
+def ensure_default_data():
+    """填充缺失的默认数据（不会覆盖已有数据）"""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # HomeSection 默认记录
+    from .models import HomeSection as HS
+    if not HS.query.first():
+        default_sections = [
+            HS(section_key="museum_intro", title="校史馆简介",
+               content="校史馆是展示学校发展历程的重要窗口，记录了学校自建校以来的辉煌成就与珍贵记忆。\n\n校史馆收藏了大量珍贵的历史照片、文献资料和实物展品，生动再现了学校在不同历史时期的发展轨迹。\n\n欢迎广大校友、师生及社会各界人士前来参观。",
+               sort_order=1, is_visible=True),
+            HS(section_key="archive_intro", title="档案馆简介",
+               content="档案馆是保存和利用学校档案信息资源的重要场所，为全校师生及社会提供档案查询服务。\n\n档案馆馆藏丰富，涵盖教学档案、科研档案、学籍档案、行政档案等多个门类。\n\n欢迎有档案查询需求的师生及校友前来办理。",
+               sort_order=2, is_visible=True),
+            HS(section_key="contact", title="联系我们",
+               content="地址：河南省郑州市郑东新区龙子湖高校园区\n\n电话：0371-XXXXXXXX\n\n邮箱：archives@henau.edu.cn\n\n工作时间：周一至周五 8:30-12:00 / 14:00-17:00",
+               sort_order=3, is_visible=True),
+        ]
+        db.session.add_all(default_sections)
+        db.session.commit()
+        logger.info("[Data] 已填充缺失的首页信息模块")
+
+
 def init_database_with_lock():
     """使用原子文件创建锁，防止多进程并发初始化"""
     import atexit
@@ -252,6 +334,22 @@ def init_data():
             )
         )
         logger.info("已创建默认公告")
+
+    # 创建默认首页信息模块
+    if not HomeSection.query.first():
+        default_sections = [
+            HomeSection(section_key="museum_intro", title="校史馆简介",
+                        content="校史馆是展示学校发展历程的重要窗口，记录了学校自建校以来的辉煌成就与珍贵记忆。\n\n校史馆收藏了大量珍贵的历史照片、文献资料和实物展品，生动再现了学校在不同历史时期的发展轨迹。\n\n欢迎广大校友、师生及社会各界人士前来参观。",
+                        sort_order=1, is_visible=True),
+            HomeSection(section_key="archive_intro", title="档案馆简介",
+                        content="档案馆是保存和利用学校档案信息资源的重要场所，为全校师生及社会提供档案查询服务。\n\n档案馆馆藏丰富，涵盖教学档案、科研档案、学籍档案、行政档案等多个门类。\n\n欢迎有档案查询需求的师生及校友前来办理。",
+                        sort_order=2, is_visible=True),
+            HomeSection(section_key="contact", title="联系我们",
+                        content="地址：河南省郑州市郑东新区龙子湖高校园区\n\n电话：0371-XXXXXXXX\n\n邮箱：archives@henau.edu.cn\n\n工作时间：周一至周五 8:30-12:00 / 14:00-17:00",
+                        sort_order=3, is_visible=True),
+        ]
+        db.session.add_all(default_sections)
+        logger.info("已创建默认首页信息模块")
 
     # 按分类检查并补充缺失的默认场馆
     time_slots = ["09:00-10:30", "10:30-12:00", "14:00-15:30", "15:30-17:00"]
