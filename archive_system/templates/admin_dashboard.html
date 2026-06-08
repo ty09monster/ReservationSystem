@@ -472,7 +472,6 @@
                             <thead>
                                 <tr>
                                     <th>姓名</th>
-                                    <th>工号</th>
                                     <th>电话</th>
                                     <th>擅长内容</th>
                                     <th>状态</th>
@@ -483,14 +482,13 @@
                                 {% for g in guide_list %}
                                 <tr>
                                     <td>{{ g.name }}</td>
-                                    <td>{{ g.staff_id or '-' }}</td>
                                     <td>{{ g.phone or '-' }}</td>
                                     <td>{{ g.expertise or '-' }}</td>
                                     <td><span
                                             class="{% if g.status == '在岗' %}guide-status-on{% else %}guide-status-off{% endif %}">{{
                                             g.status }}</span></td>
                                     <td><button class="btn btn-outline-primary btn-sm"
-                                            onclick="editGuide({{ g.id }},'{{ g.name }}','{{ g.staff_id or '' }}','{{ g.phone or '' }}','{{ g.expertise or '' }}','{{ g.status }}')">编辑</button>
+                                            onclick="editGuide({{ g.id }},'{{ g.name }}','{{ g.phone or '' }}','{{ g.expertise or '' }}','{{ g.status }}')">编辑</button>
                                         <form method="POST" action="{{ url_for('admin.guide_management') }}"
                                             style="display:inline"><input type="hidden" name="action"
                                                 value="toggle_status"><input type="hidden" name="id"
@@ -502,7 +500,7 @@
                                     </td>
                                 </tr>
                                 {% endfor %}{% if not guide_list %}<tr>
-                                    <td colspan="6" class="text-center text-muted py-3">暂无讲解员</td>
+                                    <td colspan="5" class="text-center text-muted py-3">暂无讲解员</td>
                                 </tr>{% endif %}
                             </tbody>
                         </table>
@@ -1034,8 +1032,6 @@
                                     name="id" id="guideEditId">
                                 <div class="mb-2"><label class="form-label small">姓名</label><input type="text"
                                         name="name" id="guideName" class="form-control form-control-sm" required></div>
-                                <div class="mb-2"><label class="form-label small">工号</label><input type="text"
-                                        name="staff_id" id="guideStaffId" class="form-control form-control-sm"></div>
                                 <div class="mb-2"><label class="form-label small">联系电话</label><input type="text"
                                         name="phone" id="guidePhone" class="form-control form-control-sm"></div>
                                 <div class="mb-2"><label class="form-label small">擅长讲解内容</label><input type="text"
@@ -1430,7 +1426,6 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
             document.getElementById('guideAction').value = 'create';
             document.getElementById('guideEditId').value = '';
             document.getElementById('guideName').value = '';
-            document.getElementById('guideStaffId').value = '';
             document.getElementById('guidePhone').value = '';
             document.getElementById('guideExpertise').value = '';
             document.getElementById('guideStatus').value = '在岗';
@@ -1438,11 +1433,10 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
             new bootstrap.Modal(document.getElementById('guideModal')).show();
         }
 
-        function editGuide(id, name, staffId, phone, expertise, status) {
+        function editGuide(id, name, phone, expertise, status) {
             document.getElementById('guideAction').value = 'edit';
             document.getElementById('guideEditId').value = id;
             document.getElementById('guideName').value = name;
-            document.getElementById('guideStaffId').value = staffId;
             document.getElementById('guidePhone').value = phone;
             document.getElementById('guideExpertise').value = expertise;
             document.getElementById('guideStatus').value = status;
@@ -1554,7 +1548,6 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
                 html += '<tr><th class="bg-light">证件号码</th><td>' + data.user_id_card + '</td></tr>';
                 html += '<tr><th class="bg-light">手机号</th><td>' + data.user_phone + '</td></tr>';
                 html += '<tr><th class="bg-light">邮箱</th><td>' + (data.user_email || '-') + '</td></tr>';
-                html += '<tr><th class="bg-light">身份</th><td>' + (data.identity || '-') + '</td></tr>';
                 html += '</tbody></table></div></div>';
                 html += '<h6 class="mt-3">参观信息</h6><div class="row"><div class="col-md-6"><table class="table table-sm table-bordered"><tbody>';
                 html += '<tr><th class="bg-light">参观场馆</th><td>' + data.venue_name + '</td></tr>';

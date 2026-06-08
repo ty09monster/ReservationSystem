@@ -92,7 +92,7 @@ function updateAllCharts() {
         document.getElementById('card-approved').innerText = d.approved_count;
         document.getElementById('card-visitors').innerText = '--';
     });
-    fetch('/admin/stats/total').then(r => r.json()).then(d => {
+    fetch('/admin/stats/total?' + params).then(r => r.json()).then(d => {
         document.getElementById('card-visitors').innerText = d.total_visitors;
         document.getElementById('card-util').innerText = d.avg_utilization + '%';
     });
@@ -115,12 +115,14 @@ function createOrUpdateChart(id, type, labels, values, label, bgColors) {
 
 function updateTrendChart() {
     const tr = document.getElementById('trend-time-range').value;
-    fetch('/admin/stats/reservation-trend?time_range=' + tr).then(r => r.json()).then(d => {
+    const params = getStatsParams();
+    fetch('/admin/stats/reservation-trend?time_range=' + tr + '&' + params).then(r => r.json()).then(d => {
         createOrUpdateChart('trendChart', 'line', d.labels, d.values, '预约量');
     });
 }
 function updateStatusChart() {
-    fetch('/admin/stats/reservation-status').then(r => r.json()).then(d => {
+    const params = getStatsParams();
+    fetch('/admin/stats/reservation-status?' + params).then(r => r.json()).then(d => {
         // 过滤掉"待部门领导指定审批人"状态
         const filteredLabels = [];
         const filteredValues = [];
@@ -134,22 +136,26 @@ function updateStatusChart() {
     });
 }
 function updateVenueChart() {
-    fetch('/admin/stats/venue-comparison').then(r => r.json()).then(d => {
+    const params = getStatsParams();
+    fetch('/admin/stats/venue-comparison?' + params).then(r => r.json()).then(d => {
         createOrUpdateChart('venueChart', 'bar', d.labels, d.values, '预约量');
     });
 }
 function updateTypeChart() {
-    fetch('/admin/stats/reservation-type').then(r => r.json()).then(d => {
+    const params = getStatsParams();
+    fetch('/admin/stats/reservation-type?' + params).then(r => r.json()).then(d => {
         createOrUpdateChart('typeChart', 'doughnut', d.labels, d.values, '预约类型');
     });
 }
 function updatePeakChart() {
-    fetch('/admin/stats/peak-hours').then(r => r.json()).then(d => {
+    const params = getStatsParams();
+    fetch('/admin/stats/peak-hours?' + params).then(r => r.json()).then(d => {
         createOrUpdateChart('peakChart', 'bar', d.labels, d.values, '客流量');
     });
 }
 function updateUtilChart() {
-    fetch('/admin/stats/time-utilization').then(r => r.json()).then(d => {
+    const params = getStatsParams();
+    fetch('/admin/stats/time-utilization?' + params).then(r => r.json()).then(d => {
         createOrUpdateChart('utilChart', 'bar', d.labels, d.values, '利用率(%)');
     });
 }

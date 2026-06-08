@@ -277,12 +277,12 @@
             </div>
             {% if res.res_type == '单位' %}
             <div class="detail-row">
-                <span class="detail-label">预约单位</span>
+                <span class="detail-label">预约人单位</span>
                 <span class="detail-value">{{ res.group_name or '' }}</span>
             </div>
             <div class="detail-row">
-                <span class="detail-label">参观单位</span>
-                <span class="detail-value">{{ res.visiting_unit or '' }}</span>
+                <span class="detail-label">预约人身份证号</span>
+                <span class="detail-value">{{ res.id_number or '' }}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">单位联系人</span>
