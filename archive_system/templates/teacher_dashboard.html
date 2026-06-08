@@ -869,15 +869,24 @@
                 .catch(function (err) { console.error('加载统计数据失败', err); });
         }
 
-        document.querySelectorAll('#periodBtns .period-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                document.querySelectorAll('#periodBtns .period-btn').forEach(function (b) { b.classList.remove('active'); });
-                this.classList.add('active');
-                loadStats(this.dataset.period);
+        function initPeriodButtons() {
+            var btns = document.getElementById('periodBtns');
+            if (!btns) { loadStats('today'); return; }
+            btns.addEventListener('click', function (e) {
+                var btn = e.target.closest('.period-btn');
+                if (!btn) return;
+                e.preventDefault();
+                btns.querySelectorAll('.period-btn').forEach(function (b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                loadStats(btn.dataset.period);
             });
-        });
+        }
 
-        loadStats('today');
+        // Initialize: load stats for the active period button
+        var activeBtn = document.querySelector('#periodBtns .period-btn.active');
+        var initPeriod = activeBtn ? activeBtn.dataset.period : 'today';
+        initPeriodButtons();
+        loadStats(initPeriod);
     </script>
 </body>
 
