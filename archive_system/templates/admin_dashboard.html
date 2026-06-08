@@ -954,8 +954,6 @@
                                 class="row g-2 align-items-end mb-3"><input type="hidden" name="action"
                                     value="add"><input type="hidden" name="venue_id" id="ddVenueId"><input type="hidden"
                                     name="active_tab" value="venue">
-                                <div class="col-auto"><select name="time_slot" id="ddTimeSlotSelect"
-                                        class="form-select form-select-sm" required></select></div>
                                 <div class="col-auto"><input type="date" name="disabled_date"
                                         class="form-control form-control-sm" required></div>
                                 <div class="col-auto"><button class="btn btn-primary btn-sm">添加禁用日期</button></div>
@@ -1321,53 +1319,14 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
 
         function openDisabledDateModal(venueId) {
             document.getElementById('ddVenueId').value = venueId;
-            loadTimeSlotOptions(venueId);
             loadDisabledDates(venueId);
             new bootstrap.Modal(document.getElementById('disabledDateModal')).show();
-        }
-
-        function loadTimeSlotOptions(venueId) {
-            const defaultSlots = ['09:00-09:30', '09:30-10:00', '10:00-10:30', '10:30-11:00', '11:00-11:30', '15:00-15:30', '15:30-16:00', '16:00-16:30', '16:30-17:00', '17:00-17:30'];
-            const select = document.getElementById('ddTimeSlotSelect');
-            select.innerHTML = '<option value="" disabled selected>请选择时段</option>';
-            fetch('/admin/get-time-slots/' + venueId).then(r => r.json()).then(data => {
-                const slots = data.slots || {};
-                const seen = new Set();
-                const sortedKeys = Object.keys(slots).sort((a, b) => a.split('-')[0].localeCompare(b.split('-')[0]));
-                sortedKeys.forEach(ts => {
-                    if (!seen.has(ts)) {
-                        seen.add(ts);
-                        const opt = document.createElement('option');
-                        opt.value = ts;
-                        opt.textContent = ts;
-                        select.appendChild(opt);
-                    }
-                });
-                if (seen.size === 0) {
-                    defaultSlots.forEach(ts => {
-                        if (!seen.has(ts)) {
-                            seen.add(ts);
-                            const opt = document.createElement('option');
-                            opt.value = ts;
-                            opt.textContent = ts;
-                            select.appendChild(opt);
-                        }
-                    });
-                }
-            }).catch(() => {
-                defaultSlots.forEach(ts => {
-                    const opt = document.createElement('option');
-                    opt.value = ts;
-                    opt.textContent = ts;
-                    select.appendChild(opt);
-                });
-            });
         }
 
         function loadDisabledDates(venueId) {
             fetch('/admin/get-disabled-dates/' + venueId).then(r => r.json()).then(data => {
                 document.getElementById('disabledDateList').innerHTML = data.disabled_dates.length === 0 ? '<p class="text-muted">暂无禁用日期</p>' :
-                    '<table class="table table-sm"><thead><tr><th>时段</th><th>日期</th><th>操作</th></tr></thead><tbody>' + data.disabled_dates.map(dd => '<tr><td>' + dd.time_slot + '</td><td>' + dd.disabled_date + '</td><td><form method="POST" action="/admin/disabled-date" style="display:inline"><input type="hidden" name="action" value="delete"><input type="hidden" name="venue_id" value="' + venueId + '"><input type="hidden" name="disabled_id" value="' + dd.id + '"><input type="hidden" name="active_tab" value="venue"><button class="btn btn-outline-danger btn-sm">删除</button></form></td></tr>').join('') + '</tbody></table>';
+                    '<table class="table table-sm"><thead><tr><th>日期</th><th>操作</th></tr></thead><tbody>' + data.disabled_dates.map(dd => '<tr><td>' + dd.disabled_date + '</td><td><form method="POST" action="/admin/disabled-date" style="display:inline"><input type="hidden" name="action" value="delete"><input type="hidden" name="venue_id" value="' + venueId + '"><input type="hidden" name="disabled_id" value="' + dd.id + '"><input type="hidden" name="active_tab" value="venue"><button class="btn btn-outline-danger btn-sm">删除</button></form></td></tr>').join('') + '</tbody></table>';
             });
         }
 

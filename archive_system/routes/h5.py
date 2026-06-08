@@ -323,6 +323,9 @@ def _reserve_base(template_key, render_res_type="个人", visit_type="线下"):
             return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
 
         for disabled in disabled_list:
+            if disabled.time_slot == "全天":
+                flash("所选日期已被管理员禁用，请选择其他日期")
+                return render_template("h5_reserve_modern.html", user=user, venues=venues, venue=default_venue)
             disabled_start = disabled.time_slot.split('-')[0]
             disabled_end = disabled.time_slot.split('-')[1]
             visit_start = visit_time.split('-')[0]
@@ -732,8 +735,10 @@ def get_available_slots():
                 existing_counts[r.visit_time] = existing_counts.get(r.visit_time, 0) + r.visitor_count
 
         def _is_slot_disabled(slot_str):
-            slot_start, slot_end = slot_str.split('-')
             for disabled in disabled_slots:
+                if disabled.time_slot == "全天":
+                    return True
+                slot_start, slot_end = slot_str.split('-')
                 d_start, d_end = disabled.time_slot.split('-')
                 if not (slot_end <= d_start or slot_start >= d_end):
                     return True
@@ -892,6 +897,9 @@ def archive_reserve(visit_type):
         ).all()
 
         for disabled in disabled_list:
+            if disabled.time_slot == "全天":
+                flash("所选日期已被管理员禁用，请选择其他日期")
+                return _render()
             disabled_start = disabled.time_slot.split('-')[0]
             disabled_end = disabled.time_slot.split('-')[1]
             visit_start = visit_time.split('-')[0]

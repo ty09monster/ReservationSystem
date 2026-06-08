@@ -505,13 +505,17 @@ def api_stats():
         end = today
     elif period == 'week':
         start = today - timedelta(days=today.weekday())
-        end = today
+        end = start + timedelta(days=6)
     elif period == 'month':
         start = today.replace(day=1)
-        end = today
+        # 本月最后一天
+        if today.month == 12:
+            end = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
+        else:
+            end = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
     elif period == 'year':
         start = today.replace(month=1, day=1)
-        end = today
+        end = today.replace(month=12, day=31)
     else:
         start = today
         end = today
@@ -1375,11 +1379,17 @@ def _get_stats_date_range():
     if period == 'today':
         return (today, today)
     elif period == 'week':
-        return (today - timedelta(days=today.weekday()), today)
+        start = today - timedelta(days=today.weekday())
+        return (start, start + timedelta(days=6))
     elif period == 'month':
-        return (today.replace(day=1), today)
+        start = today.replace(day=1)
+        if today.month == 12:
+            end = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
+        else:
+            end = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
+        return (start, end)
     elif period == 'year':
-        return (today.replace(month=1, day=1), today)
+        return (today.replace(month=1, day=1), today.replace(month=12, day=31))
     return (None, None)
 
 
@@ -1732,7 +1742,7 @@ def get_disabled_dates(venue_id):
 def manage_disabled_date():
     action = request.form.get("action")
     venue_id = request.form.get("venue_id", type=int)
-    time_slot = request.form.get("time_slot", "")
+    time_slot = request.form.get("time_slot", "").strip() or "全天"
     disabled_date = request.form.get("disabled_date", "")
     active_tab = request.form.get("active_tab", "venue")
 
@@ -1741,8 +1751,8 @@ def manage_disabled_date():
         return redirect(url_for("admin.dashboard", active_tab=active_tab))
 
     if action == "add":
-        if not time_slot or not disabled_date:
-            flash("请选择时段和日期")
+        if not disabled_date:
+            flash("请选择日期")
             return redirect(url_for("admin.dashboard", active_tab=active_tab))
 
         existing = VenueTimeSlotDisabledDate.query.filter_by(
@@ -1752,7 +1762,7 @@ def manage_disabled_date():
         ).first()
 
         if existing:
-            flash("该日期时段已被禁用")
+            flash("该日期已被禁用")
             return redirect(url_for("admin.dashboard", active_tab=active_tab))
 
         new_disabled = VenueTimeSlotDisabledDate(
@@ -2070,15 +2080,21 @@ def export_stats_report():
             start_date = end_date = today.strftime('%Y-%m-%d')
             group_by = 'day'
         elif period == 'week':
-            start_date = (today - timedelta(days=today.weekday())).strftime('%Y-%m-%d')
-            end_date = today.strftime('%Y-%m-%d')
+            start = today - timedelta(days=today.weekday())
+            start_date = start.strftime('%Y-%m-%d')
+            end_date = (start + timedelta(days=6)).strftime('%Y-%m-%d')
             group_by = 'day'
         elif period == 'month':
-            start_date = today.replace(day=1).strftime('%Y-%m-%d')
-            end_date = today.strftime('%Y-%m-%d')
+            start = today.replace(day=1)
+            start_date = start.strftime('%Y-%m-%d')
+            if today.month == 12:
+                end = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
+            else:
+                end = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
+            end_date = end.strftime('%Y-%m-%d')
         elif period == 'year':
             start_date = today.replace(month=1, day=1).strftime('%Y-%m-%d')
-            end_date = today.strftime('%Y-%m-%d')
+            end_date = today.replace(month=12, day=31).strftime('%Y-%m-%d')
 
     if group_by == 'day':
         label_col = func.date(Reservation.visit_date)

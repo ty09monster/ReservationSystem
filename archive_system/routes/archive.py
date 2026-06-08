@@ -296,13 +296,16 @@ def api_stats():
         end = today
     elif period == 'week':
         start = today - timedelta(days=today.weekday())
-        end = today
+        end = start + timedelta(days=6)
     elif period == 'month':
         start = today.replace(day=1)
-        end = today
+        if today.month == 12:
+            end = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
+        else:
+            end = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
     elif period == 'year':
         start = today.replace(month=1, day=1)
-        end = today
+        end = today.replace(month=12, day=31)
     else:
         start = today
         end = today
