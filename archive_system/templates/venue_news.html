@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>馆务动态 - 河南农业大学校史馆</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/font_who/iconfont.css') }}" rel="stylesheet">
+    <style>
+        .news-list {
+            padding: 16px;
+        }
+
+        .news-item {
+            background: white;
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .news-item .news-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .news-item .news-time {
+            font-size: 0.72rem;
+            color: var(--text-tertiary);
+            margin-bottom: 8px;
+        }
+
+        .news-item .news-summary {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 8px;
+        }
+
+        .news-item .news-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .news-item .news-detail {
+            color: var(--green-600);
+            font-size: 0.8rem;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .news-item .news-cover {
+            width: 100%;
+            max-height: 180px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .news-item.pinned {
+            border-left: 3px solid var(--gold-500);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loading" id="loading"></div>
+    <nav class="top-nav">
+        <div class="back-btn" onclick="window.location.href='{{ url_for('h5.landing') }}'">
+            <i class="icon icon-back"></i>
+        </div>
+        <h1>馆务动态</h1>
+        <div class="nav-right"></div>
+    </nav>
+    <div class="main-content">
+        <div class="news-list">
+            {% if news_list %}
+            {% for n in news_list %}
+            {% set plain = n.content|striptags %}
+            <div class="news-item {% if n.is_pinned %}pinned{% endif %}">
+                {% if n.cover_image %}
+                <img class="news-cover" src="{{ url_for('static', filename=n.cover_image) }}" alt="{{ n.title }}">
+                {% endif %}
+                <div class="news-title">{{ n.title }}</div>
+                <div class="news-time">{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                <div class="news-summary">{{ plain[:100] }}{% if plain|length > 100 %}...{% endif %}</div>
+                <div class="news-footer">
+                    <span class="small text-muted">{{ plain|length }}字</span>
+                    <a class="news-detail" href="{{ url_for('h5.venue_news_detail', news_id=n.id) }}">查看详情 &gt;</a>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div style="text-align:center; padding: 60px 0; color: var(--text-tertiary);">
+                <div style="font-size:3rem; margin-bottom:12px;">📰</div>
+                <p>暂无馆务动态</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+        window.onload = function () {
+            setTimeout(function () {
+                document.getElementById('loading').style.display = 'none';
+            }, 400);
+        };
+    </script>
+</body>
+
+</html>

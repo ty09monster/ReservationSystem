@@ -8,7 +8,7 @@ from datetime import datetime, date, timedelta
 import os
 import uuid
 from ..extensions import db
-from ..models import User, SystemConfig, Announcement, Reservation, Venue, VenueTimeSlot, Attachment, ArchiveRequest, VenueTimeSlotDisabledDate, CancelRequest, HomeSection
+from ..models import User, SystemConfig, Announcement, Reservation, Venue, VenueTimeSlot, Attachment, ArchiveRequest, VenueTimeSlotDisabledDate, CancelRequest, HomeSection, VenueNews, FAQ
 from ..validators import validate_certificate, validate_phone, validate_email, validate_visit_date
 from ..decorators import login_required
 from sqlalchemy import func
@@ -91,9 +91,17 @@ def is_safe_url(target):
 
 
 @h5_bp.route("/")
+def landing():
+    """
+    新首页（四模块入口页面）
+    无需登录即可访问
+    """
+    return render_template("landing.html")
+
+@h5_bp.route("/h5/index")
 def index():
     """
-    系统首页（A页面）
+    系统首页（原A页面）
     无需登录即可访问
     """
     config = SystemConfig.query.first()
@@ -104,6 +112,29 @@ def index():
     home_sections = HomeSection.query.filter_by(is_visible=True).order_by(HomeSection.sort_order).all()
     is_logged_in = "user_id" in session
     return render_template("index.html", config=config, announcements=announcements, home_sections=home_sections, is_logged_in=is_logged_in)
+
+@h5_bp.route("/faq")
+def faq():
+    """常见问题页面"""
+    faqs = FAQ.query.filter_by(is_visible=True).order_by(FAQ.sort_order).all()
+    return render_template("faq.html", faqs=faqs)
+
+@h5_bp.route("/venue_news")
+def venue_news():
+    """馆务动态页面"""
+    news = VenueNews.query.filter_by(is_hidden=False).order_by(
+        VenueNews.is_pinned.desc(),
+        VenueNews.created_at.desc()
+    ).all()
+    return render_template("venue_news.html", news_list=news)
+
+@h5_bp.route("/venue_news/<int:news_id>")
+def venue_news_detail(news_id):
+    """馆务动态详情页"""
+    news = db.session.get(VenueNews, news_id)
+    if not news or news.is_hidden:
+        return redirect(url_for("h5.venue_news"))
+    return render_template("venue_news_detail.html", news=news)
 
 @h5_bp.route("/announcements")
 def announcements():

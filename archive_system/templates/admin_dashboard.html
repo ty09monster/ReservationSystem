@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ area_label }} - 管理后台</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.css" rel="stylesheet">
     <style>
         :root {
             --admin-green-900: #1B3B22;
@@ -287,6 +288,9 @@
             <a class="nav-link {% if active_tab == 'notice' %}active{% endif %}" href="?active_tab=notice">公告管理</a>
             <a class="nav-link {% if active_tab == 'home_sections' %}active{% endif %}"
                 href="?active_tab=home_sections">首页信息</a>
+            <a class="nav-link {% if active_tab == 'venue_news' %}active{% endif %}"
+                href="?active_tab=venue_news">馆务动态</a>
+            <a class="nav-link {% if active_tab == 'faq' %}active{% endif %}" href="?active_tab=faq">常见问题</a>
             {% if management_area != 'archive' %}<a class="nav-link {% if active_tab == 'venue' %}active{% endif %}"
                 href="?active_tab=venue">场馆管理</a>{% endif %}
             {% if session.get('is_super') %}
@@ -607,6 +611,164 @@
                                 </tr>
                                 {% endfor %}{% if not home_sections %}<tr>
                                     <td colspan="6" class="text-center text-muted py-3">暂无模块</td>
+                                </tr>{% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 馆务动态 -->
+            <div class="tab-content-section {% if active_tab == 'venue_news' %}active{% endif %}" id="tab-venue-news">
+                <h5 class="mb-3">馆务动态</h5>
+                <div class="card-custom mb-4">
+                    <div class="card-header">发布/编辑动态</div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('admin.config') }}">
+                            <input type="hidden" name="save_venue_news" value="1">
+                            <input type="hidden" name="active_tab" value="venue_news">
+                            <input type="hidden" name="news_id" id="vn-news-id">
+                            <input type="hidden" name="cover_image" id="vn-cover-image">
+                            <div class="mb-2"><input type="text" name="title" id="vn-title" class="form-control"
+                                    placeholder="标题" required></div>
+                            <div class="mb-2"><textarea name="content" id="vn-content"></textarea></div>
+                            <div class="mb-2">
+                                <label class="form-label small text-muted mb-1">封面图</label>
+                                <div id="vn-cover-preview" class="mb-2" style="display:none;">
+                                    <img id="vn-cover-img" src="" style="max-height:120px;border-radius:6px;">
+                                    <button type="button" class="btn btn-outline-danger btn-sm ms-2"
+                                        onclick="removeCoverImage()">移除</button>
+                                </div>
+                                <input type="file" id="vn-cover-input" class="form-control form-control-sm"
+                                    accept="image/*" onchange="uploadCover()">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm">保存</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm ms-2"
+                                onclick="resetVenueNewsForm()">取消</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-custom">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>标题</th>
+                                    <th>内容</th>
+                                    <th>状态</th>
+                                    <th>时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for n in venue_news_list %}
+                                <tr>
+                                    <td>{{ n.title }}</td>
+                                    <td class="small text-muted">{% set pc = n.content|striptags %}{{ pc[:60] }}{% if
+                                        pc|length > 60 %}...{% endif %}</td>
+                                    <td>
+                                        {% if n.is_hidden %}<span class="badge bg-secondary">隐藏</span>{% else %}<span
+                                            class="badge bg-success">显示</span>{% endif %}
+                                        {% if n.is_pinned %}<span class="badge bg-warning">置顶</span>{% endif %}
+                                    </td>
+                                    <td class="small">{{ n.created_at.strftime('%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <form method="POST"
+                                            action="{{ url_for('admin.toggle_venue_news_pin', news_id=n.id) }}"
+                                            style="display:inline">
+                                            <button class="btn btn-outline-warning btn-sm">{{ '取消置顶' if n.is_pinned else
+                                                '置顶' }}</button>
+                                        </form>
+                                        <form method="POST"
+                                            action="{{ url_for('admin.toggle_venue_news_hide', news_id=n.id) }}"
+                                            style="display:inline">
+                                            <button class="btn btn-outline-secondary btn-sm">{{ '显示' if n.is_hidden else
+                                                '隐藏' }}</button>
+                                        </form>
+                                        <button class="btn btn-outline-primary btn-sm"
+                                            onclick="editVenueNews({{ n.id }}, '{{ n.title|e }}', `{{ n.content|e }}`, '{{ n.cover_image or '' }}')">编辑</button>
+                                        <form method="POST"
+                                            action="{{ url_for('admin.delete_venue_news', news_id=n.id) }}"
+                                            style="display:inline" onsubmit="return confirm('确定删除？')">
+                                            <button class="btn btn-outline-danger btn-sm">删除</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}{% if not venue_news_list %}<tr>
+                                    <td colspan="5" class="text-center text-muted py-3">暂无动态</td>
+                                </tr>{% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 常见问题 -->
+            <div class="tab-content-section {% if active_tab == 'faq' %}active{% endif %}" id="tab-faq">
+                <h5 class="mb-3">常见问题管理</h5>
+                <div class="card-custom mb-4">
+                    <div class="card-header">添加新问题</div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('admin.config') }}">
+                            <input type="hidden" name="save_faq" value="1">
+                            <input type="hidden" name="active_tab" value="faq">
+                            <input type="hidden" name="faq_id" id="faq-faq-id">
+                            <div class="mb-2"><input type="text" name="question" id="faq-question" class="form-control"
+                                    placeholder="问题" required></div>
+                            <div class="mb-2"><textarea name="answer" id="faq-answer" class="form-control" rows="3"
+                                    placeholder="答案" required></textarea></div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6"><input type="number" name="sort_order" id="faq-sort"
+                                        class="form-control" placeholder="排序" value="0"></div>
+                                <div class="col-6"><select name="is_visible" id="faq-visible" class="form-control">
+                                        <option value="1">显示</option>
+                                        <option value="0">隐藏</option>
+                                    </select></div>
+                            </div>
+                            <button type="submit" name="save_faq" value="1" class="btn btn-primary btn-sm">保存</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm ms-2"
+                                onclick="resetFaqForm()">取消</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-custom">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>排序</th>
+                                    <th>问题</th>
+                                    <th>答案</th>
+                                    <th>显示</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for f in faq_list %}
+                                <tr>
+                                    <td>{{ f.sort_order }}</td>
+                                    <td>{{ f.question }}</td>
+                                    <td class="small text-muted">{{ f.answer[:60] }}{% if f.answer|length > 60 %}...{%
+                                        endif %}</td>
+                                    <td>{% if f.is_visible %}<span class="badge bg-success">是</span>{% else %}<span
+                                            class="badge bg-secondary">否</span>{% endif %}</td>
+                                    <td>
+                                        <form method="POST"
+                                            action="{{ url_for('admin.toggle_faq_visibility', faq_id=f.id) }}"
+                                            style="display:inline">
+                                            <button class="btn btn-outline-secondary btn-sm">{{ '隐藏' if f.is_visible
+                                                else '显示' }}</button>
+                                        </form>
+                                        <button class="btn btn-outline-primary btn-sm"
+                                            onclick="editFaq({{ f.id }}, '{{ f.question|e }}', `{{ f.answer|e }}`, {{ f.sort_order }}, {{ 'true' if f.is_visible else 'false' }})">编辑</button>
+                                        <form method="POST" action="{{ url_for('admin.delete_faq', faq_id=f.id) }}"
+                                            style="display:inline" onsubmit="return confirm('确定删除？')">
+                                            <button class="btn btn-outline-danger btn-sm">删除</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}{% if not faq_list %}<tr>
+                                    <td colspan="5" class="text-center text-muted py-3">暂无问题</td>
                                 </tr>{% endif %}
                             </tbody>
                         </table>
@@ -1095,6 +1257,8 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script>
         const MANAGEMENT_AREA = '{{ management_area }}';
@@ -1485,9 +1649,111 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
             document.getElementById('editHSModal').addEventListener('hidden.bs.modal', function () { this.remove(); });
         }
 
+        function editVenueNews(id, title, content, coverImage) {
+            document.getElementById('vn-news-id').value = id;
+            document.getElementById('vn-title').value = title;
+            if ($('#vn-content').next('.note-editor').length) {
+                $('#vn-content').summernote('code', content);
+            } else {
+                initVenueNewsEditor();
+                setTimeout(function () { $('#vn-content').summernote('code', content); }, 300);
+            }
+            document.getElementById('vn-cover-image').value = coverImage || '';
+            if (coverImage) {
+                document.getElementById('vn-cover-img').src = '/static/' + coverImage;
+                document.getElementById('vn-cover-preview').style.display = '';
+            } else {
+                document.getElementById('vn-cover-preview').style.display = 'none';
+            }
+            document.getElementById('tab-venue-news').scrollIntoView({ behavior: 'smooth' });
+        }
+        function resetVenueNewsForm() {
+            document.getElementById('vn-news-id').value = '';
+            document.getElementById('vn-title').value = '';
+            if ($('#vn-content').next('.note-editor').length) {
+                $('#vn-content').summernote('code', '');
+            } else {
+                document.getElementById('vn-content').value = '';
+            }
+            document.getElementById('vn-cover-image').value = '';
+            document.getElementById('vn-cover-preview').style.display = 'none';
+            document.getElementById('vn-cover-input').value = '';
+        }
+        function uploadCover() {
+            var input = document.getElementById('vn-cover-input');
+            var file = input.files[0];
+            if (!file) return;
+            var formData = new FormData();
+            formData.append('image', file);
+            fetch('{{ url_for("admin.upload_venue_news_image") }}', { method: 'POST', body: formData })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.url || data.path) {
+                        var path = data.url || data.path;
+                        document.getElementById('vn-cover-image').value = path;
+                        document.getElementById('vn-cover-img').src = '/static/' + path;
+                        document.getElementById('vn-cover-preview').style.display = '';
+                    } else { alert(data.error || '上传失败'); }
+                });
+            input.value = '';
+        }
+        function removeCoverImage() {
+            document.getElementById('vn-cover-image').value = '';
+            document.getElementById('vn-cover-preview').style.display = 'none';
+            document.getElementById('vn-cover-input').value = '';
+        }
+        function initVenueNewsEditor() {
+            if ($('#vn-content').next('.note-editor').length) return;
+            $('#vn-content').summernote({
+                height: 300,
+                toolbar: [
+                    ['style', ['bold', 'italic', 'underline', 'clear']],
+                    ['fontsize', ['fontsize']],
+                    ['color', ['color']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', ['picture', 'link']],
+                    ['view', ['codeview']]
+                ],
+                callbacks: {
+                    onImageUpload: function (files) {
+                        var $editor = $('#vn-content');
+                        for (var i = 0; i < files.length; i++) {
+                            (function (file) {
+                                var fd = new FormData();
+                                fd.append('image', file);
+                                fetch('{{ url_for("admin.upload_venue_news_image") }}', { method: 'POST', body: fd })
+                                    .then(function (r) { return r.json(); })
+                                    .then(function (data) {
+                                        if (data.url || data.path) {
+                                            $editor.summernote('insertImage', '/static/' + (data.url || data.path));
+                                        } else { alert(data.error || '上传失败'); }
+                                    });
+                            })(files[i]);
+                        }
+                    }
+                }
+            });
+        }
+        function editFaq(id, question, answer, sortOrder, isVisible) {
+            document.getElementById('faq-faq-id').value = id;
+            document.getElementById('faq-question').value = question;
+            document.getElementById('faq-answer').value = answer;
+            document.getElementById('faq-sort').value = sortOrder;
+            document.getElementById('faq-visible').value = isVisible ? '1' : '0';
+            document.getElementById('tab-faq').scrollIntoView({ behavior: 'smooth' });
+        }
+        function resetFaqForm() {
+            document.getElementById('faq-faq-id').value = '';
+            document.getElementById('faq-question').value = '';
+            document.getElementById('faq-answer').value = '';
+            document.getElementById('faq-sort').value = '0';
+            document.getElementById('faq-visible').value = '1';
+        }
+
         if (document.getElementById('tab-reservation') && document.getElementById('tab-reservation').classList.contains('active')) loadReservations();
         if (document.getElementById('tab-users') && document.getElementById('tab-users').classList.contains('active')) loadUsers();
         if (document.getElementById('tab-logs') && document.getElementById('tab-logs').classList.contains('active')) loadLogs();
+        if (document.getElementById('tab-venue-news') && document.getElementById('tab-venue-news').classList.contains('active')) initVenueNewsEditor();
 
         function viewReservationDetail(id) {
             fetch('/admin/api/reservation/' + id).then(r => r.json()).then(data => {

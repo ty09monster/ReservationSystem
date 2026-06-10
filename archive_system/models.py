@@ -230,6 +230,39 @@ class ApprovalStaff(db.Model):
             return []
 
 
+class VenueNews(db.Model):
+    """馆务动态表"""
+    __tablename__ = 'venue_news'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    title = db.Column(db.String(200), nullable=False, comment='标题')
+    content = db.Column(db.Text, nullable=False, comment='内容')
+    is_pinned = db.Column(db.Boolean, default=False, index=True, comment='是否置顶')
+    is_hidden = db.Column(db.Boolean, default=False, index=True, comment='是否隐藏')
+    cover_image = db.Column(db.String(500), comment='封面图路径')
+    images = db.Column(db.Text, comment='内容图片JSON数组')
+    created_at = db.Column(db.DateTime, default=datetime.now, index=True, comment='创建时间')
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, comment='更新时间')
+
+    def get_image_list(self):
+        import json
+        try:
+            return json.loads(self.images) if self.images else []
+        except (json.JSONDecodeError, TypeError):
+            return []
+
+
+class FAQ(db.Model):
+    """常见问题表"""
+    __tablename__ = 'faq'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    question = db.Column(db.String(300), nullable=False, comment='问题')
+    answer = db.Column(db.Text, nullable=False, comment='答案')
+    sort_order = db.Column(db.Integer, default=0, comment='排序')
+    is_visible = db.Column(db.Boolean, default=True, comment='是否显示')
+    created_at = db.Column(db.DateTime, default=datetime.now, comment='创建时间')
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, comment='更新时间')
+
+
 class HomeSection(db.Model):
     """首页信息模块表"""
     __tablename__ = 'home_section'

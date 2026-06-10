@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>{{ news.title }} - 河南农业大学校史馆</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/font_who/iconfont.css') }}" rel="stylesheet">
+    <style>
+        .detail-wrap { padding: 16px; }
+        .detail-card {
+            background: white;
+            border-radius: var(--radius-md);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        .detail-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        .detail-time {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-body {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .detail-body img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .detail-images { margin-top: 16px; }
+        .detail-images img {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loading" id="loading"></div>
+    <nav class="top-nav">
+        <div class="back-btn" onclick="window.location.href='{{ url_for('h5.venue_news') }}'">
+            <i class="icon icon-back"></i>
+        </div>
+        <h1>馆务动态</h1>
+        <div class="nav-right"></div>
+    </nav>
+    <div class="main-content">
+        <div class="detail-wrap">
+            <div class="detail-card">
+                <div class="detail-title">{{ news.title }}</div>
+                <div class="detail-time">{{ news.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                <div class="detail-body">{{ news.content|safe }}</div>
+                {% set imgs = news.get_image_list() %}
+                {% if imgs %}
+                <div class="detail-images">
+                    {% for img in imgs %}
+                    <img src="{{ url_for('static', filename=img) }}" alt="图片">
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <script>
+        window.onload = function () {
+            setTimeout(function () {
+                document.getElementById('loading').style.display = 'none';
+            }, 400);
+        };
+    </script>
+</body>
+
+</html>

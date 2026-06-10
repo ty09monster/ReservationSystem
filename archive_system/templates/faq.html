@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>常见问题 - 河南农业大学校史馆</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/font_who/iconfont.css') }}" rel="stylesheet">
+    <style>
+        .faq-list {
+            padding: 16px;
+        }
+
+        .faq-item {
+            background: white;
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .faq-q {
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .faq-q .q-icon {
+            color: var(--green-600);
+            font-weight: 700;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            line-height: 1.6;
+        }
+
+        .faq-a {
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+            line-height: 1.7;
+            padding-left: 26px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .faq-a .a-icon {
+            color: var(--green-600);
+            font-weight: 700;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loading" id="loading"></div>
+    <nav class="top-nav">
+        <div class="back-btn" onclick="window.location.href='{{ url_for('h5.landing') }}'">
+            <i class="icon icon-back"></i>
+        </div>
+        <h1>常见问题</h1>
+        <div class="nav-right"></div>
+    </nav>
+    <div class="main-content">
+        <div class="faq-list">
+            {% if faqs %}
+            {% for q in faqs %}
+            <div class="faq-item">
+                <div class="faq-q">
+                    <span class="q-icon">Q</span>
+                    <span>{{ q.question }}</span>
+                </div>
+                <div class="faq-a">
+                    <span class="a-icon">A</span>
+                    <span>{{ q.answer }}</span>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div style="text-align:center; padding: 60px 0; color: var(--text-tertiary);">
+                <div style="font-size:3rem; margin-bottom:12px;">💬</div>
+                <p>暂无常见问题</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+        window.onload = function () {
+            setTimeout(function () {
+                document.getElementById('loading').style.display = 'none';
+            }, 400);
+        };
+    </script>
+</body>
+
+</html>

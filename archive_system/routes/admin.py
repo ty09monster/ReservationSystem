@@ -1,10 +1,12 @@
 import json
 import logging
+import os
+import uuid
 from io import BytesIO
 from datetime import datetime, date, timedelta
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
-    flash, session, jsonify, send_file
+    flash, session, jsonify, send_file, current_app
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_, case, func
@@ -13,7 +15,7 @@ from ..models import (
     Admin, Role, Reservation, User, Announcement, SystemConfig,
     Venue, VenueTimeSlot, Attachment, ArchiveRequest,
     VenueTimeSlotDisabledDate, CancelRequest, ApprovalStaff, Guide,
-    SystemLog, HomeSection
+    SystemLog, HomeSection, VenueNews, FAQ
 )
 
 logger = logging.getLogger(__name__)
@@ -175,7 +177,7 @@ def login():
     return render_template("admin_login.html")
 
 
-@admin_bp.route("/dashboard")
+@admin_bp.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
     active_tab = request.args.get('active_tab', '').strip()
     area = _get_management_area()
@@ -183,6 +185,8 @@ def dashboard():
 
     announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
     home_sections = HomeSection.query.order_by(HomeSection.sort_order).all()
+    venue_news_list = VenueNews.query.order_by(VenueNews.created_at.desc()).all()
+    faq_list = FAQ.query.order_by(FAQ.sort_order).all()
     config = SystemConfig.query.first()
     venues = Venue.query.filter(Venue.category.in_(categories)).order_by(Venue.id).all()
 
@@ -217,6 +221,8 @@ def dashboard():
         "admin_dashboard.html",
         announcements=announcements,
         home_sections=home_sections,
+        venue_news_list=venue_news_list,
+        faq_list=faq_list,
         config=config,
         venues=venues,
         admin_list=admin_list,
@@ -660,6 +666,41 @@ def config():
             section.is_visible = is_visible
             flash(f"模块 {section.section_key} 已更新")
 
+    if "save_venue_news" in request.form:
+        news_id = request.form.get("news_id", type=int)
+        title = request.form.get("title")
+        content = request.form.get("content")
+        cover_image = request.form.get("cover_image", "")
+        if news_id:
+            news = db.session.get(VenueNews, news_id)
+            if news:
+                news.title = title
+                news.content = content
+                if cover_image:
+                    news.cover_image = cover_image
+                flash("馆务动态已更新")
+        else:
+            db.session.add(VenueNews(title=title, content=content, cover_image=cover_image))
+            flash("馆务动态已添加")
+
+    if "save_faq" in request.form:
+        faq_id = request.form.get("faq_id", type=int)
+        question = request.form.get("question")
+        answer = request.form.get("answer")
+        sort_order = request.form.get("sort_order", 0, type=int)
+        is_visible = request.form.get("is_visible") == "1"
+        if faq_id:
+            faq = db.session.get(FAQ, faq_id)
+            if faq:
+                faq.question = question
+                faq.answer = answer
+                faq.sort_order = sort_order
+                faq.is_visible = is_visible
+                flash("常见问题已更新")
+        else:
+            db.session.add(FAQ(question=question, answer=answer, sort_order=sort_order, is_visible=is_visible))
+            flash("常见问题已添加")
+
     db.session.commit()
     return redirect(url_for("admin.dashboard", active_tab=active_tab))
 
@@ -807,6 +848,105 @@ def edit_announcement(ann_id):
     else:
         flash("公告不存在")
     return redirect(url_for("admin.dashboard", active_tab="notice"))
+
+
+# ---- VenueNews CRUD ----
+
+@admin_bp.route("/venue_news/<int:news_id>/toggle-pin", methods=["POST"])
+def toggle_venue_news_pin(news_id):
+    news = db.session.get(VenueNews, news_id)
+    if news:
+        news.is_pinned = not news.is_pinned
+        db.session.commit()
+    return redirect(url_for("admin.dashboard", active_tab="venue_news"))
+
+@admin_bp.route("/venue_news/<int:news_id>/toggle-hide", methods=["POST"])
+def toggle_venue_news_hide(news_id):
+    news = db.session.get(VenueNews, news_id)
+    if news:
+        news.is_hidden = not news.is_hidden
+        db.session.commit()
+    return redirect(url_for("admin.dashboard", active_tab="venue_news"))
+
+@admin_bp.route("/venue_news/<int:news_id>/delete", methods=["POST"])
+def delete_venue_news(news_id):
+    news = db.session.get(VenueNews, news_id)
+    if news:
+        db.session.delete(news)
+        db.session.commit()
+        flash("馆务动态已删除")
+    return redirect(url_for("admin.dashboard", active_tab="venue_news"))
+
+@admin_bp.route("/venue_news/upload-image", methods=["POST"])
+def upload_venue_news_image():
+    file = request.files.get("image")
+    news_id = request.form.get("news_id", type=int)
+    if not file or not file.filename:
+        return jsonify({"success": False, "error": "未选择文件"}), 400
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ('.jpg', '.jpeg', '.png', '.gif', '.webp'):
+        return jsonify({"success": False, "error": "不支持的图片格式"}), 400
+
+    filename = f"{uuid.uuid4().hex}{ext}"
+    upload_dir = os.path.join(current_app.static_folder, 'uploads')
+    filepath = os.path.join(upload_dir, filename)
+    file.save(filepath)
+
+    relative_path = f"uploads/{filename}"
+
+    if news_id:
+        news = db.session.get(VenueNews, news_id)
+        if news:
+            import json
+            imgs = news.get_image_list()
+            imgs.append(relative_path)
+            news.images = json.dumps(imgs, ensure_ascii=False)
+            db.session.commit()
+
+    return jsonify({"success": True, "url": relative_path, "path": relative_path})
+
+@admin_bp.route("/venue_news/delete-image", methods=["POST"])
+def delete_venue_news_image():
+    news_id = request.form.get("news_id", type=int)
+    img_path = request.form.get("path", "")
+    if not news_id or not img_path:
+        return jsonify({"success": False, "error": "参数错误"}), 400
+
+    news = db.session.get(VenueNews, news_id)
+    if news:
+        import json
+        imgs = news.get_image_list()
+        if img_path in imgs:
+            imgs.remove(img_path)
+            news.images = json.dumps(imgs, ensure_ascii=False)
+            db.session.commit()
+            # delete physical file
+            full_path = os.path.join(current_app.static_folder, img_path)
+            if os.path.exists(full_path):
+                os.remove(full_path)
+            return jsonify({"success": True})
+    return jsonify({"success": False, "error": "未找到记录"}), 404
+
+
+# ---- FAQ CRUD ----
+
+@admin_bp.route("/faq/<int:faq_id>/toggle-visibility", methods=["POST"])
+def toggle_faq_visibility(faq_id):
+    faq = db.session.get(FAQ, faq_id)
+    if faq:
+        faq.is_visible = not faq.is_visible
+        db.session.commit()
+    return redirect(url_for("admin.dashboard", active_tab="faq"))
+
+@admin_bp.route("/faq/<int:faq_id>/delete", methods=["POST"])
+def delete_faq(faq_id):
+    faq = db.session.get(FAQ, faq_id)
+    if faq:
+        db.session.delete(faq)
+        db.session.commit()
+        flash("常见问题已删除")
+    return redirect(url_for("admin.dashboard", active_tab="faq"))
 
 
 @admin_bp.route("/account", methods=["POST"])
