@@ -5,10 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="description" content="河南农业大学校史馆预约系统">
+    <meta name="description" content="河南农业大学档案馆（农业资源标本馆）预约系统">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>河南农业大学校史馆预约系统</title>
+    <title>河南农业大学档案馆预约系统</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/h5.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/font_who/iconfont.css') }}" rel="stylesheet">
@@ -25,9 +25,19 @@
         }
 
         .landing-header {
+            position: relative;
             text-align: center;
-            padding: clamp(24px, 6vh, 48px) 20px clamp(12px, 3vh, 24px);
+            padding: clamp(20px, 4vh, 32px) 16px;
             width: 100%;
+            max-width: 420px;
+            min-height: 180px;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)),
+            url("{{ url_for('static', filename='images/banner3-new.jpg') }}");
+            background-size: 95% auto;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: #f5f5f5;
+            border-radius: var(--radius-md);
         }
 
         .landing-header .emblem {
@@ -131,15 +141,15 @@
         <div class="landing-header">
             <img src="{{ url_for('static', filename='images/emblem.png') }}" alt="校徽" class="emblem"
                 onerror="this.style.display='none'">
-            <h1>河南农业大学校史馆</h1>
-            <p>预约服务平台</p>
+            <h1>河南农业大学档案馆<br><small style="font-size:0.65em;font-weight:400;">（农业资源标本馆）</small></h1>
+            <p class="subtitle">预约服务平台</p>
         </div>
 
         <div class="module-grid">
             <a href="{{ url_for('h5.index') }}" class="module-card">
                 <div class="module-icon">📅</div>
                 <h2 class="module-title">预约服务</h2>
-                <p class="module-desc">校史馆 · 标本馆<br>参观预约</p>
+                <p class="module-desc">场地参观<br>活动预约</p>
             </a>
             <a href="{{ url_for('h5.venue_news') }}" class="module-card">
                 <div class="module-icon">📰</div>
