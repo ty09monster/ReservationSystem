@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="description" content="河南农业大学档案馆（农业资源标本馆）预约系统">
+    <meta name="description" content="河南农业大学档案馆农业资源标本馆预约系统">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>河南农业大学档案馆预约系统</title>
@@ -41,9 +41,12 @@
         }
 
         .landing-header .emblem {
-            width: clamp(48px, 8vw, 72px);
-            height: clamp(48px, 8vw, 72px);
-            margin-bottom: clamp(8px, 2vh, 16px);
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: clamp(32px, 5vw, 44px);
+            height: clamp(32px, 5vw, 44px);
+            margin-bottom: 0;
         }
 
         .landing-header h1 {
@@ -141,7 +144,7 @@
         <div class="landing-header">
             <img src="{{ url_for('static', filename='images/emblem.png') }}" alt="校徽" class="emblem"
                 onerror="this.style.display='none'">
-            <h1>河南农业大学档案馆<br><small style="font-size:0.65em;font-weight:400;">（农业资源标本馆）</small></h1>
+            <h1>河南农业大学档案馆<br>农业资源标本馆</h1>
             <p class="subtitle">预约服务平台</p>
         </div>
 

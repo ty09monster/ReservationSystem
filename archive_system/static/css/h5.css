@@ -5,6 +5,7 @@
 
 /* ---------- CSS Variables ---------- */
 :root {
+\n/* temp */
   --green-900: #1B3B22;
   --green-800: #1F4F2D;
   --green-700: #2A6338;
@@ -330,7 +331,6 @@ body {
   position: absolute;
   top: 8px;
   right: 10px;
-  background: linear-gradient(135deg, var(--gold-500) 0%, var(--gold-600) 100%);
   color: white;
   font-size: 0.6rem;
   font-weight: 600;
@@ -445,10 +445,14 @@ body {
   box-shadow: var(--shadow-md);
 }
 .action-reserve {
+  background: #2E5A35;
+  color: #fff;
   border-left: 5px solid var(--green-400);
 }
 .action-archive {
-  border-left: 5px solid var(--gold-400);
+  background: #A82D2D;
+  color: #fff;
+  border-left: 5px solid #E53935;
 }
 .action-icon {
   width: 40px;
@@ -466,8 +470,8 @@ body {
   box-shadow: 0 3px 8px rgba(46,125,50,0.2);
 }
 .action-archive .action-icon {
-  background: linear-gradient(135deg, var(--gold-500) 0%, var(--gold-400) 100%);
-  box-shadow: 0 3px 8px rgba(197,164,78,0.2);
+  background: linear-gradient(135deg, #C62828 0%, #E53935 100%);
+  box-shadow: 0 3px 8px rgba(198,40,40,0.25);
 }
 .action-body { flex: 1; }
 .action-title {
@@ -1060,4 +1064,12 @@ textarea.form-control { resize: vertical; }
 .btn-success {
   background: linear-gradient(135deg, var(--green-500) 0%, var(--green-600) 100%) !important;
   border: none !important;
+}
+.action-reserve .action-title,
+.action-reserve .action-desc,
+.action-reserve .action-arrow,
+.action-archive .action-title,
+.action-archive .action-desc,
+.action-archive .action-arrow {
+  color: rgba(255,255,255,0.92);
 }
