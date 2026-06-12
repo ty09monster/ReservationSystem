@@ -105,22 +105,16 @@
             align-items: center;
             justify-content: center;
             font-size: clamp(1.4rem, 4vw, 2rem);
+            background: rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            padding: 0;
         }
 
-        .module-card:nth-child(1) .module-icon {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .module-card:nth-child(2) .module-icon {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .module-card:nth-child(3) .module-icon {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .module-card:nth-child(4) .module-icon {
-            background: rgba(255, 255, 255, 0.2);
+        .module-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
         }
 
         .module-title {
@@ -150,22 +144,26 @@
 
         <div class="module-grid">
             <a href="{{ url_for('h5.index') }}" class="module-card">
-                <div class="module-icon">📅</div>
+                <div class="module-icon"><img src="{{ url_for('static', filename='images/预约服务.png') }}" alt="预约服务">
+                </div>
                 <h2 class="module-title">预约服务</h2>
                 <p class="module-desc">场地参观<br>活动预约</p>
             </a>
             <a href="{{ url_for('h5.venue_news') }}" class="module-card">
-                <div class="module-icon">📰</div>
+                <div class="module-icon"><img src="{{ url_for('static', filename='images/馆务动态.jpg') }}" alt="馆务动态">
+                </div>
                 <h2 class="module-title">馆务动态</h2>
                 <p class="module-desc">场馆最新<br>动态资讯</p>
             </a>
             <a href="{{ url_for('h5.faq') }}" class="module-card">
-                <div class="module-icon">💬</div>
+                <div class="module-icon"><img src="{{ url_for('static', filename='images/常见问题.jpg') }}" alt="常见问题">
+                </div>
                 <h2 class="module-title">常见问题</h2>
                 <p class="module-desc">预约常见<br>问题解答</p>
             </a>
             <a href="{{ url_for('h5.announcements') }}" class="module-card">
-                <div class="module-icon">📢</div>
+                <div class="module-icon"><img src="{{ url_for('static', filename='images/通知公告.jpg') }}" alt="通知公告">
+                </div>
                 <h2 class="module-title">通知公告</h2>
                 <p class="module-desc">系统通知<br>与公告</p>
             </a>

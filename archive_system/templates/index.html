@@ -28,6 +28,23 @@
             margin-right: 6px;
             border-radius: 50%;
         }
+
+        section.action-section .action-icon {
+            width: 72px !important;
+            height: 72px !important;
+            border-radius: 8px !important;
+            overflow: hidden;
+            padding: 0;
+            background: #fff !important;
+            box-shadow: none !important;
+        }
+
+        section.action-section .action-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+        }
     </style>
 </head>
 
@@ -47,7 +64,7 @@
             style="background: url('{{ url_for('static', filename='images/b.jpg') }}') center/cover no-repeat; min-height: 240px; position: relative;">
             <div class="container">
                 <h2>欢迎访问档案馆预约系统</h2>
-                <p>探索河南农业大学百年历史底蕴<br>预约参观标本馆 · 档案馆</p>
+                <p>探索河南农业大学百年历史底蕴</p>
 
             </div>
         </section>
@@ -55,15 +72,16 @@
 
         <section class="action-section">
             <a href="{{ url_for('h5.reserve') }}" class="action-card action-reserve">
-                <div class="action-icon">📅</div>
+                <div class="action-icon"><img src="{{ url_for('static', filename='images/校史馆.png') }}" alt="预约参观"></div>
                 <div class="action-body">
                     <div class="action-title">预约参观</div>
-                    <div class="action-desc">标本馆 · 档案馆参观预约</div>
+                    <div class="action-desc">校史馆*标本馆参观预约</div>
                 </div>
                 <div class="action-arrow">→</div>
             </a>
             <a href="{{ url_for('h5.archive_request') }}" class="action-card action-archive">
-                <div class="action-icon">🔍</div>
+                <div class="action-icon"><img src="{{ url_for('static', filename='images/档案馆.png') }}" alt="预约查询档案">
+                </div>
                 <div class="action-body">
                     <div class="action-title">预约查询档案</div>
                     <div class="action-desc">线下档案查阅预约</div>
