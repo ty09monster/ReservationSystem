@@ -294,16 +294,16 @@ def ensure_default_data():
     # 常见问题
     if not FQ.query.first():
         default_faqs = [
-            FQ(question="如何预约参观？", answer="请通过本系统首页点击"预约服务"，选择您想要参观的场馆、日期和时段，填写个人信息后提交即可。预约成功后您将收到确认通知。", sort_order=1),
-            FQ(question="预约需要提前多久？", answer="建议至少提前1天预约，部分场馆可接受当天预约。每个场馆的预约规则略有不同，具体以预约页面显示为准。", sort_order=2),
-            FQ(question="可以取消预约吗？", answer="可以。在"我的预约"中找到对应预约记录，点击取消即可。请尽量提前取消，以便其他访客预约。", sort_order=3),
-            FQ(question="参观需要携带什么证件？", answer="参观时请携带预约时使用的身份证件，入馆时需核验身份信息。", sort_order=4),
-            FQ(question="团体参观如何预约？", answer="预约时选择"团体预约"选项，填写团体人数和负责人信息即可。团体参观请提前3天预约，以便场馆做好接待准备。", sort_order=5),
-            FQ(question="档案馆查阅档案需要什么手续？", answer="请先通过"预约查询档案"提交查阅申请，注明所需档案类型和查阅目的。申请审批通过后，携带有效身份证件到馆查阅。", sort_order=6),
+            FQ(question='如何预约参观？', answer='请通过本系统首页点击\u201c预约服务\u201d，选择您想要参观的场馆、日期和时段，填写个人信息后提交即可。预约成功后您将收到确认通知。', sort_order=1),
+            FQ(question='预约需要提前多久？', answer='建议至少提前1天预约，部分场馆可接受当天预约。每个场馆的预约规则略有不同，具体以预约页面显示为准。', sort_order=2),
+            FQ(question='可以取消预约吗？', answer='可以在\u201c我的预约\u201d中找到对应预约记录，点击取消即可。请尽量提前取消，以便其他访客预约。', sort_order=3),
+            FQ(question='参观需要携带什么证件？', answer='参观时请携带预约时使用的身份证件，入馆时需核验身份信息。', sort_order=4),
+            FQ(question='团体参观如何预约？', answer='预约时选择\u201c团体预约\u201d选项，填写团体人数和负责人信息即可。团体参观请提前3天预约，以便场馆做好接待准备。', sort_order=5),
+            FQ(question='档案馆查阅档案需要什么手续？', answer='请先通过\u201c预约查询档案\u201d提交查阅申请，注明所需档案类型和查阅目的。申请审批通过后，携带有效身份证件到馆查阅。', sort_order=6),
         ]
         db.session.add_all(default_faqs)
         db.session.commit()
-        logger.info("[Data] 已填充缺失的常见问题")
+        logger.info('[Data] 已填充缺失的常见问题')
 
     # HomeSection 默认记录
     if not HS.query.first():
@@ -492,15 +492,15 @@ def init_data():
     # 创建默认常见问题
     if not FAQ.query.first():
         default_faqs = [
-            FAQ(question="如何预约参观？", answer="请通过本系统首页点击"预约服务"，选择您想要参观的场馆、日期和时段，填写个人信息后提交即可。预约成功后您将收到确认通知。", sort_order=1),
-            FAQ(question="预约需要提前多久？", answer="建议至少提前1天预约，部分场馆可接受当天预约。每个场馆的预约规则略有不同，具体以预约页面显示为准。", sort_order=2),
-            FAQ(question="可以取消预约吗？", answer="可以。在"我的预约"中找到对应预约记录，点击取消即可。请尽量提前取消，以便其他访客预约。", sort_order=3),
-            FAQ(question="参观需要携带什么证件？", answer="参观时请携带预约时使用的身份证件，入馆时需核验身份信息。", sort_order=4),
-            FAQ(question="团体参观如何预约？", answer="预约时选择"团体预约"选项，填写团体人数和负责人信息即可。团体参观请提前3天预约，以便场馆做好接待准备。", sort_order=5),
-            FAQ(question="档案馆查阅档案需要什么手续？", answer="请先通过"预约查询档案"提交查阅申请，注明所需档案类型和查阅目的。申请审批通过后，携带有效身份证件到馆查阅。", sort_order=6),
+            FAQ(question='如何预约参观？', answer='请通过本系统首页点击\u201c预约服务\u201d，选择您想要参观的场馆、日期和时段，填写个人信息后提交即可。预约成功后您将收到确认通知。', sort_order=1),
+            FAQ(question='预约需要提前多久？', answer='建议至少提前1天预约，部分场馆可接受当天预约。每个场馆的预约规则略有不同，具体以预约页面显示为准。', sort_order=2),
+            FAQ(question='可以取消预约吗？', answer='可以在\u201c我的预约\u201d中找到对应预约记录，点击取消即可。请尽量提前取消，以便其他访客预约。', sort_order=3),
+            FAQ(question='参观需要携带什么证件？', answer='参观时请携带预约时使用的身份证件，入馆时需核验身份信息。', sort_order=4),
+            FAQ(question='团体参观如何预约？', answer='预约时选择\u201c团体预约\u201d选项，填写团体人数和负责人信息即可。团体参观请提前3天预约，以便场馆做好接待准备。', sort_order=5),
+            FAQ(question='档案馆查阅档案需要什么手续？', answer='请先通过\u201c预约查询档案\u201d提交查阅申请，注明所需档案类型和查阅目的。申请审批通过后，携带有效身份证件到馆查阅。', sort_order=6),
         ]
         db.session.add_all(default_faqs)
-        logger.info("已创建默认常见问题")
+        logger.info('已创建默认常见问题')
 
     db.session.commit()
 
