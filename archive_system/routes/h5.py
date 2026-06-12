@@ -202,6 +202,7 @@ def login():
             db.session.commit()
 
         session["user_id"] = user.id
+        session.permanent = True  # 持久化 session，避免重启或超时后失效
         # 修复 #1: 登录后跳转也做安全校验
         next_url = request.form.get('next') or request.args.get('next')
         if next_url and is_safe_url(next_url):

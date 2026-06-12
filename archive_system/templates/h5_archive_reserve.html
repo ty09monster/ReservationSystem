@@ -739,7 +739,13 @@
             timeSlotsContainer.innerHTML = '<div class="text-center py-4">加载中...</div>';
 
             fetch(`/h5/api/available-slots?venue_id=${venueId}&visit_date=${visitDate}`)
-                .then(response => response.json())
+                .then(response => {
+                    // session 过期或未登录时服务器会返回 HTML 登录页
+                    if (!response.ok || !response.headers.get('content-type', '').includes('application/json')) {
+                        throw new Error('session_expired');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.slots && data.slots.length > 0) {
                         timeSlotsContainer.innerHTML = '';
@@ -785,7 +791,10 @@
                 })
                 .catch(error => {
                     console.error('Error fetching available slots:', error);
-                    timeSlotsContainer.innerHTML = '<div class="text-center py-4 text-muted">加载时段失败，请重新选择日期</div>';
+                    const msg = (error && error.message === 'session_expired')
+                        ? '登录已过期，请刷新页面重新登录'
+                        : '加载时段失败，请重新选择日期';
+                    timeSlotsContainer.innerHTML = '<div class="text-center py-4 text-muted">' + msg + '</div>';
                     document.getElementById('hiddenVisitTime').value = '';
                     checkFormValidity();
                 });

@@ -293,6 +293,9 @@
             <a class="nav-link {% if active_tab == 'faq' %}active{% endif %}" href="?active_tab=faq">常见问题</a>
             {% if management_area != 'archive' %}<a class="nav-link {% if active_tab == 'venue' %}active{% endif %}"
                 href="?active_tab=venue">场馆管理</a>{% endif %}
+            {% if management_area == 'archive' %}<a
+                class="nav-link {% if active_tab == 'archive_time_slot' %}active{% endif %}"
+                href="?active_tab=archive_time_slot">时段管理</a>{% endif %}
             {% if session.get('is_super') %}
             <div class="section-label">系统管理</div>
             <a class="nav-link {% if active_tab == 'account' %}active{% endif %}" href="?active_tab=account">账号管理</a>
@@ -827,6 +830,87 @@
                     </div>
                 </div>
             </div>
+            {% if management_area == 'archive' %}
+            <div class="tab-content-section {% if active_tab == 'archive_time_slot' %}active{% endif %}"
+                id="tab-archive-time-slot">
+                <h5 class="mb-3">档案馆时段管理</h5>
+                {% if venues|selectattr('category', 'equalto', '档案馆')|list|length > 1 %}
+                <div class="mb-3">
+                    <label class="form-label small mb-1">选择场馆：</label>
+                    <select id="archiveVenueSelector" class="form-select form-select-sm" style="max-width:260px;"
+                        onchange="archiveSelectVenue(parseInt(this.value))">
+                        {% for v in venues %}
+                        {% if v.category == '档案馆' %}
+                        <option value="{{ v.id }}" {% if loop.first %}selected{% endif %}>{{ v.name }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <p class="text-muted small mb-3">管理档案馆预约查询的可用时段，用户的预约表单将展示此处配置的时段。</p>
+                <div class="card-custom">
+                    <div class="card-body">
+                        <form id="archiveTimeSlotAddForm" class="row g-2 align-items-end mb-3"
+                            onsubmit="return archiveTimeSlotAdd(event)">
+                            <input type="hidden" name="venue_id" id="archiveTimeSlotVenueId">
+                            <input type="hidden" name="active_tab" value="archive_time_slot">
+                            <input type="hidden" name="action" value="add">
+                            <div class="col-auto"><label class="form-label small mb-0">新增时段</label></div>
+                            <div class="col-auto">
+                                <input type="text" name="time_slot" id="archiveTimeSlotInput"
+                                    class="form-control form-control-sm" placeholder="例如 14:30-15:00"
+                                    pattern="^\d{1,2}:\d{2}-\d{1,2}:\d{2}$" required>
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-success btn-sm">添加</button>
+                            </div>
+                            <div class="col-auto">
+                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    onclick="archiveTimeSlotFillFromInputs()">使用起止时间</button>
+                            </div>
+                            <div class="col-12 small text-muted mt-1">
+                                <span>快捷输入：</span>
+                                <input type="time" id="archiveTimeSlotQuickStart"
+                                    class="form-control form-control-sm d-inline-block" style="width:110px">
+                                <span>至</span>
+                                <input type="time" id="archiveTimeSlotQuickEnd"
+                                    class="form-control form-control-sm d-inline-block" style="width:110px">
+                            </div>
+                        </form>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width:60%">时段</th>
+                                        <th style="width:40%" class="text-end">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="archiveTimeSlotListBody">
+                                    <tr>
+                                        <td colspan="2" class="text-center text-muted py-3">加载中…</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mb-3 mt-4">禁用日期管理</h5>
+                <div class="card-custom">
+                    <div class="card-body">
+                        <form onsubmit="return archiveDisabledDateAdd(event)" class="row g-2 align-items-end mb-3">
+                            <input type="hidden" name="action" value="add">
+                            <input type="hidden" name="venue_id" id="archiveDdVenueId">
+                            <input type="hidden" name="active_tab" value="archive_time_slot">
+                            <div class="col-auto"><input type="date" id="archiveDisabledDateInput"
+                                    class="form-control form-control-sm" required></div>
+                            <div class="col-auto"><button class="btn btn-primary btn-sm">添加禁用日期</button></div>
+                        </form>
+                        <div id="archiveDisabledDateList"></div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
             {% if session.get('is_super') %}
             <div class="tab-content-section {% if active_tab == 'account' %}active{% endif %}" id="tab-account">
                 <h5 class="mb-3">账号管理</h5>
@@ -1494,6 +1578,173 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
             });
         }
 
+        // ===== 档案馆时段管理 =====
+        let _archiveVenueId = null;
+
+        {% if management_area == 'archive' %}
+        const _ARCHIVE_VENUE_IDS = [
+            {% for v in venues %}{% if v.category == '档案馆' %}{{ v.id }},{% endif %}{% endfor %}
+        ];
+        const _ARCHIVE_VENUE_NAMES = {
+            {% for v in venues %}{% if v.category == '档案馆' %}{{ v.id }}: '{{ v.name }}',{% endif %}{% endfor %}
+        };
+        {% endif %}
+
+        function archiveSelectVenue(venueId) {
+            _archiveVenueId = venueId;
+            document.getElementById('archiveTimeSlotVenueId').value = venueId;
+            document.getElementById('archiveDdVenueId').value = venueId;
+            loadArchiveTimeSlotList();
+            loadArchiveDisabledDates();
+        }
+
+        function initArchiveTimeSlotTab() {
+            {% if management_area == 'archive' %}
+            if (_ARCHIVE_VENUE_IDS.length > 0) {
+                archiveSelectVenue(_ARCHIVE_VENUE_IDS[0]);
+            }
+            {% endif %}
+        }
+
+        function loadArchiveTimeSlotList() {
+            if (!_archiveVenueId) return;
+            const tbody = document.getElementById('archiveTimeSlotListBody');
+            tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted py-3">加载中…</td></tr>';
+            fetch('/admin/get-time-slots/' + _archiveVenueId).then(r => {
+                if (!r.ok || !r.headers.get('content-type', '').includes('application/json')) {
+                    throw new Error('session_expired');
+                }
+                return r.json();
+            }).then(data => {
+                const slots = data.slots || [];
+                if (slots.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted py-3">暂无时段，请在上方添加。</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = slots.map(s => (
+                    '<tr data-slot-id="' + s.id + '">' +
+                    '<td class="slot-text">' + escapeHtml(s.time_slot) + '</td>' +
+                    '<td class="text-end">' +
+                    '<button type="button" class="btn btn-outline-primary btn-sm me-1" onclick="archiveTimeSlotBeginEdit(' + s.id + ', \'' + escapeAttr(s.time_slot) + '\')">修改</button>' +
+                    '<button type="button" class="btn btn-outline-danger btn-sm" onclick="archiveTimeSlotDelete(' + s.id + ', \'' + escapeAttr(s.time_slot) + '\')">删除</button>' +
+                    '</td>' +
+                    '</tr>'
+                )).join('');
+            }).catch(err => {
+                const msg = (err && err.message === 'session_expired')
+                    ? '登录已过期，请刷新页面重新登录'
+                    : '加载失败：' + err;
+                tbody.innerHTML = '<tr><td colspan="2" class="text-center text-danger py-3">' + msg + '</td></tr>';
+            });
+        }
+
+        function archiveTimeSlotFillFromInputs() {
+            const s = document.getElementById('archiveTimeSlotQuickStart').value;
+            const e = document.getElementById('archiveTimeSlotQuickEnd').value;
+            if (!s || !e) { alert('请选择开始和结束时间'); return; }
+            document.getElementById('archiveTimeSlotInput').value = s + '-' + e;
+        }
+
+        function archiveTimeSlotAdd(event) {
+            event.preventDefault();
+            if (!_archiveVenueId) return false;
+            const form = event.target;
+            const timeSlot = form.time_slot.value.trim();
+            if (!timeSlot) return false;
+            const fd = new FormData();
+            fd.append('action', 'add');
+            fd.append('venue_id', _archiveVenueId);
+            fd.append('time_slot', timeSlot);
+            fd.append('active_tab', 'archive_time_slot');
+            fetch('/admin/time-slot-config', { method: 'POST', body: fd }).then(() => {
+                form.time_slot.value = '';
+                loadArchiveTimeSlotList();
+            });
+            return false;
+        }
+
+        function archiveTimeSlotBeginEdit(slotId, oldValue) {
+            const tr = document.querySelector('#archiveTimeSlotListBody tr[data-slot-id="' + slotId + '"]');
+            if (!tr) return;
+            tr.querySelector('.slot-text').innerHTML =
+                '<div class="d-flex gap-1">' +
+                '<input type="text" class="form-control form-control-sm" value="' + escapeAttr(oldValue) + '" pattern="^\\d{1,2}:\\d{2}-\\d{1,2}:\\d{2}$">' +
+                '<button type="button" class="btn btn-success btn-sm" onclick="archiveTimeSlotSaveEdit(' + slotId + ')">保存</button>' +
+                '<button type="button" class="btn btn-secondary btn-sm" onclick="loadArchiveTimeSlotList()">取消</button>' +
+                '</div>';
+        }
+
+        function archiveTimeSlotSaveEdit(slotId) {
+            if (!_archiveVenueId) return;
+            const tr = document.querySelector('#archiveTimeSlotListBody tr[data-slot-id="' + slotId + '"]');
+            const input = tr.querySelector('input[type="text"]');
+            const newValue = input.value.trim();
+            if (!newValue) { alert('时段不能为空'); return; }
+            const fd = new FormData();
+            fd.append('action', 'update');
+            fd.append('venue_id', _archiveVenueId);
+            fd.append('slot_id', slotId);
+            fd.append('time_slot', newValue);
+            fd.append('active_tab', 'archive_time_slot');
+            fetch('/admin/time-slot-config', { method: 'POST', body: fd }).then(() => {
+                loadArchiveTimeSlotList();
+            });
+        }
+
+        function archiveTimeSlotDelete(slotId, label) {
+            if (!confirm('确认删除时段 ' + label + ' 吗？该操作不可撤销。')) return;
+            if (!_archiveVenueId) return;
+            const fd = new FormData();
+            fd.append('action', 'delete');
+            fd.append('venue_id', _archiveVenueId);
+            fd.append('slot_id', slotId);
+            fd.append('active_tab', 'archive_time_slot');
+            fetch('/admin/time-slot-config', { method: 'POST', body: fd }).then(() => {
+                loadArchiveTimeSlotList();
+            });
+        }
+
+        function loadArchiveDisabledDates() {
+            if (!_archiveVenueId) return;
+            fetch('/admin/get-disabled-dates/' + _archiveVenueId).then(r => r.json()).then(data => {
+                document.getElementById('archiveDisabledDateList').innerHTML = data.disabled_dates.length === 0
+                    ? '<p class="text-muted">暂无禁用日期</p>'
+                    : '<table class="table table-sm"><thead><tr><th>日期</th><th>操作</th></tr></thead><tbody>'
+                    + data.disabled_dates.map(dd => '<tr><td>' + dd.disabled_date + '</td><td><button class="btn btn-outline-danger btn-sm" onclick="archiveDisabledDateDelete(' + dd.id + ')">删除</button></td></tr>').join('')
+                    + '</tbody></table>';
+            });
+        }
+
+        function archiveDisabledDateAdd(event) {
+            event.preventDefault();
+            if (!_archiveVenueId) return;
+            const dateVal = document.getElementById('archiveDisabledDateInput').value;
+            if (!dateVal) return;
+            const fd = new FormData();
+            fd.append('action', 'add');
+            fd.append('venue_id', _archiveVenueId);
+            fd.append('disabled_date', dateVal);
+            fd.append('active_tab', 'archive_time_slot');
+            fetch('/admin/disabled-date', { method: 'POST', body: fd }).then(() => {
+                document.getElementById('archiveDisabledDateInput').value = '';
+                loadArchiveDisabledDates();
+            });
+            return false;
+        }
+
+        function archiveDisabledDateDelete(disabledId) {
+            if (!confirm('确认删除该禁用日期？')) return;
+            if (!_archiveVenueId) return;
+            const fd = new FormData();
+            fd.append('action', 'delete');
+            fd.append('venue_id', _archiveVenueId);
+            fd.append('disabled_id', disabledId);
+            fd.append('active_tab', 'archive_time_slot');
+            fetch('/admin/disabled-date', { method: 'POST', body: fd }).then(() => {
+                loadArchiveDisabledDates();
+            });
+        }
+
         function openApprovalStaffModal() {
             document.getElementById('asAction').value = 'create';
             document.getElementById('asEditId').value = '';
@@ -1754,6 +2005,7 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
         if (document.getElementById('tab-users') && document.getElementById('tab-users').classList.contains('active')) loadUsers();
         if (document.getElementById('tab-logs') && document.getElementById('tab-logs').classList.contains('active')) loadLogs();
         if (document.getElementById('tab-venue-news') && document.getElementById('tab-venue-news').classList.contains('active')) initVenueNewsEditor();
+        if (document.getElementById('tab-archive-time-slot') && document.getElementById('tab-archive-time-slot').classList.contains('active')) initArchiveTimeSlotTab();
 
         function viewReservationDetail(id) {
             fetch('/admin/api/reservation/' + id).then(r => r.json()).then(data => {
