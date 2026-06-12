@@ -76,7 +76,7 @@
         }
 
         .module-card {
-            background: white;
+            background: linear-gradient(135deg, var(--green-600) 0%, var(--green-500) 100%);
             border-radius: var(--radius-lg);
             padding: clamp(18px, 4vh, 32px) clamp(10px, 3vw, 20px) clamp(14px, 3vh, 24px);
             text-align: center;
@@ -90,6 +90,7 @@
             justify-content: center;
             gap: clamp(6px, 1.5vh, 12px);
             min-height: clamp(100px, 22vh, 150px);
+            color: #fff;
         }
 
         .module-card:active {
@@ -108,31 +109,31 @@
         }
 
         .module-card:nth-child(1) .module-icon {
-            background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .module-card:nth-child(2) .module-icon {
-            background: linear-gradient(135deg, #FFF3E0, #FFE0B2);
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .module-card:nth-child(3) .module-icon {
-            background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .module-card:nth-child(4) .module-icon {
-            background: linear-gradient(135deg, #FCE4EC, #F8BBD0);
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .module-title {
             font-size: clamp(0.85rem, 2.5vw, 1rem);
             font-weight: 600;
-            color: var(--text-primary);
+            color: #fff;
             margin: 0;
         }
 
         .module-desc {
             font-size: clamp(0.65rem, 1.8vw, 0.75rem);
-            color: var(--text-tertiary);
+            color: rgba(255, 255, 255, 0.85);
             margin: 0;
             line-height: 1.5;
         }
