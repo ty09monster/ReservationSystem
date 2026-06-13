@@ -71,22 +71,21 @@
 
 
         <section class="action-section">
-            <a href="{{ url_for('h5.reserve') }}" class="action-card action-reserve">
-                <div class="action-icon"><img src="{{ url_for('static', filename='images/校史馆.png') }}" alt="预约参观"></div>
-                <div class="action-body">
-                    <div class="action-title">预约参观</div>
-                    <div class="action-desc">校史馆*标本馆参观预约</div>
-                </div>
-                <div class="action-arrow">→</div>
-            </a>
             <a href="{{ url_for('h5.archive_request') }}" class="action-card action-archive">
-                <div class="action-icon"><img src="{{ url_for('static', filename='images/档案馆.png') }}" alt="预约查询档案">
+                <div class="action-icon"><img src="{{ url_for('static', filename='images/档案馆.png') }}" alt="档案预约查阅">
                 </div>
                 <div class="action-body">
-                    <div class="action-title">预约查询档案</div>
-                    <div class="action-desc">线下档案查阅预约</div>
+                    <div class="action-title">档案预约查阅</div>
                 </div>
-                <div class="action-arrow">→</div>
+                <div class="action-arrow"><img src="{{ url_for('static', filename='images/t1.png') }}" alt=""></div>
+            </a>
+            <a href="{{ url_for('h5.reserve') }}" class="action-card action-reserve">
+                <div class="action-icon"><img src="{{ url_for('static', filename='images/校史馆.png') }}"
+                        alt="校史馆,标本馆参观预约"></div>
+                <div class="action-body">
+                    <div class="action-title">校史馆,标本馆参观预约</div>
+                </div>
+                <div class="action-arrow"><img src="{{ url_for('static', filename='images/t2.png') }}" alt=""></div>
             </a>
         </section>
 

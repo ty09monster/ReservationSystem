@@ -49,11 +49,15 @@
         }
 
         .landing-header h1 {
-            font-size: clamp(1.05rem, 3.5vw, 1.35rem);
+            font-size: clamp(0.9rem, 3.4vw, 1.08rem);
             font-weight: 700;
             color: var(--text-primary);
             margin: 0;
-            letter-spacing: 1px;
+            letter-spacing: 0;
+            padding-left: 62px;
+            padding-right: 4px;
+            text-align: left;
+            white-space: nowrap;
         }
 
         .landing-header p {
@@ -75,7 +79,6 @@
         }
 
         .module-card {
-            background: linear-gradient(135deg, var(--green-600) 0%, var(--green-500) 100%);
             border-radius: var(--radius-lg);
             padding: clamp(18px, 4vh, 32px) clamp(10px, 3vw, 20px) clamp(14px, 3vh, 24px);
             text-align: center;
@@ -90,6 +93,23 @@
             gap: clamp(6px, 1.5vh, 12px);
             min-height: clamp(100px, 22vh, 150px);
             color: #fff;
+        }
+
+        .module-card.card-red {
+            background: linear-gradient(135deg, #dc3545 0%, #e4606d 100%);
+        }
+
+        .module-card.card-yellow {
+            background: linear-gradient(135deg, #ffc107 0%, #ffda6a 100%);
+            color: #333;
+        }
+
+        .module-card.card-blue {
+            background: linear-gradient(135deg, #0d6efd 0%, #5c9dff 100%);
+        }
+
+        .module-card.card-green {
+            background: linear-gradient(135deg, var(--green-600) 0%, var(--green-500) 100%);
         }
 
         .module-card:active {
@@ -138,30 +158,30 @@
         <div class="landing-header">
             <img src="{{ url_for('static', filename='images/emblem.png') }}" alt="校徽" class="emblem"
                 onerror="this.style.display='none'">
-            <h1>河南农业大学档案馆<br>（农业资源标本馆）</h1>
+            <h1>河南农业大学档案馆（农业资源标本馆）</h1>
             <p class="subtitle">预约服务平台</p>
         </div>
 
         <div class="module-grid">
-            <a href="{{ url_for('h5.index') }}" class="module-card">
+            <a href="{{ url_for('h5.index') }}" class="module-card card-red">
                 <div class="module-icon"><img src="{{ url_for('static', filename='images/预约服务.png') }}" alt="预约服务">
                 </div>
                 <h2 class="module-title">预约服务</h2>
                 <p class="module-desc">场地参观<br>活动预约</p>
             </a>
-            <a href="{{ url_for('h5.venue_news') }}" class="module-card">
+            <a href="{{ url_for('h5.venue_news') }}" class="module-card card-yellow">
                 <div class="module-icon"><img src="{{ url_for('static', filename='images/馆务动态.jpg') }}" alt="馆务动态">
                 </div>
                 <h2 class="module-title">馆务动态</h2>
                 <p class="module-desc">场馆最新<br>动态资讯</p>
             </a>
-            <a href="{{ url_for('h5.faq') }}" class="module-card">
+            <a href="{{ url_for('h5.faq') }}" class="module-card card-blue">
                 <div class="module-icon"><img src="{{ url_for('static', filename='images/常见问题.jpg') }}" alt="常见问题">
                 </div>
                 <h2 class="module-title">常见问题</h2>
                 <p class="module-desc">预约常见<br>问题解答</p>
             </a>
-            <a href="{{ url_for('h5.announcements') }}" class="module-card">
+            <a href="{{ url_for('h5.announcements') }}" class="module-card card-green">
                 <div class="module-icon"><img src="{{ url_for('static', filename='images/通知公告.jpg') }}" alt="通知公告">
                 </div>
                 <h2 class="module-title">通知公告</h2>

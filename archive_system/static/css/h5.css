@@ -489,6 +489,14 @@ body {
   color: var(--text-tertiary);
   flex-shrink: 0;
   transition: transform 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.action-arrow img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
 }
 .action-card:active .action-arrow {
   transform: translateX(4px);
