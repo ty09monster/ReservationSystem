@@ -25,6 +25,8 @@ if not _secret_key:
 
 class Config:
     SECRET_KEY = _secret_key
+    # 文件上传大小限制（支持最多7张、每张15MB）
+    MAX_CONTENT_LENGTH = 200 * 1024 * 1024
     # MySQL连接配置
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or "mysql://henau:henau123456@localhost/archive_system"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
