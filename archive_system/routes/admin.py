@@ -403,7 +403,7 @@ def export_reservations():
     else:
         headers = [
             '序号', '申请时间', '查阅方式', '预约类型', '申请人姓名', '证件类型', '证件号码',
-            '手机号', '单位名称', '参观单位', '参观场馆', '校区', '参观日期',
+            '手机号', '单位名称', '参观场馆', '校区', '参观日期',
             '参观时间', '参观人数', '需要讲解', '讲解员', '车牌号', '审批状态',
             '拒绝原因', '核销时间', '申请理由'
         ]
@@ -453,7 +453,6 @@ def export_reservations():
                 r.user.id_card if r.user else '',
                 r.user.phone if r.user else '',
                 r.group_name or '',
-                r.visiting_unit or '',
                 r.venue.name,
                 r.campus or '',
                 r.visit_date.strftime('%Y-%m-%d') if r.visit_date else '',
@@ -475,7 +474,7 @@ def export_reservations():
     if is_archive:
         column_widths = [6, 18, 10, 20, 14, 12, 12, 14, 20, 12, 14, 14, 12]
     else:
-        column_widths = [6, 18, 10, 10, 10, 20, 14, 20, 20, 22, 14, 12, 14, 10, 10, 12, 10, 10, 16, 18, 30]
+        column_widths = [6, 18, 10, 10, 10, 20, 14, 20, 20, 14, 12, 14, 10, 10, 12, 10, 10, 16, 18, 30]
 
     for i, width in enumerate(column_widths):
         ws.column_dimensions[chr(65 + i)].width = width
