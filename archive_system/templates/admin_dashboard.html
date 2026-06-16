@@ -1571,10 +1571,10 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
 
         {% if management_area == 'archive' %}
         const _ARCHIVE_VENUE_IDS = [
-            {% for v in venues %}{% if v.category == '档案馆' %} { { v.id } }, {% endif %} {% endfor %}
+            {% for v in venues %}{% if v.category == '档案馆' %}{{ v.id }},{% endif %}{% endfor %}
         ];
         const _ARCHIVE_VENUE_NAMES = {
-            {% for v in venues %} {% if v.category == '档案馆' %} { { v.id } }: '{{ v.name }}', {% endif %}{% endfor %}
+            {% for v in venues %}{% if v.category == '档案馆' %}{{ v.id }}: '{{ v.name }}',{% endif %}{% endfor %}
         };
         {% endif %}
 
