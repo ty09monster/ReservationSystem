@@ -834,19 +834,7 @@
             <div class="tab-content-section {% if active_tab == 'archive_time_slot' %}active{% endif %}"
                 id="tab-archive-time-slot">
                 <h5 class="mb-3">档案馆时段管理</h5>
-                {% if venues|selectattr('category', 'equalto', '档案馆')|list|length > 1 %}
-                <div class="mb-3">
-                    <label class="form-label small mb-1">选择场馆：</label>
-                    <select id="archiveVenueSelector" class="form-select form-select-sm" style="max-width:260px;"
-                        onchange="archiveSelectVenue(parseInt(this.value))">
-                        {% for v in venues %}
-                        {% if v.category == '档案馆' %}
-                        <option value="{{ v.id }}" {% if loop.first %}selected{% endif %}>{{ v.name }}</option>
-                        {% endif %}
-                        {% endfor %}
-                    </select>
-                </div>
-                {% endif %}
+
                 <p class="text-muted small mb-3">管理档案馆预约查询的可用时段，用户的预约表单将展示此处配置的时段。</p>
                 <div class="card-custom">
                     <div class="card-body">
@@ -1583,10 +1571,10 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
 
         {% if management_area == 'archive' %}
         const _ARCHIVE_VENUE_IDS = [
-            {% for v in venues %}{% if v.category == '档案馆' %}{{ v.id }},{% endif %}{% endfor %}
+            {% for v in venues %}{% if v.category == '档案馆' %} { { v.id } }, {% endif %} {% endfor %}
         ];
         const _ARCHIVE_VENUE_NAMES = {
-            {% for v in venues %}{% if v.category == '档案馆' %}{{ v.id }}: '{{ v.name }}',{% endif %}{% endfor %}
+            {% for v in venues %} {% if v.category == '档案馆' %} { { v.id } }: '{{ v.name }}', {% endif %}{% endfor %}
         };
         {% endif %}
 
@@ -2032,6 +2020,7 @@ ${isArchive ? '' : '<td>' + (r.guide_info || '-') + '</td>'}
                 html += '<tr><th class="bg-light">参观日期</th><td>' + data.visit_date + '</td></tr>';
                 html += '<tr><th class="bg-light">参观时间</th><td>' + (data.visit_time || '-') + '</td></tr>';
                 html += '<tr><th class="bg-light">参观人数</th><td>' + (data.visitor_count || 1) + '</td></tr>';
+                html += '<tr><th class="bg-light">车牌号</th><td>' + (data.license_plate || '-') + '</td></tr>';
                 html += '</tbody></table></div>';
                 if (MANAGEMENT_AREA !== 'archive') {
                     html += '<div class="col-md-6"><table class="table table-sm table-bordered"><tbody>';
