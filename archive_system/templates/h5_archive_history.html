@@ -145,44 +145,9 @@
                         <option value="已取消" {% if curr_status=='已取消' %}selected{% endif %}>已取消</option>
                     </select>
                 </div>
-                <div class="col-4">
-                    <label class="form-label small text-muted mb-1">开始日期</label>
-                    <input type="date" name="start_date" class="form-control form-control-sm" value="{{ curr_start_date }}">
-                </div>
-                <div class="col-4">
-                    <label class="form-label small text-muted mb-1">结束日期</label>
-                    <input type="date" name="end_date" class="form-control form-control-sm" value="{{ curr_end_date }}">
-                </div>
                 <div class="col-4 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary btn-sm w-100">查询</button>
                 </div>
-            </div>
-            <div class="row g-2 mt-2">
-                <div class="col-auto">
-                    <span class="small text-muted me-1">快捷：</span>
-                </div>
-                <div class="col-auto">
-                    <a href="?time_range=week{% if curr_status %}&status={{ curr_status }}{% endif %}{% if curr_type %}&type={{ curr_type }}{% endif %}"
-                       class="btn btn-sm {% if curr_time_range == 'week' %}btn-primary{% else %}btn-outline-primary{% endif %}">近一周</a>
-                </div>
-                <div class="col-auto">
-                    <a href="?time_range=month{% if curr_status %}&status={{ curr_status }}{% endif %}{% if curr_type %}&type={{ curr_type }}{% endif %}"
-                       class="btn btn-sm {% if curr_time_range == 'month' %}btn-primary{% else %}btn-outline-primary{% endif %}">近一月</a>
-                </div>
-                <div class="col-auto">
-                    <a href="?time_range=3month{% if curr_status %}&status={{ curr_status }}{% endif %}{% if curr_type %}&type={{ curr_type }}{% endif %}"
-                       class="btn btn-sm {% if curr_time_range == '3month' %}btn-primary{% else %}btn-outline-primary{% endif %}">近三月</a>
-                </div>
-                {% if curr_time_range %}
-                <div class="col-auto">
-                    <a href="?{% if curr_status %}status={{ curr_status }}{% endif %}{% if curr_type %}&type={{ curr_type }}{% endif %}"
-                       class="btn btn-sm btn-outline-secondary">清除筛选</a>
-                </div>
-                {% endif %}
-            </div>
-            <div class="d-flex justify-content-end mt-2">
-                <a href="{{ url_for('h5.archive_history') }}" class="btn btn-outline-secondary btn-sm">重置全部</a>
-            </div>
             </form>
         </div>
 
