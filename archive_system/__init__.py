@@ -180,11 +180,12 @@ def ensure_table_schema():
 
 
 def ensure_runtime():
-    """每次启动时运行：补全缺失的表结构 + 填充缺失的默认数据。
+    """每次启动时运行：确保数据库表存在 + 补全缺失的表结构 + 填充缺失的默认数据。
     使用原子锁文件，避免多 worker 重复执行。"""
     import sys
     import atexit
     import time
+    from sqlalchemy import inspect as sa_inspect, text
 
     runtime_lock = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -219,6 +220,18 @@ def ensure_runtime():
             return
 
     try:
+        # 检测必要表是否存在，不存在则自动创建
+        inspector = sa_inspect(db.engine)
+        existing_tables = inspector.get_table_names()
+        required_tables = set(db.metadata.tables.keys())
+        if not required_tables.issubset(existing_tables):
+            missing = required_tables - set(existing_tables)
+            sys.stdout.write(
+                f"[Runtime] 检测到 {len(missing)} 张表缺失，自动创建: "
+                f"{', '.join(sorted(missing))}\n"
+            )
+            sys.stdout.flush()
+            db.create_all()
         ensure_table_schema()
         ensure_default_data()
     except Exception as e:
